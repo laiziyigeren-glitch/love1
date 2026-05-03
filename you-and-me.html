@@ -2892,7 +2892,11 @@ document.getElementById('loveModal').addEventListener('click', (e) => {
 // ===== BACKEND INTEGRATION =====
 const SPACE_SLUG = 'default';
 const API_BASE = window.LOVE1_API_BASE || `/api`;
+const SPACE_CACHE_KEY = `love1:space:${SPACE_SLUG}:v1`;
 let spaceData = null;
+let lastSpaceSignature = '';
+let backendRefreshInFlight = false;
+let lastBackendRefreshAt = 0;
 let albumFilter = '全部';
 let albumSort = 'latest';
 let albumMemoryShowAll = false;
@@ -2982,12 +2986,43 @@ const romanceProjects = [
 ];
 
 async function apiFetch(path, options = {}) {
+  const { timeoutMs = 20000, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  });
+    signal: controller.signal,
+    ...fetchOptions,
+  }).finally(() => clearTimeout(timer));
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
+}
+
+function readSpaceCache() {
+  try {
+    const raw = localStorage.getItem(SPACE_CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    return cached?.data || null;
+  } catch (error) {
+    console.warn('Failed to read local space cache.', error);
+    return null;
+  }
+}
+
+function writeSpaceCache(data) {
+  try {
+    localStorage.setItem(SPACE_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data }));
+  } catch (error) {
+    console.warn('Failed to write local space cache.', error);
+  }
+}
+
+function renderSpaceIfChanged(data, force = false) {
+  const signature = JSON.stringify(data);
+  if (!force && signature === lastSpaceSignature) return;
+  lastSpaceSignature = signature;
+  renderSpace(data);
 }
 
 function setText(selector, value) {
@@ -4051,13 +4086,21 @@ function renderSpace(data) {
   setupReminders(data);
 }
 
-async function loadSpaceFromBackend() {
+async function loadSpaceFromBackend({ force = false } = {}) {
+  const now = Date.now();
+  if (backendRefreshInFlight) return;
+  if (!force && now - lastBackendRefreshAt < 15000) return;
+  backendRefreshInFlight = true;
+  lastBackendRefreshAt = now;
   try {
-    const data = await apiFetch(`/public/spaces/${SPACE_SLUG}/bootstrap`);
+    const data = await apiFetch(`/public/spaces/${SPACE_SLUG}/bootstrap`, { timeoutMs: 25000 });
     if (settingsDirty) return;
-    renderSpace(data);
+    writeSpaceCache(data);
+    renderSpaceIfChanged(data);
   } catch (error) {
     console.warn('Backend is not ready, using static HTML content.', error);
+  } finally {
+    backendRefreshInFlight = false;
   }
 }
 
@@ -4396,6 +4439,8 @@ document.addEventListener('DOMContentLoaded', () => {
   bindSettingsPageControls();
   renderRomanceProjects();
   bindRomanceFilters();
+  const cachedSpace = readSpaceCache();
+  if (cachedSpace) renderSpaceIfChanged(cachedSpace, true);
   const lightbox = document.getElementById('mediaLightbox');
   if (lightbox) {
     lightbox.addEventListener('click', (event) => {
@@ -4408,8 +4453,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (event.target === romancePreview) closeRomancePreview();
     });
   }
-  loadSpaceFromBackend();
-  setInterval(loadSpaceFromBackend, 5000);
+  setTimeout(() => loadSpaceFromBackend({ force: !cachedSpace }), cachedSpace ? 800 : 0);
+  setInterval(() => {
+    if (document.visibilityState === 'visible' && !settingsDirty) loadSpaceFromBackend();
+  }, 60000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !settingsDirty) loadSpaceFromBackend({ force: true });
+  });
 });
 </script>
 </body>
