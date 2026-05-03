@@ -31,4 +31,9 @@ copyFile(path.join(root, 'index.html'), path.join(outDir, 'index.html'));
 copyFile(path.join(root, 'config.example.js'), path.join(outDir, 'config.js'));
 copyDir(path.join(root, '爱心代码合集'), path.join(outDir, 'heart-garden'));
 
+fs.writeFileSync(
+  path.join(outDir, '_redirects'),
+  ['/you-and-me /you-and-me.html 200', '/you-and-me/ /you-and-me.html 200', ''].join('\n'),
+);
+
 console.log(`Built front-end static files into ${outDir}`);
