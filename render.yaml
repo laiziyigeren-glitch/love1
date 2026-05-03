@@ -3,7 +3,7 @@ services:
     name: love1-api
     env: node
     plan: free
-    buildCommand: npm install && npm --workspace server run prisma:generate && npm --workspace server run prisma:deploy && npm --workspace server run build
+    buildCommand: npm install && npm --workspace server run prisma:generate && npm --workspace server run prisma:push && npm --workspace server run build
     startCommand: npm --workspace server run prisma:seed && npm --workspace server run start
     healthCheckPath: /api/public/spaces/default/bootstrap
     envVars:
