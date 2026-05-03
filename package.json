@@ -1,6 +1,9 @@
 {
   "name": "love1-platform",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev:server": "npm --workspace server run start:dev",
     "dev:admin": "npm --workspace admin run dev",
