@@ -1,0 +1,16 @@
+node_modules/
+admin/node_modules/
+server/node_modules/
+
+dist-web/
+admin/dist/
+server/dist/
+
+*.log
+*.err.log
+
+.env
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

@@ -1,0 +1,170 @@
+export type ThemeConfig = {
+  primaryColor: string;
+  accentColor: string;
+  backgroundUrl: string;
+  effects: {
+    particles: boolean;
+    petals: boolean;
+    glass: boolean;
+    blur: number;
+    brightness: number;
+  };
+};
+
+export type Profile = {
+  id: string;
+  name: string;
+  nickname: string;
+  avatarUrl: string;
+  bio: string;
+};
+
+export type HomeSettings = {
+  pageHeaders: Record<
+    'home' | 'anniversary' | 'album' | 'music' | 'settings',
+    {
+      title: string;
+      subtitle: string;
+      imageUrl: string;
+    }
+  >;
+  heartIndex: {
+    value: number;
+    labels: string[];
+    values: number[];
+    quote: string;
+  };
+  aboutImageUrl: string;
+  aboutImageVisible: boolean;
+  moments: Array<{
+    id: string;
+    title: string;
+    date: string;
+  }>;
+  promises: Array<{
+    id: string;
+    icon: string;
+    text: string;
+  }>;
+  mailbox: {
+    text: string;
+    author: string;
+  };
+  music: {
+    bgmSongId: string;
+    volume: number;
+    autoplay: boolean;
+    moodPlaylists: Array<{
+      id: string;
+      title: string;
+      description: string;
+      coverUrl: string;
+      songIds: string[];
+    }>;
+  };
+  privacy: {
+    passwordEnabled: boolean;
+    password: string;
+    privateAlbum: boolean;
+    shareLinkEnabled: boolean;
+  };
+  reminders: {
+    anniversaryEnabled: boolean;
+    anniversaryDays: number;
+    surpriseEnabled: boolean;
+    dailyQuoteEnabled: boolean;
+    dailyQuoteTime: string;
+  };
+  anniversaryPage: {
+    startDate: string;
+    startTitle: string;
+    firstMeetDate: string;
+    showCountdown: boolean;
+    dailyQuotes: Array<{
+      id: string;
+      text: string;
+      author: string;
+    }>;
+    note: string;
+  };
+  heartGarden: {
+    projects: HeartGardenProject[];
+  };
+};
+
+export type Anniversary = {
+  id: string;
+  title: string;
+  eventDate: string;
+  type: string;
+  repeatYearly: boolean;
+  showCountdown: boolean;
+  description: string;
+};
+
+export type AlbumItem = {
+  id: string;
+  title: string;
+  album: string;
+  mediaType: 'IMAGE' | 'VIDEO' | 'AUDIO';
+  url: string;
+  thumbnailUrl: string;
+  takenAt: string;
+  location: string;
+  tags: string[];
+  favorite: boolean;
+  visibility: 'PUBLIC' | 'PRIVATE';
+};
+
+export type LoveLetter = {
+  id: string;
+  title: string;
+  body: string;
+  signature: string;
+  letterDate: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'HIDDEN';
+};
+
+export type Song = {
+  id: string;
+  title: string;
+  artist: string;
+  duration: number;
+  coverUrl: string;
+  audioUrl: string;
+  lyric: string;
+  favorite: boolean;
+};
+
+export type HeartGardenProject = {
+  id: string;
+  title: string;
+  type: 'html';
+  group: 'particle' | 'confession' | 'custom';
+  tag: string;
+  icon: string;
+  description: string;
+  url: string;
+  cover: string;
+  status: 'ready' | 'pending';
+  content?: string;
+};
+
+export type SpaceData = {
+  slug: string;
+  name: string;
+  subtitle: string;
+  profiles: Profile[];
+  site: {
+    heroTitle: string;
+    heroText: string;
+    story: string;
+    stats: Array<{ label: string; value: string }>;
+    settings: HomeSettings;
+  };
+  theme: ThemeConfig;
+  anniversaries: Anniversary[];
+  albumItems: AlbumItem[];
+  letters: LoveLetter[];
+  songs: Song[];
+};

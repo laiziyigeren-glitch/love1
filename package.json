@@ -1,0 +1,20 @@
+{
+  "name": "love1-platform",
+  "private": true,
+  "scripts": {
+    "dev:server": "npm --workspace server run start:dev",
+    "dev:admin": "npm --workspace admin run dev",
+    "dev:web": "vite --host 0.0.0.0 --port 5174",
+    "build:web": "node scripts/build-web.js",
+    "build": "npm --workspace server run build && npm --workspace admin run build",
+    "prisma:generate": "npm --workspace server run prisma:generate",
+    "prisma:migrate": "npm --workspace server run prisma:migrate",
+    "prisma:seed": "npm --workspace server run prisma:seed",
+    "mysql:init": "mysql -uroot -p123456 -e \"CREATE DATABASE IF NOT EXISTS love1 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci\"",
+    "mysql:schema": "cmd /c \"mysql -uroot -p123456 love1 < server\\prisma\\mysql-init.sql\""
+  },
+  "workspaces": [
+    "server",
+    "admin"
+  ]
+}

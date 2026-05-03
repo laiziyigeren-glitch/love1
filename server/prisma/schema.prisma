@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum MemberRole {
+  OWNER
+  PARTNER
+  ADMIN
+  VIEWER
+}
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  memberships  SpaceMember[]
+  auditLogs    AuditLog[]
+}
+
+model CoupleSpace {
+  id             String          @id @default(cuid())
+  slug           String          @unique
+  name           String
+  subtitle       String? @db.LongText
+  accessPassword String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  members        SpaceMember[]
+  profiles       Profile[]
+  siteConfig     SiteConfig?
+  themeConfig    ThemeConfig?
+  anniversaries  Anniversary[]
+  timelineEvents TimelineEvent[]
+  albums         Album[]
+  mediaAssets    MediaAsset[]
+  loveLetters    LoveLetter[]
+  songs          Song[]
+  playlists      Playlist[]
+  shareLinks     ShareLink[]
+}
+
+model SpaceMember {
+  id        String     @id @default(cuid())
+  role      MemberRole @default(ADMIN)
+  userId    String
+  spaceId   String
+  user      User       @relation(fields: [userId], references: [id])
+  space     CoupleSpace @relation(fields: [spaceId], references: [id])
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, spaceId])
+}
+
+model Profile {
+  id        String      @id @default(cuid())
+  spaceId   String
+  name      String
+  nickname  String?
+  avatarUrl String? @db.LongText
+  bio       String? @db.LongText
+  sortOrder Int         @default(0)
+  space     CoupleSpace @relation(fields: [spaceId], references: [id])
+}
+
+model SiteConfig {
+  id        String      @id @default(cuid())
+  spaceId   String      @unique
+  heroTitle String
+  heroText  String @db.LongText
+  story     String @db.LongText
+  stats     Json
+  settings  Json
+  space     CoupleSpace @relation(fields: [spaceId], references: [id])
+}
+
+model ThemeConfig {
+  id          String      @id @default(cuid())
+  spaceId     String      @unique
+  primaryColor String
+  accentColor  String
+  backgroundUrl String? @db.LongText
+  effects     Json
+  space       CoupleSpace @relation(fields: [spaceId], references: [id])
+}
+
+model Anniversary {
+  id          String        @id @default(cuid())
+  spaceId     String
+  title       String
+  eventDate   DateTime
+  type        String
+  repeatYearly Boolean      @default(true)
+  showCountdown Boolean     @default(false)
+  description String? @db.LongText
+  sortOrder   Int           @default(0)
+  space       CoupleSpace   @relation(fields: [spaceId], references: [id])
+}
+
+model TimelineEvent {
+  id          String      @id @default(cuid())
+  spaceId     String
+  title       String
+  eventDate   DateTime
+  location    String?
+  description String? @db.LongText
+  coverUrl    String? @db.LongText
+  sortOrder   Int         @default(0)
+  space       CoupleSpace @relation(fields: [spaceId], references: [id])
+}
+
+model Album {
+  id          String      @id @default(cuid())
+  spaceId     String
+  title       String
+  description String? @db.LongText
+  coverUrl    String? @db.LongText
+  sortOrder   Int         @default(0)
+  space       CoupleSpace @relation(fields: [spaceId], references: [id])
+  items       AlbumItem[]
+}
+
+model MediaAsset {
+  id           String      @id @default(cuid())
+  spaceId      String
+  type         MediaType
+  objectKey    String
+  url          String @db.LongText
+  thumbnailUrl String? @db.LongText
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+  createdAt    DateTime    @default(now())
+  space        CoupleSpace @relation(fields: [spaceId], references: [id])
+  albumItems   AlbumItem[]
+}
+
+model AlbumItem {
+  id          String      @id @default(cuid())
+  albumId     String
+  mediaId     String
+  title       String
+  description String? @db.LongText
+  takenAt     DateTime?
+  location    String?
+  tags        Json
+  favorite    Boolean     @default(false)
+  visibility  Visibility  @default(PUBLIC)
+  sortOrder   Int         @default(0)
+  album       Album       @relation(fields: [albumId], references: [id])
+  media       MediaAsset  @relation(fields: [mediaId], references: [id])
+}
+
+model LoveLetter {
+  id        String        @id @default(cuid())
+  spaceId   String
+  title     String
+  body      String @db.LongText
+  signature String?
+  letterDate DateTime?
+  status    PublishStatus @default(PUBLISHED)
+  sortOrder Int           @default(0)
+  space     CoupleSpace   @relation(fields: [spaceId], references: [id])
+}
+
+model Song {
+  id        String      @id @default(cuid())
+  spaceId   String
+  title     String
+  artist    String
+  duration  Int
+  coverUrl  String? @db.LongText
+  audioUrl  String? @db.LongText
+  lyric     String? @db.LongText
+  favorite  Boolean     @default(false)
+  space     CoupleSpace @relation(fields: [spaceId], references: [id])
+  playlists PlaylistItem[]
+}
+
+model Playlist {
+  id        String      @id @default(cuid())
+  spaceId   String
+  title     String
+  coverUrl  String? @db.LongText
+  sortOrder Int         @default(0)
+  space     CoupleSpace @relation(fields: [spaceId], references: [id])
+  items     PlaylistItem[]
+}
+
+model PlaylistItem {
+  id         String   @id @default(cuid())
+  playlistId String
+  songId     String
+  sortOrder  Int      @default(0)
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  song       Song     @relation(fields: [songId], references: [id])
+
+  @@unique([playlistId, songId])
+}
+
+model ShareLink {
+  id          String      @id @default(cuid())
+  spaceId     String
+  token       String      @unique
+  expiresAt   DateTime?
+  maxVisits   Int?
+  visitCount  Int         @default(0)
+  allowPrivate Boolean    @default(false)
+  enabled     Boolean     @default(true)
+  space       CoupleSpace @relation(fields: [spaceId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  target    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+}

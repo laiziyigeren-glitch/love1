@@ -1,0 +1,5 @@
+前提条件：安装了Python环境！！！
+
+运行方式，用Python的编辑器，pycharm或者vscode，打开python画爱心.py文件，
+
+右键空白处，然后选择【运行】
