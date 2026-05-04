@@ -1,5 +1,33 @@
 ﻿<template>
-  <el-container class="shell">
+  <section v-if="!isAuthenticated" class="login-shell">
+    <el-card class="login-card" shadow="never">
+      <div class="brand login-brand">
+        <div class="brand-mark">YM</div>
+        <div>
+          <strong>You & Me</strong>
+          <span>后台管理</span>
+        </div>
+      </div>
+      <el-form label-position="top" @submit.prevent>
+        <el-form-item label="管理员邮箱">
+          <el-input v-model="loginForm.email" autocomplete="username" placeholder="请输入管理员邮箱" />
+        </el-form-item>
+        <el-form-item label="管理员密码">
+          <el-input
+            v-model="loginForm.password"
+            autocomplete="current-password"
+            placeholder="请输入管理员密码"
+            show-password
+            type="password"
+            @keyup.enter="submitLogin"
+          />
+        </el-form-item>
+        <el-button class="login-button" type="primary" :loading="loginLoading" @click="submitLogin">进入后台</el-button>
+      </el-form>
+    </el-card>
+  </section>
+
+  <el-container v-else class="shell">
     <el-aside width="232px" class="sidebar">
       <div class="brand">
         <div class="brand-mark">YM</div>
@@ -28,7 +56,10 @@
           <h1>{{ pageTitle }}</h1>
           <p>这里保存的数据会被前台页面读取。保存后前台会自动同步，也可以手动刷新。</p>
         </div>
-        <el-button type="primary" :loading="loading" @click="load">刷新数据</el-button>
+        <div class="topbar-actions">
+          <el-button :loading="loading" @click="load">刷新数据</el-button>
+          <el-button type="primary" plain @click="logout">退出登录</el-button>
+        </div>
       </el-header>
 
       <el-main v-if="dashboard" class="main">
@@ -503,12 +534,15 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox, type UploadRequestOptions } from 'element-plus';
 import {
   type Dashboard,
+  clearAdminToken,
   completeMediaUpload,
   deleteAlbumItem,
   deleteAnniversary,
   deleteLetter,
   deleteSong,
   fetchDashboard,
+  getAdminToken,
+  loginAdmin,
   saveAnniversary,
   saveLetter,
   saveProfiles,
@@ -520,6 +554,12 @@ import {
 
 const active = ref('dashboard');
 const loading = ref(false);
+const loginLoading = ref(false);
+const isAuthenticated = ref(Boolean(getAdminToken()));
+const loginForm = reactive({
+  email: '',
+  password: '',
+});
 const dashboard = ref<Dashboard | null>(null);
 const pageHeaderKeys = [
   { key: 'home', label: '首页' },
@@ -612,12 +652,45 @@ async function load() {
     ensureHeartGardenSettings();
     dashboard.value.site.settings.anniversaryPage.firstMeetDate ||= '2024-08-14T00:00';
     dashboard.value.site.settings.anniversaryPage.showCountdown ??= true;
-  } catch {
+  } catch (error) {
+    if ((error as { response?: { status?: number } }).response?.status === 401) {
+      clearAdminToken();
+      isAuthenticated.value = false;
+      dashboard.value = null;
+      ElMessage.error('登录已失效，请重新登录');
+      return;
+    }
     dashboard.value = null;
     ElMessage.error('无法连接后端，请确认 API 和 MySQL 已启动');
   } finally {
     loading.value = false;
   }
+}
+
+async function submitLogin() {
+  if (!loginForm.email || !loginForm.password) {
+    ElMessage.warning('请填写管理员邮箱和密码');
+    return;
+  }
+  loginLoading.value = true;
+  try {
+    await loginAdmin(loginForm);
+    isAuthenticated.value = true;
+    loginForm.password = '';
+    ElMessage.success('登录成功');
+    await load();
+  } catch {
+    ElMessage.error('登录失败，请检查 Render 里的 ADMIN_EMAIL 和 ADMIN_PASSWORD');
+  } finally {
+    loginLoading.value = false;
+  }
+}
+
+function logout() {
+  clearAdminToken();
+  isAuthenticated.value = false;
+  dashboard.value = null;
+  ElMessage.success('已退出后台');
 }
 
 function ensurePageHeaders() {
@@ -1237,10 +1310,33 @@ function videoToPosterDataUrl(file: File) {
   });
 }
 
-onMounted(load);
+onMounted(() => {
+  if (isAuthenticated.value) void load();
+});
 </script>
 
 <style scoped>
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(229, 139, 117, 0.18), transparent 28%),
+    linear-gradient(135deg, #f8f2ef, #fffaf7);
+}
+.login-card {
+  width: min(420px, 100%);
+  border-radius: 8px;
+  border-color: #eadfda;
+}
+.login-brand {
+  color: #201414;
+  margin-bottom: 24px;
+  padding: 0;
+}
+.login-brand span { color: #8d7670; }
+.login-button { width: 100%; margin-top: 4px; }
 .shell { min-height: 100vh; background: #f7f4f1; color: #1f1717; }
 .sidebar { background: #211010; color: #fff; padding: 22px 16px; }
 .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
@@ -1253,6 +1349,7 @@ onMounted(load);
 .topbar { height: 88px; background: #fff; border-bottom: 1px solid #e8dfda; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
 .topbar h1 { margin: 0 0 6px; font-size: 24px; }
 .topbar p { margin: 0; color: #806f6a; font-size: 13px; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
 .main { padding: 24px; }
 .panel-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .wide { grid-column: span 4; }

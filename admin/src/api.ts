@@ -1,8 +1,33 @@
-import axios from 'axios';
+import axios, { AxiosHeaders } from 'axios';
 
 const apiBase = String(import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 const api = axios.create({
   baseURL: apiBase,
+});
+
+const adminTokenKey = 'love1_admin_token';
+
+export function getAdminToken() {
+  return localStorage.getItem(adminTokenKey) || '';
+}
+
+export function setAdminToken(token: string) {
+  localStorage.setItem(adminTokenKey, token);
+}
+
+export function clearAdminToken() {
+  localStorage.removeItem(adminTokenKey);
+}
+
+api.interceptors.request.use((config) => {
+  const token = getAdminToken();
+  if (!token) return config;
+
+  const headers = new AxiosHeaders(config.headers);
+  headers.set('Authorization', `Bearer ${token}`);
+  config.headers = headers;
+
+  return config;
 });
 
 export type Dashboard = {
@@ -159,6 +184,16 @@ export type Dashboard = {
 };
 
 const spaceSlug = 'default';
+
+export async function loginAdmin(payload: { email: string; password: string }) {
+  const response = await api.post<{
+    accessToken: string;
+    email: string;
+    expiresIn: number;
+  }>('/api/admin/login', payload);
+  setAdminToken(response.data.accessToken);
+  return response.data;
+}
 
 export async function fetchDashboard() {
   const response = await api.get<Dashboard>(`/api/admin/spaces/${spaceSlug}/dashboard`);

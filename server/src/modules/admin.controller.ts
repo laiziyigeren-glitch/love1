@@ -1,9 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ContentService } from './content.service';
 import { StorageService } from './storage.service';
+import { AdminAuthGuard } from './admin-auth.guard';
 import { Anniversary, LoveLetter, Profile, Song, SpaceData, ThemeConfig } from './types';
 
 @Controller('admin/spaces/:slug')
+@UseGuards(AdminAuthGuard)
 export class AdminController {
   constructor(
     private readonly content: ContentService,
