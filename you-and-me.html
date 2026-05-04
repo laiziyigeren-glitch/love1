@@ -1771,6 +1771,14 @@ nav {
     padding: 34px 22px 28px;
     border-radius: 22px;
   }
+  .couple-login-card::before,
+  .couple-login-mark,
+  .couple-login-spark {
+    animation: none !important;
+  }
+  .couple-login-overlay {
+    backdrop-filter: blur(10px) saturate(1.2);
+  }
   .couple-login-title { font-size: 30px; }
   .mobile-tabbar {
     position: fixed;
@@ -3125,14 +3133,27 @@ function renderCoupleEntrance(settings = {}) {
   const entrance = normalizeSettings(settings).coupleEntrance;
   const mark = document.getElementById('coupleLoginMark');
   if (mark) {
-    mark.textContent = '';
     if (entrance.imageUrl) {
-      const image = document.createElement('img');
-      image.src = entrance.imageUrl;
-      image.alt = entrance.title || '情侣入口';
-      mark.appendChild(image);
+      const currentImage = mark.querySelector('img');
+      if (!currentImage || mark.dataset.imageUrl !== entrance.imageUrl) {
+        const image = document.createElement('img');
+        image.src = entrance.imageUrl;
+        image.alt = entrance.title || '情侣入口';
+        image.loading = 'eager';
+        image.decoding = 'sync';
+        image.addEventListener('load', () => {
+          mark.textContent = '';
+          mark.appendChild(image);
+          mark.dataset.imageUrl = entrance.imageUrl;
+        }, { once: true });
+        image.addEventListener('error', () => {
+          mark.textContent = entrance.mark || '♡';
+          delete mark.dataset.imageUrl;
+        }, { once: true });
+      }
     } else {
       mark.textContent = entrance.mark || '♡';
+      delete mark.dataset.imageUrl;
     }
   }
   setText('#coupleLoginTitle', entrance.title || '情侣入口');
@@ -3885,14 +3906,14 @@ async function coupleApiFetch(path, options = {}) {
   });
 }
 
-function initCoupleEntrance() {
-  renderCoupleEntrance(defaultSettingsState());
+function initCoupleEntrance(settings = defaultSettingsState(), showLogin = true) {
+  renderCoupleEntrance(settings);
   const form = document.getElementById('coupleLoginForm');
   const nameInput = document.getElementById('coupleLoginName');
   const passwordInput = document.getElementById('coupleLoginPassword');
   const submitBtn = document.getElementById('coupleLoginSubmit');
   const error = document.getElementById('coupleLoginError');
-  if (!getCoupleToken()) showCoupleLogin();
+  if (showLogin && !getCoupleToken()) showCoupleLogin();
   if (!form || !nameInput || !passwordInput || !submitBtn) return;
 
   form.addEventListener('submit', async (event) => {
@@ -3916,7 +3937,8 @@ function initCoupleEntrance() {
       if (error) error.textContent = '账号或暗号不对，再轻轻试一次。';
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = '进入我们的世界';
+      const entrance = normalizeSettings(spaceData?.site?.settings || settings).coupleEntrance;
+      submitBtn.textContent = entrance.submitText || '进入我们的世界';
     }
   });
 }
@@ -5068,6 +5090,7 @@ function renderSpace(data) {
   spaceData = data;
   const settings = normalizeSettings(data.site.settings || {});
   document.title = `${data.name} | ${settings.pageHeaders.home.title || data.site.heroTitle}`;
+  applyTheme(data.theme);
   renderCoupleEntrance(settings);
   setText('.profile-name', data.name);
   setText('.profile-tagline', data.subtitle);
@@ -5076,7 +5099,6 @@ function renderSpace(data) {
   ensureAvatarImages(data.profiles?.[0]?.avatarUrl);
   setImage('.profile-avatar img, .settings-avatar img', data.profiles?.[0]?.avatarUrl);
   updateProfileDerivedStats(data);
-  applyTheme(data.theme);
   renderHomeSettings(data.site.settings, data);
   bindHeartIndexFilters();
   renderHomeCountdown(data.site.settings, data.nextAnniversary);
@@ -5448,14 +5470,14 @@ function bindBackendActions() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initCoupleEntrance();
+  const cachedSpace = readSpaceCache();
+  initCoupleEntrance(cachedSpace?.site?.settings || defaultSettingsState(), false);
   prepareLazyMedia();
   bindBackendActions();
   bindSettingsPageControls();
   bindMobileSettingsSections();
   renderRomanceProjects();
   bindRomanceFilters();
-  const cachedSpace = readSpaceCache();
   if (cachedSpace) renderSpaceIfChanged(cachedSpace, true);
   const lightbox = document.getElementById('mediaLightbox');
   if (lightbox) {
@@ -5469,7 +5491,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (event.target === romancePreview) closeRomancePreview();
     });
   }
-  setTimeout(() => loadSpaceFromBackend({ force: !cachedSpace }), cachedSpace ? 800 : 0);
+  if (cachedSpace) {
+    loadSpaceFromBackend({ force: true }).finally(() => {
+      if (!getCoupleToken()) showCoupleLogin();
+    });
+  } else {
+    loadSpaceFromBackend({ force: true }).finally(() => {
+      if (!getCoupleToken()) showCoupleLogin();
+    });
+  }
   setInterval(() => {
     if (document.visibilityState === 'visible' && !settingsDirty) loadSpaceFromBackend();
   }, 60000);
