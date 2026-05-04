@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `CoupleSpace` (
   `slug` VARCHAR(191) NOT NULL,
   `name` VARCHAR(191) NOT NULL,
   `subtitle` TEXT NULL,
+  `accessName` VARCHAR(191) NULL,
   `accessPassword` VARCHAR(191) NULL,
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updatedAt` DATETIME(3) NOT NULL,

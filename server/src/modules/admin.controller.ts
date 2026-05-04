@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@n
 import { ContentService } from './content.service';
 import { StorageService } from './storage.service';
 import { AdminAuthGuard } from './admin-auth.guard';
+import { AuthService } from './auth.service';
 import { Anniversary, LoveLetter, Profile, Song, SpaceData, ThemeConfig } from './types';
 
 @Controller('admin/spaces/:slug')
@@ -10,6 +11,7 @@ export class AdminController {
   constructor(
     private readonly content: ContentService,
     private readonly storage: StorageService,
+    private readonly auth: AuthService,
   ) {}
 
   @Get('dashboard')
@@ -20,6 +22,16 @@ export class AdminController {
   @Patch('site-config')
   updateSite(@Param('slug') slug: string, @Body() body: Partial<SpaceData['site']>) {
     return this.content.updateSite(slug, body);
+  }
+
+  @Get('couple-access')
+  getCoupleAccess(@Param('slug') slug: string) {
+    return this.auth.getCoupleAccess(slug);
+  }
+
+  @Patch('couple-access')
+  updateCoupleAccess(@Param('slug') slug: string, @Body() body: { name?: string; password?: string }) {
+    return this.auth.updateCoupleAccess(slug, body);
   }
 
   @Patch('theme-config')

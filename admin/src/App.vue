@@ -524,6 +524,29 @@
               <el-form-item label="按钮文字">
                 <el-input v-model="dashboard.site.settings.coupleEntrance.submitText" placeholder="进入我们的世界" />
               </el-form-item>
+              <el-divider content-position="left">前台登录账号</el-divider>
+              <el-alert
+                show-icon
+                :closable="false"
+                type="info"
+                title="这里修改的是前台上传用的真实登录账号。密码留空保存时不会修改旧密码。"
+              />
+              <el-form-item label="登录账号">
+                <el-input v-model="coupleAccessForm.name" placeholder="love" autocomplete="off" />
+              </el-form-item>
+              <el-form-item label="登录密码">
+                <el-input
+                  v-model="coupleAccessForm.password"
+                  placeholder="留空则不修改当前密码"
+                  show-password
+                  type="password"
+                  autocomplete="new-password"
+                />
+                <span class="form-hint">{{ coupleAccessForm.passwordSet ? '当前已设置后台自定义密码。' : '当前仍使用 Render 环境变量里的密码。' }}</span>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" plain @click="saveCoupleAccessSettings">保存前台登录账号</el-button>
+              </el-form-item>
               <el-divider content-position="left">相册与提醒</el-divider>
               <el-form-item label="私密相册">
                 <el-switch v-model="dashboard.site.settings.privacy.privateAlbum" active-text="显示私密相册入口" inactive-text="不显示" />
@@ -567,10 +590,12 @@ import {
   deleteAnniversary,
   deleteLetter,
   deleteSong,
+  fetchCoupleAccess,
   fetchDashboard,
   getAdminToken,
   loginAdmin,
   saveAnniversary,
+  saveCoupleAccess,
   saveLetter,
   saveProfiles,
   saveSite,
@@ -586,6 +611,11 @@ const isAuthenticated = ref(Boolean(getAdminToken()));
 const loginForm = reactive({
   email: '',
   password: '',
+});
+const coupleAccessForm = reactive({
+  name: 'love',
+  password: '',
+  passwordSet: false,
 });
 const dashboard = ref<Dashboard | null>(null);
 const pageHeaderKeys = [
@@ -667,7 +697,14 @@ const heartValuesText = computed({
 async function load() {
   loading.value = true;
   try {
-    dashboard.value = await fetchDashboard();
+    const [nextDashboard, coupleAccess] = await Promise.all([
+      fetchDashboard(),
+      fetchCoupleAccess(),
+    ]);
+    dashboard.value = nextDashboard;
+    coupleAccessForm.name = coupleAccess.name || 'love';
+    coupleAccessForm.password = '';
+    coupleAccessForm.passwordSet = coupleAccess.passwordSet;
     dashboard.value.anniversaries ||= [];
     dashboard.value.songs ||= [];
     dashboard.value.letters ||= [];
@@ -1272,6 +1309,22 @@ async function savePrivacyAndReminders() {
   ensureCoupleEntranceSettings();
   await saveSite(dashboard.value.site);
   ElMessage.success('隐私与提醒已保存，前台会自动同步');
+}
+
+async function saveCoupleAccessSettings() {
+  const name = coupleAccessForm.name.trim();
+  if (!name) {
+    ElMessage.warning('请填写前台登录账号');
+    return;
+  }
+  const saved = await saveCoupleAccess({
+    name,
+    password: coupleAccessForm.password || undefined,
+  });
+  coupleAccessForm.name = saved.name;
+  coupleAccessForm.password = '';
+  coupleAccessForm.passwordSet = saved.passwordSet;
+  ElMessage.success('前台登录账号已保存');
 }
 
 async function removeSong(item: Dashboard['songs'][number], index: number) {

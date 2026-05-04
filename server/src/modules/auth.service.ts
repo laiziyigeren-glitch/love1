@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -61,10 +61,18 @@ export class AuthService {
   async loginCouple(name: string, password: string) {
     const normalizedName = String(name || '').trim();
     const normalizedPassword = String(password || '');
-    const coupleName = String(this.config.get<string>('COUPLE_LOGIN_NAME') || 'love').trim();
-    const couplePassword = String(this.config.get<string>('COUPLE_LOGIN_PASSWORD') || '5201314');
+    const envName = String(this.config.get<string>('COUPLE_LOGIN_NAME') || 'love').trim();
+    const envPassword = String(this.config.get<string>('COUPLE_LOGIN_PASSWORD') || '5201314');
+    const space = await this.prisma.coupleSpace.findUnique({
+      where: { slug: 'default' },
+      select: { accessName: true, accessPassword: true },
+    });
+    const coupleName = String(space?.accessName || envName).trim();
+    const verifiedPassword = space?.accessPassword
+      ? await this.verifyStoredCouplePassword(space.accessPassword, normalizedPassword)
+      : normalizedPassword === envPassword;
 
-    if (!normalizedName || !normalizedPassword || normalizedName !== coupleName || normalizedPassword !== couplePassword) {
+    if (!normalizedName || !normalizedPassword || normalizedName !== coupleName || !verifiedPassword) {
       throw new UnauthorizedException('Invalid couple credentials');
     }
 
@@ -85,6 +93,48 @@ export class AuthService {
       name: normalizedName,
       expiresIn: 30 * 24 * 60 * 60,
     };
+  }
+
+  async getCoupleAccess(slug: string) {
+    const space = await this.prisma.coupleSpace.findUnique({
+      where: { slug },
+      select: { accessName: true, accessPassword: true },
+    });
+    const fallbackName = String(this.config.get<string>('COUPLE_LOGIN_NAME') || 'love').trim();
+
+    return {
+      name: space?.accessName || fallbackName,
+      passwordSet: Boolean(space?.accessPassword),
+    };
+  }
+
+  async updateCoupleAccess(slug: string, body: { name?: string; password?: string }) {
+    const normalizedName = String(body.name || '').trim();
+    const normalizedPassword = String(body.password || '');
+    if (!normalizedName) {
+      throw new BadRequestException('Couple login name is required');
+    }
+
+    const data: { accessName: string; accessPassword?: string } = {
+      accessName: normalizedName,
+    };
+    if (normalizedPassword) {
+      data.accessPassword = await argon2.hash(normalizedPassword);
+    }
+
+    await this.prisma.coupleSpace.update({
+      where: { slug },
+      data,
+    });
+
+    return this.getCoupleAccess(slug);
+  }
+
+  private async verifyStoredCouplePassword(storedPassword: string, password: string) {
+    if (storedPassword.startsWith('$argon2')) {
+      return argon2.verify(storedPassword, password).catch(() => false);
+    }
+    return storedPassword === password;
   }
 
   getJwtSecret() {

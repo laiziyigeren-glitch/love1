@@ -47,6 +47,7 @@ model CoupleSpace {
   slug           String          @unique
   name           String
   subtitle       String? @db.LongText
+  accessName     String?
   accessPassword String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt

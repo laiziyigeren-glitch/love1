@@ -215,6 +215,22 @@ export async function saveSite(site: Dashboard['site']) {
   return response.data;
 }
 
+export async function fetchCoupleAccess() {
+  const response = await api.get<{
+    name: string;
+    passwordSet: boolean;
+  }>(`/api/admin/spaces/${spaceSlug}/couple-access`);
+  return response.data;
+}
+
+export async function saveCoupleAccess(payload: { name: string; password?: string }) {
+  const response = await api.patch<{
+    name: string;
+    passwordSet: boolean;
+  }>(`/api/admin/spaces/${spaceSlug}/couple-access`, payload);
+  return response.data;
+}
+
 export async function saveTheme(theme: Dashboard['theme']) {
   const response = await api.patch(`/api/admin/spaces/${spaceSlug}/theme-config`, theme);
   return response.data;
