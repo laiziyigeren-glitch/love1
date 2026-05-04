@@ -3332,6 +3332,18 @@ function renderSpaceIfChanged(data, force = false) {
   renderSpace(data);
 }
 
+function prepareLazyMedia(root = document) {
+  root.querySelectorAll('img').forEach(img => {
+    if (!img.closest('.profile-avatar, .settings-avatar, .couple-login-mark')) {
+      img.loading = img.loading || 'lazy';
+    }
+    img.decoding = img.decoding || 'async';
+  });
+  root.querySelectorAll('video:not([controls])').forEach(video => {
+    video.preload = 'none';
+  });
+}
+
 function setText(selector, value) {
   document.querySelectorAll(selector).forEach(el => {
     if (value !== undefined && value !== null && value !== '') el.textContent = value;
@@ -3341,7 +3353,10 @@ function setText(selector, value) {
 function setImage(selector, value) {
   if (!value) return;
   document.querySelectorAll(selector).forEach(img => {
-    if (img.tagName === 'IMG') img.src = value;
+    if (img.tagName === 'IMG') {
+      img.src = value;
+      img.decoding = img.decoding || 'async';
+    }
   });
 }
 
@@ -3379,9 +3394,9 @@ function isVideoItem(item) {
 function mediaMarkup(item, extra = '') {
   if (isVideoItem(item)) {
     const poster = item.thumbnailUrl && item.thumbnailUrl !== item.url ? `poster="${escapeHtml(item.thumbnailUrl)}"` : '';
-    return `<video src="${escapeHtml(item.url)}" ${poster} ${extra} muted playsinline preload="metadata"></video>`;
+    return `<video src="${escapeHtml(item.url)}" ${poster} ${extra} muted playsinline preload="none"></video>`;
   }
-  return `<img src="${escapeHtml(item.thumbnailUrl || item.url)}" alt="${escapeHtml(item.title)}" ${extra}>`;
+  return `<img src="${escapeHtml(item.thumbnailUrl || item.url)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async" ${extra}>`;
 }
 
 function updateProfileDerivedStats(data = spaceData) {
@@ -4392,6 +4407,7 @@ function renderSpace(data) {
   maybeAutoplayBgm(data.site.settings);
   ensurePrivacyGate(data.site.settings);
   setupReminders(data);
+  prepareLazyMedia();
 }
 
 async function loadSpaceFromBackend({ force = false } = {}) {
@@ -4738,6 +4754,7 @@ function bindBackendActions() {
 
 document.addEventListener('DOMContentLoaded', () => {
   initCoupleEntrance();
+  prepareLazyMedia();
   bindBackendActions();
   bindSettingsPageControls();
   renderRomanceProjects();
