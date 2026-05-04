@@ -779,7 +779,8 @@ function normalizeHexColor(value: string | null | undefined, fallback: string) {
 async function uploadThemeBackground(options: UploadRequestOptions) {
   if (!dashboard.value) return;
   try {
-    const { publicUrl: backgroundUrl } = await uploadFileToObjectStorage(options.file);
+    const file = await compressImageFile(options.file, { maxSize: 2200, quality: 0.88 });
+    const { publicUrl: backgroundUrl } = await uploadFileToObjectStorage(file);
     dashboard.value.theme.backgroundUrl = backgroundUrl;
     dashboard.value.site.settings.themeCustomBackgroundUrl = backgroundUrl;
     await saveThemeConfig();
@@ -828,7 +829,8 @@ async function saveAnniversaryPage() {
 async function uploadAboutImage(options: UploadRequestOptions) {
   if (!dashboard.value) return;
   try {
-    const { publicUrl } = await uploadFileToObjectStorage(options.file);
+    const file = await compressImageFile(options.file, { maxSize: 1600, quality: 0.86 });
+    const { publicUrl } = await uploadFileToObjectStorage(file);
     dashboard.value.site.settings.aboutImageUrl = publicUrl;
     dashboard.value.site.settings.aboutImageVisible = true;
     await saveHome();
@@ -843,7 +845,8 @@ async function uploadPageHeaderImage(options: UploadRequestOptions, pageKey: Pag
   if (!dashboard.value) return;
   try {
     ensurePageHeaders();
-    const { publicUrl } = await uploadFileToObjectStorage(options.file);
+    const file = await compressImageFile(options.file, { maxSize: 2200, quality: 0.88 });
+    const { publicUrl } = await uploadFileToObjectStorage(file);
     dashboard.value.site.settings.pageHeaders[pageKey].imageUrl = publicUrl;
     await saveProfileAndSite();
     options.onSuccess?.({});
@@ -882,7 +885,8 @@ async function removeAnniversary(item: Dashboard['anniversaries'][number], index
 
 async function uploadAvatar(options: UploadRequestOptions, profile: Dashboard['profiles'][number]) {
   try {
-    const { publicUrl } = await uploadFileToObjectStorage(options.file);
+    const file = await compressImageFile(options.file, { maxSize: 600, quality: 0.86 });
+    const { publicUrl } = await uploadFileToObjectStorage(file);
     profile.avatarUrl = publicUrl;
     await saveProfileAndSite();
     options.onSuccess?.({});
@@ -895,16 +899,19 @@ async function uploadAvatar(options: UploadRequestOptions, profile: Dashboard['p
 async function uploadMedia(options: UploadRequestOptions) {
   try {
     const file = options.file;
-    const uploaded = await uploadFileToObjectStorage(file);
+    const uploadFile = file.type.startsWith('video/')
+      ? file
+      : await compressImageFile(file, { maxSize: 1600, quality: 0.86 });
+    const uploaded = await uploadFileToObjectStorage(uploadFile);
     const thumbnailUrl = file.type.startsWith('video/')
       ? await uploadVideoPoster(file)
       : uploaded.publicUrl;
-    await completeMediaUpload({
+    const savedItem = await completeMediaUpload({
       objectKey: uploaded.objectKey,
       url: uploaded.publicUrl,
       thumbnailUrl: thumbnailUrl || undefined,
-      mimeType: file.type || 'application/octet-stream',
-      size: file.size,
+      mimeType: uploadFile.type || file.type || 'application/octet-stream',
+      size: uploadFile.size,
       title: uploadMeta.title || file.name,
       albumTitle: uploadMeta.albumTitle || '默认相册',
       location: uploadMeta.location,
@@ -912,9 +919,15 @@ async function uploadMedia(options: UploadRequestOptions) {
       tags: uploadMeta.tags.split(',').map((item) => item.trim()).filter(Boolean),
       visibility: uploadMeta.visibility,
     });
-    ElMessage.success('媒体已上传，前台会自动同步');
+    if (dashboard.value && savedItem?.id) {
+      dashboard.value.albumItems = [
+        savedItem as Dashboard['albumItems'][number],
+        ...dashboard.value.albumItems.filter((item) => item.id !== savedItem.id),
+      ];
+    }
+    ElMessage.success('媒体已上传，已先显示在列表中');
     options.onSuccess?.({});
-    await load();
+    void load();
   } catch (error) {
     ElMessage.error('媒体上传失败，请确认 R2 环境变量和跨域规则已配置');
     options.onError?.(error as never);
@@ -1032,7 +1045,8 @@ async function uploadSongAudio(options: UploadRequestOptions, item: Dashboard['s
 
 async function uploadSongCover(options: UploadRequestOptions, item: Dashboard['songs'][number]) {
   try {
-    const { publicUrl } = await uploadFileToObjectStorage(options.file);
+    const file = await compressImageFile(options.file, { maxSize: 800, quality: 0.86 });
+    const { publicUrl } = await uploadFileToObjectStorage(file);
     item.coverUrl = publicUrl;
     await saveOneSong(item);
     options.onSuccess?.({});
@@ -1144,7 +1158,8 @@ async function removeHeartGardenProject(_item: HeartGardenProject, index: number
 
 async function uploadHeartGardenCover(options: UploadRequestOptions, item: HeartGardenProject) {
   try {
-    const { publicUrl } = await uploadFileToObjectStorage(options.file);
+    const file = await compressImageFile(options.file, { maxSize: 1200, quality: 0.86 });
+    const { publicUrl } = await uploadFileToObjectStorage(file);
     item.cover = publicUrl;
     options.onSuccess?.({});
   } catch (error) {
@@ -1229,6 +1244,39 @@ function confirmDelete(message: string) {
     type: 'warning',
     confirmButtonText: '删除',
     cancelButtonText: '取消',
+  });
+}
+
+function compressImageFile(file: File, options: { maxSize: number; quality: number }) {
+  if (!file.type.startsWith('image/') || /image\/(gif|svg\+xml)/i.test(file.type)) {
+    return Promise.resolve(file);
+  }
+
+  return new Promise<File>((resolve) => {
+    const reader = new FileReader();
+    reader.onerror = () => resolve(file);
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => resolve(file);
+      image.onload = () => {
+        const scale = Math.min(1, options.maxSize / Math.max(image.width, image.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const context = canvas.getContext('2d');
+        if (!context) return resolve(file);
+        context.fillStyle = '#fff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (!blob || blob.size >= file.size * 0.98) return resolve(file);
+          const baseName = (file.name || `image-${Date.now()}`).replace(/\.[^.]+$/, '');
+          resolve(new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() }));
+        }, 'image/jpeg', options.quality);
+      };
+      image.src = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
   });
 }
 

@@ -4435,7 +4435,10 @@ async function uploadPhotoToBackend(file) {
     .split(',')
     .map(item => item.trim())
     .filter(Boolean);
-  const uploaded = await uploadFileToObjectStorage(file);
+  const uploadFile = isVideo
+    ? file
+    : await compressImageFile(file, { maxSize: 1600, quality: 0.86 });
+  const uploaded = await uploadFileToObjectStorage(uploadFile);
   let thumbnailUrl = uploaded.publicUrl;
   if (isVideo) {
     const posterBlob = await videoToPosterBlob(file);
@@ -4444,14 +4447,14 @@ async function uploadPhotoToBackend(file) {
       thumbnailUrl = (await uploadFileToObjectStorage(posterFile)).publicUrl;
     }
   }
-  await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/media/complete`, {
+  const savedItem = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/media/complete`, {
     method: 'POST',
     body: JSON.stringify({
       objectKey: uploaded.objectKey,
       url: uploaded.publicUrl,
       thumbnailUrl,
-      mimeType: file.type,
-      size: file.size,
+      mimeType: uploadFile.type || file.type || 'application/octet-stream',
+      size: uploadFile.size,
       title,
       albumTitle,
       location,
@@ -4460,22 +4463,31 @@ async function uploadPhotoToBackend(file) {
       visibility,
     }),
   });
-  await loadSpaceFromBackend();
+  appendAlbumItemOptimistically(savedItem);
+  showReminder('上传成功', '新的回忆已经出现，后台数据会继续同步刷新。');
+  setTimeout(() => loadSpaceFromBackend({ force: true }), 800);
 }
 
 async function uploadAvatarToBackend(file) {
   if (!spaceData) await loadSpaceFromBackend();
   if (!spaceData) return;
-  const uploaded = await uploadFileToObjectStorage(file);
+  const uploadFile = await compressImageFile(file, { maxSize: 600, quality: 0.86 });
+  const uploaded = await uploadFileToObjectStorage(uploadFile);
   await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/avatar`, {
     method: 'PATCH',
     body: JSON.stringify({ avatarUrl: uploaded.publicUrl }),
   });
-  await loadSpaceFromBackend();
+  ensureAvatarImages(uploaded.publicUrl);
+  setImage('.profile-avatar img, .settings-avatar img', uploaded.publicUrl);
+  if (spaceData.profiles?.[0]) spaceData.profiles[0].avatarUrl = uploaded.publicUrl;
+  writeSpaceCache(spaceData);
+  showReminder('头像已同步', '新的头像已经显示出来了。');
+  setTimeout(() => loadSpaceFromBackend({ force: true }), 800);
 }
 
 async function uploadThemeBackgroundToBackend(file) {
-  const uploaded = await uploadFileToObjectStorage(file);
+  const uploadFile = await compressImageFile(file, { maxSize: 2200, quality: 0.88 });
+  const uploaded = await uploadFileToObjectStorage(uploadFile);
   const data = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/theme-background`, {
     method: 'PATCH',
     body: JSON.stringify({ backgroundUrl: uploaded.publicUrl }),
@@ -4492,6 +4504,16 @@ async function uploadThemeBackgroundToBackend(file) {
   updateCustomBackgroundButton(spaceData.site.settings);
   writeSpaceCache(spaceData);
   showReminder('背景图已同步', '新的背景图已经保存到对象存储，并同步到网站。');
+  setTimeout(() => loadSpaceFromBackend({ force: true }), 800);
+}
+
+function appendAlbumItemOptimistically(item) {
+  if (!spaceData || !item?.id) return;
+  const items = spaceData.albumItems || [];
+  spaceData.albumItems = [item, ...items.filter(existing => existing.id !== item.id)];
+  writeSpaceCache(spaceData);
+  renderHomeAlbumPreview(spaceData.albumItems);
+  renderAlbums(spaceData.albumItems);
 }
 
 async function uploadFileToObjectStorage(file) {
@@ -4507,6 +4529,38 @@ async function uploadFileToObjectStorage(file) {
   });
   if (!res.ok) throw new Error(`R2 upload ${res.status}`);
   return signed;
+}
+
+function compressImageFile(file, { maxSize, quality }) {
+  if (!file.type.startsWith('image/') || /image\/(gif|svg\+xml)/i.test(file.type)) {
+    return Promise.resolve(file);
+  }
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onerror = () => resolve(file);
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => resolve(file);
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(file);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (!blob || blob.size >= file.size * 0.98) return resolve(file);
+          const baseName = (file.name || `image-${Date.now()}`).replace(/\.[^.]+$/, '');
+          resolve(new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() }));
+        }, 'image/jpeg', quality);
+      };
+      img.src = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function videoToPosterBlob(file) {
