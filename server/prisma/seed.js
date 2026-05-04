@@ -59,9 +59,7 @@ async function main() {
       passwordHash,
       displayName: '管理员',
     },
-    update: {
-      displayName: '管理员',
-    },
+    update: {},
   });
 
   const space = await prisma.coupleSpace.upsert({
@@ -71,10 +69,7 @@ async function main() {
       name: 'You & Me',
       subtitle: '因为有你，世界变得温柔',
     },
-    update: {
-      name: 'You & Me',
-      subtitle: '因为有你，世界变得温柔',
-    },
+    update: {},
   });
 
   await prisma.spaceMember.upsert({
@@ -89,9 +84,7 @@ async function main() {
       spaceId: space.id,
       role: MemberRole.OWNER,
     },
-    update: {
-      role: MemberRole.OWNER,
-    },
+    update: {},
   });
 
   await prisma.profile.upsert({
@@ -105,13 +98,7 @@ async function main() {
       bio: '在茫茫人海中相遇，在彼此的世界里相知相守。',
       sortOrder: 0,
     },
-    update: {
-      name: 'You & Me',
-      nickname: '我的全世界',
-      avatarUrl: 'https://images.unsplash.com/photo-1474552226712-ac0f0961a954?auto=format&fit=crop&w=200&q=80',
-      bio: '在茫茫人海中相遇，在彼此的世界里相知相守。',
-      sortOrder: 0,
-    },
+    update: {},
   });
 
   await prisma.siteConfig.upsert({
@@ -128,16 +115,7 @@ async function main() {
       ],
       settings: homeSettings,
     },
-    update: {
-      heroTitle: '遇见你，是我最美丽的意外',
-      heroText: '感谢命运让我们相遇，从此，你的名字就是我最温暖的诗篇。',
-      story: '我们一起笑过、闹过、感动过，也一起期待着每一个明天。',
-      stats: [
-        { label: '心动天数', value: '520' },
-        { label: '甜蜜瞬间', value: '1314' },
-        { label: '共同约定', value: '12' },
-      ],
-    },
+    update: {},
   });
 
   await prisma.themeConfig.upsert({
@@ -155,18 +133,7 @@ async function main() {
         brightness: 68,
       },
     },
-    update: {
-      primaryColor: '#e8748a',
-      accentColor: '#d4956a',
-      backgroundUrl: 'https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=1920&q=70',
-      effects: {
-        particles: true,
-        petals: true,
-        glass: true,
-        blur: 72,
-        brightness: 68,
-      },
-    },
+    update: {},
   });
 
   await prisma.anniversary.upsert({
@@ -182,15 +149,7 @@ async function main() {
       description: '我们正式在一起啦。',
       sortOrder: 1,
     },
-    update: {
-      title: '在一起纪念日',
-      eventDate: date('2022-05-20'),
-      type: 'love',
-      repeatYearly: true,
-      showCountdown: true,
-      description: '我们正式在一起啦。',
-      sortOrder: 1,
-    },
+    update: {},
   });
 
   await prisma.anniversary.upsert({
@@ -206,15 +165,7 @@ async function main() {
       description: '在咖啡厅那个下午。',
       sortOrder: 0,
     },
-    update: {
-      title: '第一次见面',
-      eventDate: date('2022-05-05'),
-      type: 'meet',
-      repeatYearly: true,
-      showCountdown: false,
-      description: '在咖啡厅那个下午。',
-      sortOrder: 0,
-    },
+    update: {},
   });
 
   const album = await prisma.album.upsert({
@@ -227,12 +178,7 @@ async function main() {
       coverUrl: 'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?auto=format&fit=crop&w=600&q=80',
       sortOrder: 0,
     },
-    update: {
-      title: '旅行',
-      description: '一起看过的风景。',
-      coverUrl: 'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?auto=format&fit=crop&w=600&q=80',
-      sortOrder: 0,
-    },
+    update: {},
   });
 
   const media = await prisma.mediaAsset.upsert({
@@ -247,10 +193,7 @@ async function main() {
       mimeType: 'image/jpeg',
       size: 0,
     },
-    update: {
-      url: 'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?auto=format&fit=crop&w=600&q=80',
-      thumbnailUrl: 'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?auto=format&fit=crop&w=240&q=70',
-    },
+    update: {},
   });
 
   await prisma.albumItem.upsert({
@@ -268,16 +211,7 @@ async function main() {
       visibility: Visibility.PUBLIC,
       sortOrder: 0,
     },
-    update: {
-      title: '日落与海，还有你',
-      description: '那天的晚霞很美，但更美的是和你一起看晚霞的时光。',
-      takenAt: date('2025-05-18'),
-      location: '青岛 海边',
-      tags: ['旅行', '日落'],
-      favorite: true,
-      visibility: Visibility.PUBLIC,
-      sortOrder: 0,
-    },
+    update: {},
   });
 
   await prisma.loveLetter.upsert({
@@ -292,14 +226,7 @@ async function main() {
       status: PublishStatus.PUBLISHED,
       sortOrder: 0,
     },
-    update: {
-      title: '致你的信',
-      body: '遇见你，是我这一生最美好的事情。谢谢你愿意走进我的生命。',
-      signature: '爱你的他',
-      letterDate: date('2025-05-20'),
-      status: PublishStatus.PUBLISHED,
-      sortOrder: 0,
-    },
+    update: {},
   });
 
   const song = await prisma.song.upsert({
@@ -314,14 +241,7 @@ async function main() {
       lyric: '愿你所到之处，遍地都是小幸运。',
       favorite: true,
     },
-    update: {
-      title: '小幸运',
-      artist: '田馥甄',
-      duration: 265,
-      coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=240&q=70',
-      lyric: '愿你所到之处，遍地都是小幸运。',
-      favorite: true,
-    },
+    update: {},
   });
 
   const playlist = await prisma.playlist.upsert({
@@ -332,10 +252,7 @@ async function main() {
       title: '专属歌单',
       sortOrder: 0,
     },
-    update: {
-      title: '专属歌单',
-      sortOrder: 0,
-    },
+    update: {},
   });
 
   await prisma.playlistItem.upsert({
@@ -350,9 +267,7 @@ async function main() {
       songId: song.id,
       sortOrder: 0,
     },
-    update: {
-      sortOrder: 0,
-    },
+    update: {},
   });
 
   console.log(`Seeded default space "${space.slug}" and admin "${adminEmail}".`);

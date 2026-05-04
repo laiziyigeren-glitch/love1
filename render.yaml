@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: npm install --include=dev && npm --workspace server run prisma:generate && npm --workspace server run prisma:push && npm --workspace server run build
-    startCommand: npm --workspace server run prisma:seed && npm --workspace server run start
+    startCommand: npm --workspace server run start
     healthCheckPath: /api/public/spaces/default/bootstrap
     envVars:
       - key: NODE_ENV
