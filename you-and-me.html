@@ -1404,6 +1404,332 @@ nav {
   .romance-preview-inner { height: 90vh; border-radius: 16px; }
   .romance-preview-footer { align-items: flex-start; flex-direction: column; }
 }
+@media (max-width: 768px) {
+  nav {
+    height: auto;
+    min-height: 64px;
+    padding: 10px 12px;
+  }
+  .nav-logo {
+    flex: 0 0 auto;
+    gap: 8px;
+    font-size: 15px;
+    margin-right: 6px;
+  }
+  .nav-logo .heart-icon { width: 32px; height: 32px; }
+  .nav-links {
+    flex: 1 1 auto;
+    max-width: none;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-link {
+    min-height: 42px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+  }
+  .nav-action {
+    flex: 0 0 38px;
+    margin-left: 4px;
+  }
+  .page { padding: 84px 12px 22px; }
+  .main-content { gap: 14px; }
+  .content-grid { gap: 14px; }
+  .glass-card,
+  .calendar-card,
+  .playlist-card,
+  .mood-playlist-card,
+  .recently-bar {
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .page-header-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 22px 18px;
+    border-radius: 18px;
+  }
+  .page-header-title {
+    font-size: 24px;
+    line-height: 1.35;
+    display: block;
+  }
+  .page-header-sub { font-size: 13px; }
+  .header-img,
+  .header-img-placeholder {
+    height: 118px;
+    border-radius: 14px;
+  }
+  .cards-row,
+  .cards-row-3,
+  .anniversary-grid,
+  .album-grid-main,
+  .music-bottom,
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+  .settings-grid-full,
+  .settings-grid-2 {
+    grid-column: auto;
+  }
+  .album-featured {
+    grid-row: auto;
+    min-height: 230px;
+  }
+  .album-small-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .album-thumb { height: 128px; }
+  .album-toolbar {
+    align-items: stretch;
+  }
+  .album-tabs,
+  .romance-toolbar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 3px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .album-tab,
+  .romance-filter {
+    flex: 0 0 auto;
+    min-height: 38px;
+  }
+  .album-upload-btn,
+  .btn-primary,
+  .btn-secondary,
+  .couple-login-submit {
+    min-height: 44px;
+    justify-content: center;
+  }
+  .anniv-highlight { padding: 20px 14px; }
+  .anniv-date { font-size: 38px; }
+  .anniv-date.anniv-duration {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .duration-num { font-size: 24px; }
+  .cal-grid { gap: 3px; }
+  .cal-day { min-height: 38px; padding: 6px 1px; }
+  .cal-legend { flex-wrap: wrap; gap: 10px 14px; }
+  .vinyl-player {
+    padding: 20px 16px;
+    gap: 18px;
+  }
+  .vinyl { width: 146px; height: 146px; }
+  .vinyl-glow { width: 164px; height: 164px; }
+  .song-title { font-size: 20px; }
+  .playlist-item {
+    gap: 8px;
+    padding: 10px 6px;
+  }
+  .playlist-artist {
+    width: auto;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .recent-grid { gap: 8px; }
+  .recent-item {
+    min-width: 190px;
+    padding: 10px 8px;
+  }
+  .romance-overview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .romance-stat { padding: 13px 10px; }
+  .romance-stat-num { font-size: 22px; }
+  .romance-cover { height: 132px; }
+  .romance-card-body { padding: 14px; }
+  .romance-preview-modal,
+  .media-lightbox {
+    padding: 10px;
+  }
+  .romance-preview-inner {
+    width: 100%;
+    height: calc(100vh - 20px);
+  }
+  .romance-preview-footer {
+    padding: 12px;
+    gap: 10px;
+  }
+  .romance-preview-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .media-lightbox-inner {
+    width: 100%;
+    max-height: calc(100vh - 20px);
+    border-radius: 16px;
+  }
+  .media-lightbox-stage img,
+  .media-lightbox-stage video {
+    max-height: 66vh;
+  }
+  .media-lightbox-info {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+  .media-lightbox-close {
+    top: 12px;
+    right: 12px;
+    width: 42px;
+    height: 42px;
+  }
+  .setting-row {
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .setting-label {
+    min-width: 110px;
+    line-height: 2.4;
+  }
+  .settings-input-row,
+  .date-input-row,
+  .slider-row,
+  .color-swatches {
+    width: 100%;
+  }
+  .settings-date-input,
+  .music-select {
+    width: 100%;
+    min-height: 40px;
+  }
+  .slider-track { min-width: 140px; }
+  .settings-footer-btns {
+    flex-wrap: wrap;
+  }
+  .settings-footer-btns .btn-secondary,
+  .settings-footer-btns .btn-primary {
+    flex: 1 1 150px;
+  }
+  .modal-overlay { padding: 12px; }
+  .modal-box {
+    width: 100%;
+    max-height: 90vh;
+    padding: 30px 20px 24px;
+    border-radius: 20px;
+  }
+  .letter-tabs {
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 4px;
+  }
+  .letter-tab {
+    flex: 0 0 auto;
+    min-height: 38px;
+  }
+  .couple-login-overlay { padding: 16px; }
+  .couple-login-card {
+    width: min(100%, 460px);
+    padding: 34px 22px 28px;
+    border-radius: 22px;
+  }
+  .couple-login-title { font-size: 30px; }
+}
+@media (max-width: 520px) {
+  nav { padding: 8px 9px; }
+  .nav-logo {
+    width: 40px;
+    overflow: hidden;
+    gap: 0;
+  }
+  .nav-logo .heart-icon { margin-right: 0; }
+  .nav-links { max-width: calc(100vw - 92px); }
+  .nav-link {
+    gap: 5px;
+    padding: 8px 10px;
+  }
+  .nav-icon { font-size: 14px; }
+  .page { padding: 78px 10px 18px; }
+  .page-header-card {
+    padding: 18px 15px;
+  }
+  .page-header-title { font-size: 22px; }
+  .header-img,
+  .header-img-placeholder {
+    height: 104px;
+  }
+  .glass-card,
+  .calendar-card,
+  .playlist-card,
+  .mood-playlist-card,
+  .recently-bar {
+    padding: 14px;
+  }
+  .thumb-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .thumb { height: 86px; }
+  .album-small-grid { grid-template-columns: 1fr; }
+  .album-featured { min-height: 210px; }
+  .album-thumb { height: 180px; }
+  .album-stats-row,
+  .page-stat-row {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .romance-overview { grid-template-columns: 1fr; }
+  .romance-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .romance-open-btn { min-height: 42px; }
+  .romance-path { white-space: normal; }
+  .playlist-artist,
+  .playlist-dur {
+    display: none;
+  }
+  .recent-item { min-width: 170px; }
+  .mood-cover { height: 120px; }
+  .cal-month { font-size: 15px; }
+  .cal-nav {
+    min-width: 40px;
+    min-height: 38px;
+    padding: 6px 10px;
+  }
+  .cal-day-name { font-size: 10px; padding: 4px 1px; }
+  .cal-day { font-size: 11px; min-height: 34px; }
+  .anniv-date { font-size: 32px; }
+  .duration-part { padding: 8px 3px; }
+  .duration-num { font-size: 22px; }
+  .settings-avatar-row {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .settings-change-btn { min-height: 38px; }
+  .color-swatches { flex-wrap: wrap; }
+  .swatch { width: 38px; height: 38px; }
+  .settings-footer-btns {
+    flex-direction: column;
+  }
+  .modal-title { font-size: 24px; }
+  .letter-body { font-size: 14px; line-height: 2.1; }
+  .letter-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .couple-login-card {
+    padding: 30px 18px 24px;
+  }
+  .couple-login-mark {
+    width: 72px;
+    height: 72px;
+    font-size: 34px;
+  }
+  .couple-login-title { font-size: 28px; }
+  .couple-login-sub { font-size: 13px; }
+}
 </style>
 </head>
 <body>
