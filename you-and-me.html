@@ -1020,6 +1020,35 @@ nav {
     linear-gradient(145deg, rgba(40,15,20,0.95), rgba(16,6,8,0.95));
 }
 .romance-preview-note.show { display: grid; }
+.romance-preview-note-card {
+  max-width: 520px;
+  margin: 0 auto;
+  text-align: center;
+}
+.romance-preview-note-icon {
+  font-size: 42px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 22px rgba(232,116,138,0.44));
+}
+.romance-preview-note-title {
+  font-size: 24px;
+  color: var(--rose-light);
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+.romance-preview-note-text {
+  color: var(--text-secondary);
+  line-height: 1.9;
+}
+.romance-preview-note-tip {
+  margin-top: 16px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+  background: rgba(255,255,255,0.04);
+}
 .romance-preview-footer {
   display: flex;
   align-items: center;
@@ -1248,6 +1277,7 @@ nav {
 .settings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 .settings-grid-full { grid-column: span 3; }
 .settings-grid-2 { grid-column: span 2; }
+.settings-section .card-title { justify-content: flex-start; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; }
 .setting-row.hidden { display: none; }
 .setting-row:not(:last-child) { border-bottom: 1px solid var(--border); }
@@ -1563,17 +1593,74 @@ nav {
   .media-lightbox {
     padding: 10px;
   }
+  .romance-preview-modal {
+    padding: 0;
+    background: rgba(8, 3, 4, 0.95);
+  }
   .romance-preview-inner {
-    width: 100%;
-    height: calc(100vh - 20px);
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
   }
   .romance-preview-footer {
+    position: sticky;
+    bottom: 0;
     padding: 12px;
     gap: 10px;
+    background: linear-gradient(160deg, rgba(35,12,14,0.98), rgba(18,6,7,0.98));
+    box-shadow: 0 -12px 28px rgba(0,0,0,0.34);
   }
   .romance-preview-actions {
     width: 100%;
     justify-content: space-between;
+  }
+  .romance-preview-open {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+  }
+  .romance-preview-close {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+  }
+  .romance-preview-note {
+    padding: 22px 18px;
+  }
+  .romance-preview-note-title { font-size: 21px; }
+  .settings-section {
+    padding: 0;
+    overflow: hidden;
+  }
+  .settings-section .card-title {
+    min-height: 54px;
+    margin: 0;
+    padding: 0 16px;
+    cursor: pointer;
+  }
+  .settings-section .card-title::after {
+    content: '展开';
+    margin-left: auto;
+    color: var(--rose-light);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .settings-section:not(.is-collapsed) .card-title::after {
+    content: '收起';
+  }
+  .settings-section > :not(.card-title) {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+  .settings-section > :last-child {
+    margin-bottom: 16px;
+  }
+  .settings-section.is-collapsed > :not(.card-title) {
+    display: none !important;
   }
   .media-lightbox-inner {
     width: 100%;
@@ -2493,8 +2580,8 @@ nav {
         <img class="header-img" src="https://images.unsplash.com/photo-1517534573028-3db0dab0d31c?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.outerHTML='<div class=\'header-img-placeholder\'>🕯️</div>'">
       </div>
       <div class="settings-grid">
-        <div class="glass-card settings-grid-2">
-          <div class="card-title"><span>👤</span> 个人信息</div>
+        <div class="glass-card settings-grid-2 settings-section" data-settings-section="profile">
+          <div class="card-title"><span>👤</span> 资料</div>
           <div class="setting-row">
             <div class="setting-label">头像</div>
             <div class="settings-avatar-row"><div class="settings-avatar"><img src="https://images.unsplash.com/photo-1474552226712-ac0f0961a954?auto=format&fit=crop&w=60&q=70" alt="" onerror="this.outerHTML='💑'"></div><button class="settings-change-btn">更换</button></div>
@@ -2502,41 +2589,14 @@ nav {
           <div class="setting-row"><div class="setting-label">昵称</div><input class="settings-input" value="You &amp; Me" style="max-width:160px"></div>
           <div class="setting-row"><div class="setting-label">专属称呼</div><div class="settings-input-row"><input class="settings-input" value="我的全世界" style="max-width:140px"><span style="color:var(--rose)">❤️</span></div></div>
         </div>
-        <div class="glass-card">
-          <div class="card-title"><span>🎨</span> 主题外观</div>
+        <div class="glass-card settings-section" data-settings-section="theme">
+          <div class="card-title"><span>🎨</span> 主题</div>
           <div class="setting-row"><div class="setting-label">主题色彩</div><div class="color-swatches"><div class="swatch active" style="background:#e8748a"></div><div class="swatch" style="background:#d4956a"></div><div class="swatch" style="background:#c8b560"></div><div class="swatch" style="background:#8870c0"></div></div></div>
           <div class="setting-row"><div class="setting-label">背景模糊</div><div class="slider-row" style="min-width:140px"><div class="slider-track"><div class="slider-fill" style="width:72%"></div></div><span class="slider-val">72%</span></div></div>
           <div class="setting-row"><div class="setting-label">界面亮度</div><div class="slider-row" style="min-width:140px"><div class="slider-track"><div class="slider-fill" style="width:68%"></div></div><span class="slider-val">68%</span></div></div>
           <div class="setting-row"><div class="setting-label">粒子特效</div><div class="toggle"></div></div>
           <div class="setting-row"><div class="setting-label">花瓣飘落</div><div class="toggle"></div></div>
           <div class="setting-row"><div class="setting-label">玻璃质感</div><div class="toggle"></div></div>
-        </div>
-        <div class="glass-card">
-          <div class="card-title"><span>📅</span> 纪念设置</div>
-          <div class="setting-row"><div class="setting-label">在一起日期</div><div class="date-input-row"><div class="date-val">2025-05-20</div><span class="date-icon">📅</span></div></div>
-          <div class="setting-row"><div class="setting-label">第一次见面</div><div class="date-input-row"><div class="date-val">2024-08-14</div><span class="date-icon">📅</span></div></div>
-          <div class="setting-row"><div class="setting-label">倒计时显示</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">在首页显示倒计时</span><div class="toggle"></div></div></div>
-        </div>
-        <div class="glass-card">
-          <div class="card-title"><span>🎵</span> 音乐设置</div>
-          <div class="setting-row"><div class="setting-label">背景音乐（BGM）</div><select class="music-select"><option>日落与海，适合你</option><option>小幸运</option><option>有点甜</option></select></div>
-          <div class="setting-row"><div class="setting-label">音量大小</div><div class="slider-row" style="min-width:120px"><div class="slider-track"><div class="slider-fill" style="width:70%"></div></div><span class="slider-val">70%</span></div></div>
-          <div class="setting-row"><div class="setting-label">自动播放</div><div class="toggle"></div></div>
-        </div>
-        <div class="glass-card">
-          <div class="card-title"><span>🔒</span> 隐私与访问</div>
-          <div class="setting-row"><div class="setting-label">访问密码</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">已开启</span><div class="toggle"></div></div></div>
-          <div class="setting-row"><div class="setting-label">私密相册</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">仅彼此可见</span><div class="toggle"></div></div></div>
-          <div class="setting-row"><div class="setting-label">分享链接</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">已关闭</span><div class="toggle off"></div></div></div>
-        </div>
-        <div class="glass-card">
-          <div class="card-title"><span>🔔</span> 消息提醒</div>
-          <div class="setting-row"><div class="setting-label">纪念日提醒</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">提前1天</span><div class="toggle"></div></div></div>
-          <div class="setting-row"><div class="setting-label">惊喜提醒</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">开启</span><div class="toggle"></div></div></div>
-          <div class="setting-row"><div class="setting-label">每日一句</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">每天 20:00</span><div class="toggle"></div></div></div>
-        </div>
-        <div class="glass-card">
-          <div class="card-title"><span>✨</span> 主题预览</div>
           <div class="theme-preview-img"><img src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=300&q=70" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:12px" onerror="this.outerHTML='🌅'"></div>
           <div class="theme-bg-actions"><button class="settings-change-btn theme-bg-upload-btn">上传背景</button></div>
           <div class="theme-dots">
@@ -2547,6 +2607,27 @@ nav {
             <div class="theme-dot" style="background:#7090c0"></div>
             <div class="theme-dot" style="background:#708050"></div>
           </div>
+        </div>
+        <div class="glass-card settings-section" data-settings-section="anniversary">
+          <div class="card-title"><span>📅</span> 纪念日</div>
+          <div class="setting-row"><div class="setting-label">在一起日期</div><div class="date-input-row"><div class="date-val">2025-05-20</div><span class="date-icon">📅</span></div></div>
+          <div class="setting-row"><div class="setting-label">第一次见面</div><div class="date-input-row"><div class="date-val">2024-08-14</div><span class="date-icon">📅</span></div></div>
+          <div class="setting-row"><div class="setting-label">倒计时显示</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">在首页显示倒计时</span><div class="toggle"></div></div></div>
+        </div>
+        <div class="glass-card settings-section" data-settings-section="music">
+          <div class="card-title"><span>🎵</span> 音乐</div>
+          <div class="setting-row"><div class="setting-label">背景音乐（BGM）</div><select class="music-select"><option>日落与海，适合你</option><option>小幸运</option><option>有点甜</option></select></div>
+          <div class="setting-row"><div class="setting-label">音量大小</div><div class="slider-row" style="min-width:120px"><div class="slider-track"><div class="slider-fill" style="width:70%"></div></div><span class="slider-val">70%</span></div></div>
+          <div class="setting-row"><div class="setting-label">自动播放</div><div class="toggle"></div></div>
+        </div>
+        <div class="glass-card settings-section" data-settings-section="privacy">
+          <div class="card-title"><span>🔒</span> 隐私提醒</div>
+          <div class="setting-row"><div class="setting-label">访问密码</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">已开启</span><div class="toggle"></div></div></div>
+          <div class="setting-row"><div class="setting-label">私密相册</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">仅彼此可见</span><div class="toggle"></div></div></div>
+          <div class="setting-row"><div class="setting-label">分享链接</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">已关闭</span><div class="toggle off"></div></div></div>
+          <div class="setting-row"><div class="setting-label">纪念日提醒</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">提前1天</span><div class="toggle"></div></div></div>
+          <div class="setting-row"><div class="setting-label">惊喜提醒</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">开启</span><div class="toggle"></div></div></div>
+          <div class="setting-row"><div class="setting-label">每日一句</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">每天 20:00</span><div class="toggle"></div></div></div>
         </div>
         <div class="settings-grid-2" style="display:flex;align-items:center;justify-content:flex-end;gap:13px">
           <button class="btn-secondary">↺ 恢复默认</button>
@@ -3311,6 +3392,21 @@ function bindSettingsPageControls() {
   });
 }
 
+function bindMobileSettingsSections() {
+  document.querySelectorAll('#page-settings .settings-section').forEach((section, index) => {
+    if (section.dataset.boundAccordion === '1') return;
+    section.dataset.boundAccordion = '1';
+    if (index > 0) section.classList.add('is-collapsed');
+    const title = section.querySelector('.card-title');
+    title?.addEventListener('click', () => {
+      if (!window.matchMedia('(max-width: 768px)').matches) return;
+      const isOpen = !section.classList.contains('is-collapsed');
+      document.querySelectorAll('#page-settings .settings-section').forEach(item => item.classList.add('is-collapsed'));
+      if (!isOpen) section.classList.remove('is-collapsed');
+    });
+  });
+}
+
 function playCurrentSong() {
   const audio = getMusicAudio();
   const song = musicState.songs[musicState.currentIndex];
@@ -3556,6 +3652,7 @@ let currentPageId = 'home';
 let settingsDirty = false;
 let romanceFilter = 'all';
 let currentRomanceBlobUrl = '';
+let romancePreviewLoadTimer = null;
 
 const romanceProjects = [
   {
@@ -4467,6 +4564,36 @@ function bindRomanceFilters() {
   });
 }
 
+function clearRomancePreviewTimer() {
+  if (!romancePreviewLoadTimer) return;
+  clearTimeout(romancePreviewLoadTimer);
+  romancePreviewLoadTimer = null;
+}
+
+function showRomancePreviewNote(project, title = '这朵花暂时没有打开') {
+  const frame = document.getElementById('romancePreviewFrame');
+  const note = document.getElementById('romancePreviewNote');
+  const openLink = document.getElementById('romancePreviewOpen');
+  if (frame) {
+    frame.removeAttribute('src');
+    frame.style.display = 'none';
+  }
+  if (openLink) {
+    openLink.style.display = project?.url ? '' : 'none';
+    if (project?.url) openLink.href = project.url;
+  }
+  if (!note) return;
+  note.classList.add('show');
+  note.innerHTML = `
+    <div class="romance-preview-note-card">
+      <div class="romance-preview-note-icon">${escapeHtml(project?.icon || '🌹')}</div>
+      <div class="romance-preview-note-title">${escapeHtml(title)}</div>
+      <div class="romance-preview-note-text">${escapeHtml(project?.description || '它可能还没有上传 HTML，或者页面地址暂时无法加载。')}</div>
+      <div class="romance-preview-note-tip">${project?.url ? '可以点底部“全屏打开”试试；如果还是打不开，就去后台检查这个项目的页面地址。' : '可以去后台检查这个项目的 HTML 文件是否已经上传成功。'}</div>
+    </div>
+  `;
+}
+
 function openRomanceProject(id) {
   const project = getRomanceProjects().find(item => item.id === id);
   const modal = document.getElementById('romancePreviewModal');
@@ -4477,6 +4604,9 @@ function openRomanceProject(id) {
 
   setText('#romancePreviewTitle', project.title);
   setText('#romancePreviewDesc', project.description);
+  clearRomancePreviewTimer();
+  frame.onload = null;
+  frame.onerror = null;
 
   if (project.status === 'ready' && (project.url || project.content)) {
     note.classList.remove('show');
@@ -4486,6 +4616,15 @@ function openRomanceProject(id) {
       URL.revokeObjectURL(currentRomanceBlobUrl);
       currentRomanceBlobUrl = '';
     }
+    frame.onload = () => clearRomancePreviewTimer();
+    frame.onerror = () => {
+      clearRomancePreviewTimer();
+      showRomancePreviewNote(project, '预览加载失败');
+    };
+    romancePreviewLoadTimer = setTimeout(() => {
+      romancePreviewLoadTimer = null;
+      if (modal.classList.contains('show')) showRomancePreviewNote(project, '预览加载得有点久');
+    }, 8000);
     if (project.content) {
       currentRomanceBlobUrl = URL.createObjectURL(new Blob([project.content], { type: 'text/html;charset=utf-8' }));
       frame.src = currentRomanceBlobUrl;
@@ -4496,17 +4635,7 @@ function openRomanceProject(id) {
       openLink.href = project.url;
     }
   } else {
-    frame.removeAttribute('src');
-    frame.style.display = 'none';
-    openLink.style.display = 'none';
-    note.classList.add('show');
-    note.innerHTML = `
-      <div>
-        <div style="font-size:28px;color:var(--rose-light);margin-bottom:10px">${escapeHtml(project.icon || '🌹')} ${escapeHtml(project.title)}</div>
-        <div>${escapeHtml(project.description)}</div>
-        <div style="margin-top:18px;color:var(--text-muted);font-size:12px">请在后台上传 HTML 文件，或填写 /heart-garden/... 页面地址。</div>
-      </div>
-    `;
+    showRomancePreviewNote(project);
   }
 
   modal.classList.add('show');
@@ -4516,7 +4645,10 @@ function closeRomancePreview() {
   const modal = document.getElementById('romancePreviewModal');
   const frame = document.getElementById('romancePreviewFrame');
   const note = document.getElementById('romancePreviewNote');
+  clearRomancePreviewTimer();
   if (frame) {
+    frame.onload = null;
+    frame.onerror = null;
     frame.removeAttribute('src');
     frame.style.display = 'block';
   }
@@ -5204,6 +5336,7 @@ document.addEventListener('DOMContentLoaded', () => {
   prepareLazyMedia();
   bindBackendActions();
   bindSettingsPageControls();
+  bindMobileSettingsSections();
   renderRomanceProjects();
   bindRomanceFilters();
   const cachedSpace = readSpaceCache();
