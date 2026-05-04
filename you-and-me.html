@@ -390,8 +390,8 @@ nav {
 .profile-name {
   font-size: 22px; font-weight: 700;
   color: var(--text-primary); margin-bottom: 6px;
-  font-family: "STXingkai", "KaiTi", "Songti SC", cursive;
-  letter-spacing: 1px;
+  font-family: "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  letter-spacing: 0;
 }
 .profile-tagline {
   font-size: 12px; color: var(--text-muted); margin-bottom: 18px; letter-spacing: 0.5px;
@@ -514,10 +514,10 @@ nav {
 }
 .page-header-title {
   font-size: 30px; font-weight: 700;
-  font-family: "STXingkai", "KaiTi", "Songti SC", cursive;
+  font-family: "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
   color: var(--text-primary); margin-bottom: 10px;
   display: flex; align-items: center; gap: 12px;
-  letter-spacing: 1px; line-height: 1.2;
+  letter-spacing: 0; line-height: 1.2;
 }
 .page-header-sub { font-size: 14px; color: var(--text-muted); line-height: 1.7; }
 .header-img {
@@ -4453,6 +4453,21 @@ function getSettingsAnniversaryEvents(settings = {}) {
   ].filter(Boolean);
 }
 
+function getMergedAnniversaryEvents(data = spaceData) {
+  if (!data) return [];
+  const settings = data.site.settings?.anniversaryPage || {};
+  const startDate = parseLocalDate(settings.startDate) || parseLocalDate(data.anniversaries?.[0]?.eventDate) || new Date();
+  const togetherDays = daysBetween(startDate);
+  const settingsEvents = getSettingsAnniversaryEvents(settings).map(item =>
+    item.title === (settings.startTitle || '我们的开始')
+      ? { ...item, description: `我们已经相处 ${togetherDays} 天` }
+      : item
+  );
+  return [...settingsEvents, ...(data.anniversaries || [])].filter((item, index, list) =>
+    index === list.findIndex(other => other.title === item.title && other.eventDate === item.eventDate)
+  );
+}
+
 function getNextEvent(items = []) {
   const now = new Date();
   const years = [now.getFullYear(), now.getFullYear() + 1];
@@ -4535,14 +4550,14 @@ function bindAnniversaryCalendar(items = []) {
     prev.dataset.bound = '1';
     prev.addEventListener('click', () => {
       anniversaryCalendarDate = new Date(anniversaryCalendarDate.getFullYear(), anniversaryCalendarDate.getMonth() - 1, 1);
-      renderAnniversaryCalendar(spaceData?.anniversaries || []);
+      renderAnniversaryCalendar(getMergedAnniversaryEvents());
     });
   }
   if (next && !next.dataset.bound) {
     next.dataset.bound = '1';
     next.addEventListener('click', () => {
       anniversaryCalendarDate = new Date(anniversaryCalendarDate.getFullYear(), anniversaryCalendarDate.getMonth() + 1, 1);
-      renderAnniversaryCalendar(spaceData?.anniversaries || []);
+      renderAnniversaryCalendar(getMergedAnniversaryEvents());
     });
   }
 }
@@ -4559,14 +4574,7 @@ function renderAnniversaryPage(data) {
     setText('#page-anniversary .quote-author', `-- ${quote.author || data.name}`);
   }
   setText('#page-anniversary .love-note-content', settings.note || '');
-  const settingsEvents = getSettingsAnniversaryEvents(settings).map(item =>
-    item.title === (settings.startTitle || '我们的开始')
-      ? { ...item, description: `我们已经相处 ${togetherDays} 天` }
-      : item
-  );
-  const events = [...settingsEvents, ...(data.anniversaries || [])].filter((item, index, list) =>
-    index === list.findIndex(other => other.title === item.title && other.eventDate === item.eventDate)
-  );
+  const events = getMergedAnniversaryEvents(data);
   bindAnniversaryCalendar(events);
   renderAnniversaryCalendar(events);
   togetherStartDate = startDate;

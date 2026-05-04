@@ -924,6 +924,90 @@ function removeDailyQuote(index: number) {
   dashboard.value?.site.settings.anniversaryPage.dailyQuotes.splice(index, 1);
 }
 
+function toAnniversaryInputValue(value: string, fallback = '') {
+  const source = String(value || fallback || '').trim();
+  if (!source) return '';
+  if (source.includes('T')) return source.slice(0, 16);
+  return `${source.slice(0, 10)}T00:00`;
+}
+
+function getAnniversarySyncKind(item: Dashboard['anniversaries'][number]) {
+  const title = item.title || '';
+  if (item.id === 'anniv-first-meet' || item.type === 'meet' || title.includes('第一次见面')) return 'meet';
+  if (item.id === 'anniv-together' || item.type === 'love' || title.includes('在一起') || title.includes('开始') || title.includes('确认关系')) return 'start';
+  return '';
+}
+
+function findSyncedAnniversary(kind: 'start' | 'meet') {
+  const items = dashboard.value?.anniversaries || [];
+  if (kind === 'start') {
+    return items.find((item) => item.id === 'anniv-together')
+      || items.find((item) => item.type === 'love')
+      || items.find((item) => ['在一起', '开始', '确认关系'].some((keyword) => item.title.includes(keyword)));
+  }
+  return items.find((item) => item.id === 'anniv-first-meet')
+    || items.find((item) => item.type === 'meet')
+    || items.find((item) => item.title.includes('第一次见面'));
+}
+
+function mergeSavedAnniversary(saved: Dashboard['anniversaries'][number]) {
+  const items = dashboard.value?.anniversaries;
+  if (!items) return;
+  const index = items.findIndex((item) => item.id === saved.id);
+  if (index >= 0) {
+    items[index] = saved;
+  } else {
+    items.push(saved);
+  }
+}
+
+function buildAnniversaryFromPageSettings(kind: 'start' | 'meet') {
+  if (!dashboard.value) return null;
+  const page = dashboard.value.site.settings.anniversaryPage;
+  const current = findSyncedAnniversary(kind);
+  if (kind === 'start') {
+    const eventDate = toAnniversaryInputValue(page.startDate, current?.eventDate);
+    if (!eventDate) return null;
+    return {
+      id: current?.id || '',
+      title: page.startTitle || current?.title || '我们的开始',
+      eventDate,
+      type: current?.type || 'love',
+      repeatYearly: current?.repeatYearly ?? true,
+      showCountdown: page.showCountdown !== false,
+      description: current?.description || page.note || '',
+    };
+  }
+  const eventDate = toAnniversaryInputValue(page.firstMeetDate, current?.eventDate);
+  if (!eventDate) return null;
+  return {
+    id: current?.id || '',
+    title: current?.title || '第一次见面',
+    eventDate,
+    type: current?.type || 'meet',
+    repeatYearly: current?.repeatYearly ?? true,
+    showCountdown: current?.showCountdown ?? false,
+    description: current?.description || '',
+  };
+}
+
+function syncPageSettingsFromAnniversary(item: Dashboard['anniversaries'][number]) {
+  if (!dashboard.value) return false;
+  const page = dashboard.value.site.settings.anniversaryPage;
+  const kind = getAnniversarySyncKind(item);
+  if (kind === 'start') {
+    page.startDate = toAnniversaryInputValue(item.eventDate, page.startDate);
+    page.startTitle = item.title || page.startTitle;
+    page.showCountdown = item.showCountdown;
+    return true;
+  }
+  if (kind === 'meet') {
+    page.firstMeetDate = toAnniversaryInputValue(item.eventDate, page.firstMeetDate);
+    return true;
+  }
+  return false;
+}
+
 async function saveAnniversaryPage() {
   if (!dashboard.value || anniversaryPageSaving.value) return;
   anniversaryPageSaving.value = true;
@@ -933,7 +1017,15 @@ async function saveAnniversaryPage() {
     duration: 0,
   });
   try {
-    await saveSite(dashboard.value.site);
+    const anniversaryItems = [
+      buildAnniversaryFromPageSettings('start'),
+      buildAnniversaryFromPageSettings('meet'),
+    ].filter(Boolean) as Dashboard['anniversaries'];
+    const [, ...savedAnniversaries] = await Promise.all([
+      saveSite(dashboard.value.site),
+      ...anniversaryItems.map((item) => saveAnniversary(item)),
+    ]);
+    savedAnniversaries.forEach((item) => mergeSavedAnniversary(item));
     ElMessage.success('纪念日页面配置已保存，前台会自动同步');
   } finally {
     savingMessage.close();
@@ -999,8 +1091,12 @@ function addAnniversary() {
 
 async function saveOneAnniversary(item: Dashboard['anniversaries'][number]) {
   const saved = await saveAnniversary(item);
-  item.id = saved.id;
-  ElMessage.success('纪念日已保存');
+  Object.assign(item, saved);
+  const synced = syncPageSettingsFromAnniversary(saved);
+  if (synced && dashboard.value) {
+    await saveSite(dashboard.value.site);
+  }
+  ElMessage.success(synced ? '纪念日已保存，并同步到页面配置' : '纪念日已保存');
   await load();
 }
 
