@@ -536,6 +536,7 @@ import {
   type Dashboard,
   clearAdminToken,
   completeMediaUpload,
+  createUploadUrl,
   deleteAlbumItem,
   deleteAnniversary,
   deleteLetter,
@@ -778,7 +779,7 @@ function normalizeHexColor(value: string | null | undefined, fallback: string) {
 async function uploadThemeBackground(options: UploadRequestOptions) {
   if (!dashboard.value) return;
   try {
-    const backgroundUrl = await fileToDataUrl(options.file, 1440);
+    const { publicUrl: backgroundUrl } = await uploadFileToObjectStorage(options.file);
     dashboard.value.theme.backgroundUrl = backgroundUrl;
     dashboard.value.site.settings.themeCustomBackgroundUrl = backgroundUrl;
     await saveThemeConfig();
@@ -827,12 +828,13 @@ async function saveAnniversaryPage() {
 async function uploadAboutImage(options: UploadRequestOptions) {
   if (!dashboard.value) return;
   try {
-    dashboard.value.site.settings.aboutImageUrl = await fileToDataUrl(options.file, 760);
+    const { publicUrl } = await uploadFileToObjectStorage(options.file);
+    dashboard.value.site.settings.aboutImageUrl = publicUrl;
     dashboard.value.site.settings.aboutImageVisible = true;
     await saveHome();
     options.onSuccess?.({});
   } catch (error) {
-    ElMessage.error('About 图片上传失败，请确认后端已重启并连接 MySQL');
+    ElMessage.error('About 图片上传失败，请确认 R2 环境变量和跨域规则已配置');
     options.onError?.(error as never);
   }
 }
@@ -841,11 +843,12 @@ async function uploadPageHeaderImage(options: UploadRequestOptions, pageKey: Pag
   if (!dashboard.value) return;
   try {
     ensurePageHeaders();
-    dashboard.value.site.settings.pageHeaders[pageKey].imageUrl = await fileToDataUrl(options.file, 760);
+    const { publicUrl } = await uploadFileToObjectStorage(options.file);
+    dashboard.value.site.settings.pageHeaders[pageKey].imageUrl = publicUrl;
     await saveProfileAndSite();
     options.onSuccess?.({});
   } catch (error) {
-    ElMessage.error('页面头图上传失败，请确认后端已启动');
+    ElMessage.error('页面头图上传失败，请确认 R2 环境变量和跨域规则已配置');
     options.onError?.(error as never);
   }
 }
@@ -879,11 +882,12 @@ async function removeAnniversary(item: Dashboard['anniversaries'][number], index
 
 async function uploadAvatar(options: UploadRequestOptions, profile: Dashboard['profiles'][number]) {
   try {
-    profile.avatarUrl = await fileToDataUrl(options.file, 260);
+    const { publicUrl } = await uploadFileToObjectStorage(options.file);
+    profile.avatarUrl = publicUrl;
     await saveProfileAndSite();
     options.onSuccess?.({});
   } catch (error) {
-    ElMessage.error('头像上传失败，请确认后端已重启并连接 MySQL');
+    ElMessage.error('头像上传失败，请确认 R2 环境变量和跨域规则已配置');
     options.onError?.(error as never);
   }
 }
@@ -891,18 +895,15 @@ async function uploadAvatar(options: UploadRequestOptions, profile: Dashboard['p
 async function uploadMedia(options: UploadRequestOptions) {
   try {
     const file = options.file;
-    if (file.type.startsWith('video/') && file.size > 12 * 1024 * 1024) {
-      ElMessage.error('当前本地版本把视频保存到 MySQL，请先上传 12MB 以内的视频');
-      options.onError?.(new Error('Video is too large') as never);
-      return;
-    }
-    const dataUrl = await fileToDataUrl(file, 960);
-    const thumbnailUrl = file.type.startsWith('video/') ? await videoToPosterDataUrl(file) : dataUrl;
+    const uploaded = await uploadFileToObjectStorage(file);
+    const thumbnailUrl = file.type.startsWith('video/')
+      ? await uploadVideoPoster(file)
+      : uploaded.publicUrl;
     await completeMediaUpload({
-      objectKey: `local/${Date.now()}-${file.name}`,
-      url: dataUrl,
-      thumbnailUrl,
-      mimeType: file.type,
+      objectKey: uploaded.objectKey,
+      url: uploaded.publicUrl,
+      thumbnailUrl: thumbnailUrl || undefined,
+      mimeType: file.type || 'application/octet-stream',
       size: file.size,
       title: uploadMeta.title || file.name,
       albumTitle: uploadMeta.albumTitle || '默认相册',
@@ -915,7 +916,7 @@ async function uploadMedia(options: UploadRequestOptions) {
     options.onSuccess?.({});
     await load();
   } catch (error) {
-    ElMessage.error('媒体上传失败，请确认后端已重启；视频请先用较小文件测试');
+    ElMessage.error('媒体上传失败，请确认 R2 环境变量和跨域规则已配置');
     options.onError?.(error as never);
   }
 }
@@ -1017,25 +1018,22 @@ async function uploadSongAudio(options: UploadRequestOptions, item: Dashboard['s
       options.onError?.(new Error('Only MP3 is supported') as never);
       return;
     }
-    if (file.size > 16 * 1024 * 1024) {
-      ElMessage.error('当前本地版本把 MP3 保存到 MySQL，请先上传 16MB 以内的文件');
-      options.onError?.(new Error('Audio is too large') as never);
-      return;
-    }
-    item.audioUrl = await fileToDataUrl(file, 0);
+    const { publicUrl } = await uploadFileToObjectStorage(file);
+    item.audioUrl = publicUrl;
     if (!item.title || item.title === '新的歌曲') item.title = file.name.replace(/\.[^.]+$/, '');
     if (!item.duration) item.duration = await getAudioDuration(file);
     await saveOneSong(item);
     options.onSuccess?.({});
   } catch (error) {
-    ElMessage.error('MP3 上传失败，请确认后端已重启并连接 MySQL');
+    ElMessage.error('MP3 上传失败，请确认 R2 环境变量和跨域规则已配置');
     options.onError?.(error as never);
   }
 }
 
 async function uploadSongCover(options: UploadRequestOptions, item: Dashboard['songs'][number]) {
   try {
-    item.coverUrl = await fileToDataUrl(options.file, 360);
+    const { publicUrl } = await uploadFileToObjectStorage(options.file);
+    item.coverUrl = publicUrl;
     await saveOneSong(item);
     options.onSuccess?.({});
   } catch (error) {
@@ -1146,7 +1144,8 @@ async function removeHeartGardenProject(_item: HeartGardenProject, index: number
 
 async function uploadHeartGardenCover(options: UploadRequestOptions, item: HeartGardenProject) {
   try {
-    item.cover = await fileToDataUrl(options.file, 520);
+    const { publicUrl } = await uploadFileToObjectStorage(options.file);
+    item.cover = publicUrl;
     options.onSuccess?.({});
   } catch (error) {
     ElMessage.error('封面上传失败');
@@ -1233,31 +1232,33 @@ function confirmDelete(message: string) {
   });
 }
 
-function fileToDataUrl(file: File, maxSize: number) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error);
-    reader.onload = () => {
-      if (file.type.startsWith('video/') || file.type.startsWith('audio/')) {
-        resolve(String(reader.result));
-        return;
-      }
-      const img = new Image();
-      img.onerror = () => resolve(String(reader.result));
-      img.onload = () => {
-        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(img.width * scale));
-        canvas.height = Math.max(1, Math.round(img.height * scale));
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return resolve(String(reader.result));
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.76));
-      };
-      img.src = String(reader.result);
-    };
-    reader.readAsDataURL(file);
+async function uploadFileToObjectStorage(file: File) {
+  const signed = await createUploadUrl(file);
+  const response = await fetch(signed.uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+    },
+    body: file,
   });
+
+  if (!response.ok) {
+    throw new Error(`Object upload failed: ${response.status}`);
+  }
+
+  return {
+    objectKey: signed.objectKey,
+    publicUrl: signed.publicUrl,
+  };
+}
+
+async function uploadVideoPoster(file: File) {
+  const poster = await videoToPosterBlob(file);
+  if (!poster) return '';
+  const name = file.name.replace(/\.[^.]+$/, '') || 'video';
+  const posterFile = new File([poster], `${name}-poster.jpg`, { type: 'image/jpeg' });
+  const uploaded = await uploadFileToObjectStorage(posterFile);
+  return uploaded.publicUrl;
 }
 
 function fileToText(file: File) {
@@ -1269,8 +1270,8 @@ function fileToText(file: File) {
   });
 }
 
-function videoToPosterDataUrl(file: File) {
-  return new Promise<string>((resolve) => {
+function videoToPosterBlob(file: File) {
+  return new Promise<Blob | null>((resolve) => {
     const url = URL.createObjectURL(file);
     const video = document.createElement('video');
     video.preload = 'metadata';
@@ -1286,7 +1287,7 @@ function videoToPosterDataUrl(file: File) {
     video.onseeked = capture;
     video.onerror = () => {
       URL.revokeObjectURL(url);
-      resolve('');
+      resolve(null);
     };
     function capture() {
       try {
@@ -1297,11 +1298,11 @@ function videoToPosterDataUrl(file: File) {
         canvas.width = Math.max(1, Math.round(width * scale));
         canvas.height = Math.max(1, Math.round(height * scale));
         const ctx = canvas.getContext('2d');
-        if (!ctx) return resolve('');
+        if (!ctx) return resolve(null);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.76));
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.76);
       } catch {
-        resolve('');
+        resolve(null);
       } finally {
         URL.revokeObjectURL(url);
       }

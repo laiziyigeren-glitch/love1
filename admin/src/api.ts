@@ -227,7 +227,7 @@ export async function deleteAnniversary(id: string) {
 export async function createUploadUrl(file: File) {
   const response = await api.post(`/api/admin/spaces/${spaceSlug}/media/upload-url`, {
     fileName: file.name,
-    mimeType: file.type,
+    mimeType: file.type || 'application/octet-stream',
   });
   return response.data as {
     objectKey: string;

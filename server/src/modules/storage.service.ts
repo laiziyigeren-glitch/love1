@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -20,7 +20,15 @@ export class StorageService {
   }
 
   async createUploadUrl(spaceSlug: string, fileName: string, mimeType: string) {
-    const bucket = this.config.get<string>('S3_BUCKET') ?? 'love1';
+    const bucket = this.config.get<string>('S3_BUCKET');
+    const endpoint = this.config.get<string>('S3_ENDPOINT');
+    const accessKeyId = this.config.get<string>('S3_ACCESS_KEY_ID');
+    const secretAccessKey = this.config.get<string>('S3_SECRET_ACCESS_KEY');
+    const publicBaseUrl = this.config.get<string>('S3_PUBLIC_BASE_URL');
+    if (!bucket || !endpoint || !accessKeyId || !secretAccessKey || !publicBaseUrl) {
+      throw new ServiceUnavailableException('Object storage is not configured');
+    }
+
     const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '-');
     const objectKey = `${spaceSlug}/${Date.now()}-${safeName}`;
     const command = new PutObjectCommand({
@@ -30,11 +38,11 @@ export class StorageService {
     });
 
     const uploadUrl = await getSignedUrl(this.client, command, { expiresIn: 300 });
-    const publicBaseUrl = this.config.get<string>('S3_PUBLIC_BASE_URL') ?? '';
+    const normalizedPublicBaseUrl = publicBaseUrl.replace(/\/$/, '');
     return {
       objectKey,
       uploadUrl,
-      publicUrl: publicBaseUrl ? `${publicBaseUrl}/${objectKey}` : objectKey,
+      publicUrl: `${normalizedPublicBaseUrl}/${objectKey}`,
       expiresIn: 300,
     };
   }
