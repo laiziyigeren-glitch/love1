@@ -251,10 +251,30 @@ export async function deleteAnniversary(id: string) {
   await api.delete(`/api/admin/spaces/${spaceSlug}/anniversaries/${id}`);
 }
 
-export async function createUploadUrl(file: File) {
+export type UploadPathOptions = {
+  purpose?:
+    | 'avatar'
+    | 'background'
+    | 'about'
+    | 'login'
+    | 'page-header'
+    | 'album'
+    | 'video-poster'
+    | 'music-audio'
+    | 'music-cover'
+    | 'music-playlist-cover'
+    | 'heart-garden-cover'
+    | 'heart-garden-html'
+    | 'misc';
+  folder?: string;
+  group?: string;
+};
+
+export async function createUploadUrl(file: File, options: UploadPathOptions = {}) {
   const response = await api.post(`/api/admin/spaces/${spaceSlug}/media/upload-url`, {
     fileName: file.name,
     mimeType: file.type || 'application/octet-stream',
+    ...options,
   });
   return response.data as {
     objectKey: string;

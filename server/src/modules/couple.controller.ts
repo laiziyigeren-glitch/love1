@@ -1,7 +1,7 @@
 import { Body, Controller, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ContentService } from './content.service';
 import { CoupleAuthGuard } from './couple-auth.guard';
-import { StorageService } from './storage.service';
+import { StorageService, type UploadPathOptions } from './storage.service';
 
 @Controller('couple/spaces/:slug')
 @UseGuards(CoupleAuthGuard)
@@ -12,8 +12,8 @@ export class CoupleController {
   ) {}
 
   @Post('media/upload-url')
-  createUploadUrl(@Param('slug') slug: string, @Body() body: { fileName: string; mimeType: string }) {
-    return this.storage.createUploadUrl(slug, body.fileName, body.mimeType);
+  createUploadUrl(@Param('slug') slug: string, @Body() body: { fileName: string; mimeType: string } & UploadPathOptions) {
+    return this.storage.createUploadUrl(slug, body.fileName, body.mimeType, body);
   }
 
   @Post('media/complete')
@@ -47,4 +47,3 @@ export class CoupleController {
     return this.content.updateThemeBackground(slug, body.backgroundUrl);
   }
 }
-

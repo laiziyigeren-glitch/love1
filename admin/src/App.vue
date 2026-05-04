@@ -363,7 +363,16 @@
             <el-table :data="dashboard.site.settings.music.moodPlaylists" row-key="id">
               <el-table-column label="歌单名" min-width="160"><template #default="{ row }"><el-input v-model="row.title" /></template></el-table-column>
               <el-table-column label="描述" min-width="220"><template #default="{ row }"><el-input v-model="row.description" /></template></el-table-column>
-              <el-table-column label="封面地址" min-width="220"><template #default="{ row }"><el-input v-model="row.coverUrl" /></template></el-table-column>
+              <el-table-column label="封面地址" min-width="260">
+                <template #default="{ row }">
+                  <div class="song-upload-actions">
+                    <el-input v-model="row.coverUrl" />
+                    <el-upload :show-file-list="false" accept="image/*" :http-request="(options: UploadRequestOptions) => uploadMoodPlaylistCover(options, row)">
+                      <el-button size="small">上传</el-button>
+                    </el-upload>
+                  </div>
+                </template>
+              </el-table-column>
               <el-table-column label="歌曲" min-width="320">
                 <template #default="{ row }">
                   <el-select v-model="row.songIds" multiple filterable placeholder="选择歌曲">
@@ -598,6 +607,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox, type UploadRequestOptions } from 'element-plus';
 import {
   type Dashboard,
+  type UploadPathOptions,
   clearAdminToken,
   completeMediaUpload,
   createUploadUrl,
@@ -859,7 +869,7 @@ async function uploadThemeBackground(options: UploadRequestOptions) {
   if (!dashboard.value) return;
   try {
     const file = await compressImageFile(options.file, { maxSize: 2200, quality: 0.88 });
-    const { publicUrl: backgroundUrl } = await uploadFileToObjectStorage(file);
+    const { publicUrl: backgroundUrl } = await uploadFileToObjectStorage(file, { purpose: 'background' });
     dashboard.value.theme.backgroundUrl = backgroundUrl;
     dashboard.value.site.settings.themeCustomBackgroundUrl = backgroundUrl;
     await saveThemeConfig();
@@ -909,7 +919,7 @@ async function uploadAboutImage(options: UploadRequestOptions) {
   if (!dashboard.value) return;
   try {
     const file = await compressImageFile(options.file, { maxSize: 1600, quality: 0.86 });
-    const { publicUrl } = await uploadFileToObjectStorage(file);
+    const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'about' });
     dashboard.value.site.settings.aboutImageUrl = publicUrl;
     dashboard.value.site.settings.aboutImageVisible = true;
     await saveHome();
@@ -924,7 +934,7 @@ async function uploadCoupleEntranceImage(options: UploadRequestOptions) {
   if (!dashboard.value) return;
   try {
     const file = await compressImageFile(options.file, { maxSize: 640, quality: 0.88 });
-    const { publicUrl } = await uploadFileToObjectStorage(file);
+    const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'login' });
     dashboard.value.site.settings.coupleEntrance.imageUrl = publicUrl;
     ElMessage.success('登录页图案已上传，记得保存隐私与提醒');
     options.onSuccess?.({});
@@ -939,7 +949,7 @@ async function uploadPageHeaderImage(options: UploadRequestOptions, pageKey: Pag
   try {
     ensurePageHeaders();
     const file = await compressImageFile(options.file, { maxSize: 2200, quality: 0.88 });
-    const { publicUrl } = await uploadFileToObjectStorage(file);
+    const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'page-header', folder: pageKey });
     dashboard.value.site.settings.pageHeaders[pageKey].imageUrl = publicUrl;
     await saveProfileAndSite();
     options.onSuccess?.({});
@@ -979,7 +989,7 @@ async function removeAnniversary(item: Dashboard['anniversaries'][number], index
 async function uploadAvatar(options: UploadRequestOptions, profile: Dashboard['profiles'][number]) {
   try {
     const file = await compressImageFile(options.file, { maxSize: 600, quality: 0.86 });
-    const { publicUrl } = await uploadFileToObjectStorage(file);
+    const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'avatar' });
     profile.avatarUrl = publicUrl;
     await saveProfileAndSite();
     options.onSuccess?.({});
@@ -995,7 +1005,7 @@ async function uploadMedia(options: UploadRequestOptions) {
     const uploadFile = file.type.startsWith('video/')
       ? file
       : await compressImageFile(file, { maxSize: 1600, quality: 0.86 });
-    const uploaded = await uploadFileToObjectStorage(uploadFile);
+    const uploaded = await uploadFileToObjectStorage(uploadFile, { purpose: 'album', folder: uploadMeta.albumTitle || '默认相册' });
     const thumbnailUrl = file.type.startsWith('video/')
       ? await uploadVideoPoster(file)
       : uploaded.publicUrl;
@@ -1124,7 +1134,7 @@ async function uploadSongAudio(options: UploadRequestOptions, item: Dashboard['s
       options.onError?.(new Error('Only MP3 is supported') as never);
       return;
     }
-    const { publicUrl } = await uploadFileToObjectStorage(file);
+    const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'music-audio', folder: item.title || '未命名歌曲' });
     item.audioUrl = publicUrl;
     if (!item.title || item.title === '新的歌曲') item.title = file.name.replace(/\.[^.]+$/, '');
     if (!item.duration) item.duration = await getAudioDuration(file);
@@ -1139,7 +1149,7 @@ async function uploadSongAudio(options: UploadRequestOptions, item: Dashboard['s
 async function uploadSongCover(options: UploadRequestOptions, item: Dashboard['songs'][number]) {
   try {
     const file = await compressImageFile(options.file, { maxSize: 800, quality: 0.86 });
-    const { publicUrl } = await uploadFileToObjectStorage(file);
+    const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'music-cover', folder: item.title || '未命名歌曲' });
     item.coverUrl = publicUrl;
     await saveOneSong(item);
     options.onSuccess?.({});
@@ -1268,7 +1278,7 @@ async function removeHeartGardenProject(_item: HeartGardenProject, index: number
 async function uploadHeartGardenCover(options: UploadRequestOptions, item: HeartGardenProject) {
   try {
     const file = await compressImageFile(options.file, { maxSize: 1200, quality: 0.86 });
-    const { publicUrl } = await uploadFileToObjectStorage(file);
+    const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'heart-garden-cover', folder: item.tag || item.title, group: item.group || item.tag });
     item.cover = publicUrl;
     options.onSuccess?.({});
   } catch (error) {
@@ -1290,14 +1300,15 @@ async function uploadHeartGardenHtml(options: UploadRequestOptions, item: HeartG
       options.onError?.(new Error('HTML is too large') as never);
       return;
     }
-    item.content = await fileToText(file);
-    item.url = '';
+    const uploaded = await uploadFileToObjectStorage(file, { purpose: 'heart-garden-html', folder: item.tag || item.title, group: item.group || item.tag });
+    item.content = '';
+    item.url = uploaded.publicUrl;
     item.type = 'html';
     item.group ||= 'custom';
     item.status = 'ready';
     if (!item.title || item.title === '新的心动项目') item.title = file.name.replace(/\.[^.]+$/, '');
     options.onSuccess?.({});
-    ElMessage.success('HTML 已读入，保存后前台可预览');
+    ElMessage.success('HTML 已上传到心动花园分类文件夹，保存后前台可预览');
   } catch (error) {
     ElMessage.error('HTML 上传失败');
     options.onError?.(error as never);
@@ -1324,6 +1335,22 @@ function addMoodPlaylist() {
 
 function removeMoodPlaylist(index: number) {
   dashboard.value?.site.settings.music.moodPlaylists.splice(index, 1);
+}
+
+async function uploadMoodPlaylistCover(
+  options: UploadRequestOptions,
+  item: Dashboard['site']['settings']['music']['moodPlaylists'][number],
+) {
+  try {
+    const file = await compressImageFile(options.file, { maxSize: 1000, quality: 0.86 });
+    const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'music-playlist-cover', folder: item.title || '心情歌单' });
+    item.coverUrl = publicUrl;
+    await saveMusicSettings();
+    options.onSuccess?.({});
+  } catch (error) {
+    ElMessage.error('歌单封面上传失败');
+    options.onError?.(error as never);
+  }
 }
 
 async function saveMusicSettings() {
@@ -1406,8 +1433,8 @@ function compressImageFile(file: File, options: { maxSize: number; quality: numb
   });
 }
 
-async function uploadFileToObjectStorage(file: File) {
-  const signed = await createUploadUrl(file);
+async function uploadFileToObjectStorage(file: File, options: UploadPathOptions = {}) {
+  const signed = await createUploadUrl(file, options);
   const response = await fetch(signed.uploadUrl, {
     method: 'PUT',
     headers: {
@@ -1431,17 +1458,8 @@ async function uploadVideoPoster(file: File) {
   if (!poster) return '';
   const name = file.name.replace(/\.[^.]+$/, '') || 'video';
   const posterFile = new File([poster], `${name}-poster.jpg`, { type: 'image/jpeg' });
-  const uploaded = await uploadFileToObjectStorage(posterFile);
+  const uploaded = await uploadFileToObjectStorage(posterFile, { purpose: 'video-poster', folder: uploadMeta.albumTitle || '默认相册' });
   return uploaded.publicUrl;
-}
-
-function fileToText(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error);
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.readAsText(file, 'utf-8');
-  });
 }
 
 function videoToPosterBlob(file: File) {

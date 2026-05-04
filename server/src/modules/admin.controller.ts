@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ContentService } from './content.service';
-import { StorageService } from './storage.service';
+import { StorageService, type UploadPathOptions } from './storage.service';
 import { AdminAuthGuard } from './admin-auth.guard';
 import { AuthService } from './auth.service';
 import { Anniversary, LoveLetter, Profile, Song, SpaceData, ThemeConfig } from './types';
@@ -118,8 +118,8 @@ export class AdminController {
   }
 
   @Post('media/upload-url')
-  createUploadUrl(@Param('slug') slug: string, @Body() body: { fileName: string; mimeType: string }) {
-    return this.storage.createUploadUrl(slug, body.fileName, body.mimeType);
+  createUploadUrl(@Param('slug') slug: string, @Body() body: { fileName: string; mimeType: string } & UploadPathOptions) {
+    return this.storage.createUploadUrl(slug, body.fileName, body.mimeType, body);
   }
 
   @Post('media/complete')

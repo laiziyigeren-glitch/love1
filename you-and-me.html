@@ -5116,13 +5116,13 @@ async function uploadPhotoToBackend(file) {
   const uploadFile = isVideo
     ? file
     : await compressImageFile(file, { maxSize: 1600, quality: 0.86 });
-  const uploaded = await uploadFileToObjectStorage(uploadFile);
+  const uploaded = await uploadFileToObjectStorage(uploadFile, { purpose: 'album', folder: albumTitle });
   let thumbnailUrl = uploaded.publicUrl;
   if (isVideo) {
     const posterBlob = await videoToPosterBlob(file);
     if (posterBlob) {
       const posterFile = new File([posterBlob], `${file.name || 'video'}-poster.jpg`, { type: 'image/jpeg' });
-      thumbnailUrl = (await uploadFileToObjectStorage(posterFile)).publicUrl;
+      thumbnailUrl = (await uploadFileToObjectStorage(posterFile, { purpose: 'video-poster', folder: albumTitle })).publicUrl;
     }
   }
   const savedItem = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/media/complete`, {
@@ -5150,7 +5150,7 @@ async function uploadAvatarToBackend(file) {
   if (!spaceData) await loadSpaceFromBackend();
   if (!spaceData) return;
   const uploadFile = await compressImageFile(file, { maxSize: 600, quality: 0.86 });
-  const uploaded = await uploadFileToObjectStorage(uploadFile);
+  const uploaded = await uploadFileToObjectStorage(uploadFile, { purpose: 'avatar' });
   await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/avatar`, {
     method: 'PATCH',
     body: JSON.stringify({ avatarUrl: uploaded.publicUrl }),
@@ -5165,7 +5165,7 @@ async function uploadAvatarToBackend(file) {
 
 async function uploadThemeBackgroundToBackend(file) {
   const uploadFile = await compressImageFile(file, { maxSize: 2200, quality: 0.88 });
-  const uploaded = await uploadFileToObjectStorage(uploadFile);
+  const uploaded = await uploadFileToObjectStorage(uploadFile, { purpose: 'background' });
   const data = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/theme-background`, {
     method: 'PATCH',
     body: JSON.stringify({ backgroundUrl: uploaded.publicUrl }),
@@ -5194,11 +5194,11 @@ function appendAlbumItemOptimistically(item) {
   renderAlbums(spaceData.albumItems);
 }
 
-async function uploadFileToObjectStorage(file) {
+async function uploadFileToObjectStorage(file, options = {}) {
   const mimeType = file.type || 'application/octet-stream';
   const signed = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/media/upload-url`, {
     method: 'POST',
-    body: JSON.stringify({ fileName: file.name || `upload-${Date.now()}`, mimeType }),
+    body: JSON.stringify({ fileName: file.name || `upload-${Date.now()}`, mimeType, ...options }),
   });
   const res = await fetch(signed.uploadUrl, {
     method: 'PUT',

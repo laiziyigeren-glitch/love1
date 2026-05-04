@@ -2,10 +2,14 @@
 import { MediaType, Prisma, PublishStatus, Visibility } from '@prisma/client';
 import { Anniversary, HeartGardenProject, HomeSettings, LoveLetter, Profile, Song, SpaceData, ThemeConfig } from './types';
 import { PrismaService } from './prisma.service';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class ContentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   async getBootstrap(slug: string) {
     const space = await this.getSpace(slug);
@@ -419,6 +423,48 @@ export class ContentService {
       throw new NotFoundException(`Album item ${id} was not found`);
     }
     const albumTitle = body.albumTitle || current.album.title;
+    let mediaUrl = current.media.url;
+    let thumbnailUrl = current.media.thumbnailUrl ?? current.media.url;
+    let mediaObjectKey = current.media.objectKey;
+
+    if (albumTitle !== current.album.title) {
+      try {
+        const movedMedia = await this.storage.moveObjectToUploadFolder(current.media.objectKey, current.media.mimeType, slug, {
+          purpose: 'album',
+          folder: albumTitle,
+        });
+        if (movedMedia) {
+          mediaObjectKey = movedMedia.objectKey;
+          mediaUrl = movedMedia.publicUrl;
+          if (!current.media.thumbnailUrl || current.media.thumbnailUrl === current.media.url) {
+            thumbnailUrl = movedMedia.publicUrl;
+          }
+        }
+
+        const thumbnailKey = this.storage.objectKeyFromPublicUrl(current.media.thumbnailUrl);
+        if (thumbnailKey && thumbnailKey !== current.media.objectKey) {
+          const movedThumbnail = await this.storage.moveObjectToUploadFolder(thumbnailKey, 'image/jpeg', slug, {
+            purpose: 'video-poster',
+            folder: albumTitle,
+          });
+          if (movedThumbnail) thumbnailUrl = movedThumbnail.publicUrl;
+        }
+
+        if (mediaObjectKey !== current.media.objectKey || mediaUrl !== current.media.url || thumbnailUrl !== (current.media.thumbnailUrl ?? current.media.url)) {
+          await this.prisma.mediaAsset.update({
+            where: { id: current.media.id },
+            data: {
+              objectKey: mediaObjectKey,
+              url: mediaUrl,
+              thumbnailUrl,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Failed to reorganize album media object.', { albumItemId: id, albumTitle, error });
+      }
+    }
+
     const album = await this.prisma.album.upsert({
       where: { id: `album-${space.id}-${albumTitle}` },
       create: {
@@ -426,10 +472,10 @@ export class ContentService {
         spaceId: space.id,
         title: albumTitle,
         description: '',
-        coverUrl: current.media.thumbnailUrl ?? current.media.url,
+        coverUrl: thumbnailUrl,
       },
       update: {
-        coverUrl: current.media.thumbnailUrl ?? current.media.url,
+        coverUrl: thumbnailUrl,
       },
     });
     const item = await this.prisma.albumItem.update({
