@@ -37,7 +37,13 @@ export class StorageService {
       ContentType: mimeType,
     });
 
-    const uploadUrl = await getSignedUrl(this.client, command, { expiresIn: 300 });
+    let uploadUrl: string;
+    try {
+      uploadUrl = await getSignedUrl(this.client, command, { expiresIn: 300 });
+    } catch (error) {
+      console.error('Failed to create object storage upload URL.', error);
+      throw new ServiceUnavailableException('Object storage upload URL failed');
+    }
     const normalizedPublicBaseUrl = publicBaseUrl.replace(/\/$/, '');
     return {
       objectKey,

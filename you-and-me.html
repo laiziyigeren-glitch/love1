@@ -1410,16 +1410,16 @@ nav {
     <span class="couple-login-spark"></span>
     <span class="couple-login-spark"></span>
     <div class="couple-login-inner">
-      <div class="couple-login-mark">♡</div>
-      <div class="couple-login-title">情侣入口</div>
-      <div class="couple-login-sub">输入只属于你们的暗号，进入这座温柔收藏的小世界。</div>
+      <div class="couple-login-mark" id="coupleLoginMark">♡</div>
+      <div class="couple-login-title" id="coupleLoginTitle">情侣入口</div>
+      <div class="couple-login-sub" id="coupleLoginSubtitle">输入只属于你们的暗号，进入这座温柔收藏的小世界。</div>
       <form class="couple-login-form" id="coupleLoginForm">
         <label class="couple-login-field">
-          <span>浪漫账号</span>
+          <span id="coupleLoginNameLabel">浪漫账号</span>
           <input id="coupleLoginName" name="name" type="text" autocomplete="username" placeholder="love">
         </label>
         <label class="couple-login-field">
-          <span>秘密暗号</span>
+          <span id="coupleLoginPasswordLabel">秘密暗号</span>
           <input id="coupleLoginPassword" name="password" type="password" autocomplete="current-password" placeholder="输入你们的密码">
         </label>
         <button class="couple-login-submit" id="coupleLoginSubmit" type="submit">进入我们的世界</button>
@@ -2510,6 +2510,16 @@ function defaultSettingsState() {
     },
     music: { bgmSongId: '', volume: 70, autoplay: false, moodPlaylists: [] },
     privacy: { passwordEnabled: false, password: '520', privateAlbum: false, shareLinkEnabled: false },
+    coupleEntrance: {
+      mark: '♡',
+      title: '情侣入口',
+      subtitle: '输入只属于你们的暗号，进入这座温柔收藏的小世界。',
+      nameLabel: '浪漫账号',
+      namePlaceholder: 'love',
+      passwordLabel: '秘密暗号',
+      passwordPlaceholder: '输入你们的密码',
+      submitText: '进入我们的世界',
+    },
     reminders: { anniversaryEnabled: true, anniversaryDays: 1, surpriseEnabled: true, dailyQuoteEnabled: true, dailyQuoteTime: '20:00' },
     anniversaryPage: { startDate: '2022-05-20T00:00', startTitle: '我们的开始', firstMeetDate: '2024-08-14T00:00', showCountdown: true, dailyQuotes: [], note: '' },
     heartGarden: { projects: [] },
@@ -2524,6 +2534,7 @@ function normalizeSettings(settings = {}) {
     pageHeaders: { ...defaults.pageHeaders, ...(settings.pageHeaders || {}) },
     music: { ...defaults.music, ...(settings.music || {}) },
     privacy: { ...defaults.privacy, ...(settings.privacy || {}) },
+    coupleEntrance: { ...defaults.coupleEntrance, ...(settings.coupleEntrance || {}) },
     reminders: { ...defaults.reminders, ...(settings.reminders || {}) },
     anniversaryPage: { ...defaults.anniversaryPage, ...(settings.anniversaryPage || {}) },
     heartGarden: {
@@ -2532,6 +2543,20 @@ function normalizeSettings(settings = {}) {
       projects: Array.isArray(settings.heartGarden?.projects) ? settings.heartGarden.projects : defaults.heartGarden.projects,
     },
   };
+}
+
+function renderCoupleEntrance(settings = {}) {
+  const entrance = normalizeSettings(settings).coupleEntrance;
+  setText('#coupleLoginMark', entrance.mark || '♡');
+  setText('#coupleLoginTitle', entrance.title || '情侣入口');
+  setText('#coupleLoginSubtitle', entrance.subtitle || '');
+  setText('#coupleLoginNameLabel', entrance.nameLabel || '浪漫账号');
+  setText('#coupleLoginPasswordLabel', entrance.passwordLabel || '秘密暗号');
+  setText('#coupleLoginSubmit', entrance.submitText || '进入我们的世界');
+  const nameInput = document.getElementById('coupleLoginName');
+  const passwordInput = document.getElementById('coupleLoginPassword');
+  if (nameInput) nameInput.placeholder = entrance.namePlaceholder || 'love';
+  if (passwordInput) passwordInput.placeholder = entrance.passwordPlaceholder || '输入你们的密码';
 }
 
 function settingRows() {
@@ -3157,7 +3182,10 @@ async function apiFetch(path, options = {}) {
     signal: controller.signal,
     ...fetchOptions,
   }).finally(() => clearTimeout(timer));
-  if (!res.ok) throw new Error(`API ${res.status}`);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`API ${res.status}${detail ? `: ${detail.slice(0, 180)}` : ''}`);
+  }
   return res.json();
 }
 
@@ -3225,6 +3253,7 @@ async function coupleApiFetch(path, options = {}) {
 }
 
 function initCoupleEntrance() {
+  renderCoupleEntrance(defaultSettingsState());
   const form = document.getElementById('coupleLoginForm');
   const nameInput = document.getElementById('coupleLoginName');
   const passwordInput = document.getElementById('coupleLoginPassword');
@@ -4319,6 +4348,7 @@ function renderSpace(data) {
   spaceData = data;
   const settings = normalizeSettings(data.site.settings || {});
   document.title = `${data.name} | ${settings.pageHeaders.home.title || data.site.heroTitle}`;
+  renderCoupleEntrance(settings);
   setText('.profile-name', data.name);
   setText('.profile-tagline', data.subtitle);
   setText('.about-text', data.site.story);
@@ -4656,7 +4686,7 @@ function bindBackendActions() {
     const file = photoInput.files?.[0];
     if (file) uploadPhotoToBackend(file).catch(error => {
       console.error(error);
-      alert('上传失败，请确认已经登录情侣入口，并且 R2 已配置好。');
+      alert(`上传失败：${error?.message || '请确认登录、R2 和 Render 环境变量配置正常。'}`);
     });
     photoInput.value = '';
   });
@@ -4670,7 +4700,7 @@ function bindBackendActions() {
     const file = avatarInput.files?.[0];
     if (file) uploadAvatarToBackend(file).catch(error => {
       console.error(error);
-      alert('头像上传失败，请确认情侣入口和 R2 配置正常。');
+      alert(`头像上传失败：${error?.message || '请确认登录、R2 和 Render 环境变量配置正常。'}`);
     });
     avatarInput.value = '';
   });

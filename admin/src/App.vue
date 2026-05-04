@@ -499,6 +499,32 @@
           <el-card shadow="never">
             <template #header>隐私与提醒</template>
             <el-form label-width="110px" class="theme-form">
+              <el-divider content-position="left">前台登录页文案</el-divider>
+              <el-form-item label="顶部符号">
+                <el-input v-model="dashboard.site.settings.coupleEntrance.mark" maxlength="6" placeholder="♡" />
+              </el-form-item>
+              <el-form-item label="标题">
+                <el-input v-model="dashboard.site.settings.coupleEntrance.title" placeholder="情侣入口" />
+              </el-form-item>
+              <el-form-item label="说明文字">
+                <el-input v-model="dashboard.site.settings.coupleEntrance.subtitle" type="textarea" :rows="2" placeholder="输入只属于你们的暗号，进入这座温柔收藏的小世界。" />
+              </el-form-item>
+              <el-form-item label="账号标签">
+                <el-input v-model="dashboard.site.settings.coupleEntrance.nameLabel" placeholder="浪漫账号" />
+              </el-form-item>
+              <el-form-item label="账号提示">
+                <el-input v-model="dashboard.site.settings.coupleEntrance.namePlaceholder" placeholder="love" />
+              </el-form-item>
+              <el-form-item label="密码标签">
+                <el-input v-model="dashboard.site.settings.coupleEntrance.passwordLabel" placeholder="秘密暗号" />
+              </el-form-item>
+              <el-form-item label="密码提示">
+                <el-input v-model="dashboard.site.settings.coupleEntrance.passwordPlaceholder" placeholder="输入你们的密码" />
+              </el-form-item>
+              <el-form-item label="按钮文字">
+                <el-input v-model="dashboard.site.settings.coupleEntrance.submitText" placeholder="进入我们的世界" />
+              </el-form-item>
+              <el-divider content-position="left">相册与提醒</el-divider>
               <el-form-item label="私密相册">
                 <el-switch v-model="dashboard.site.settings.privacy.privateAlbum" active-text="显示私密相册入口" inactive-text="不显示" />
               </el-form-item>
@@ -650,6 +676,7 @@ async function load() {
     ensurePageHeaders();
     ensureMusicSettings();
     ensurePrivacyReminderSettings();
+    ensureCoupleEntranceSettings();
     ensureHeartGardenSettings();
     dashboard.value.site.settings.anniversaryPage.firstMeetDate ||= '2024-08-14T00:00';
     dashboard.value.site.settings.anniversaryPage.showCountdown ??= true;
@@ -1104,6 +1131,21 @@ function ensurePrivacyReminderSettings() {
   };
 }
 
+function ensureCoupleEntranceSettings() {
+  if (!dashboard.value) return;
+  const current = dashboard.value.site.settings.coupleEntrance || {};
+  dashboard.value.site.settings.coupleEntrance = {
+    mark: current.mark || '♡',
+    title: current.title || '情侣入口',
+    subtitle: current.subtitle || '输入只属于你们的暗号，进入这座温柔收藏的小世界。',
+    nameLabel: current.nameLabel || '浪漫账号',
+    namePlaceholder: current.namePlaceholder || 'love',
+    passwordLabel: current.passwordLabel || '秘密暗号',
+    passwordPlaceholder: current.passwordPlaceholder || '输入你们的密码',
+    submitText: current.submitText || '进入我们的世界',
+  };
+}
+
 function ensureHeartGardenSettings() {
   if (!dashboard.value) return;
   dashboard.value.site.settings.heartGarden ||= { projects: [] };
@@ -1227,6 +1269,7 @@ async function saveMusicSettings() {
 async function savePrivacyAndReminders() {
   if (!dashboard.value) return;
   ensurePrivacyReminderSettings();
+  ensureCoupleEntranceSettings();
   await saveSite(dashboard.value.site);
   ElMessage.success('隐私与提醒已保存，前台会自动同步');
 }

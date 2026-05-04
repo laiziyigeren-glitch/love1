@@ -68,6 +68,16 @@ export type HomeSettings = {
     privateAlbum: boolean;
     shareLinkEnabled: boolean;
   };
+  coupleEntrance: {
+    mark: string;
+    title: string;
+    subtitle: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    passwordLabel: string;
+    passwordPlaceholder: string;
+    submitText: string;
+  };
   reminders: {
     anniversaryEnabled: boolean;
     anniversaryDays: number;

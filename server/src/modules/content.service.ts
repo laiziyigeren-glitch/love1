@@ -816,6 +816,16 @@ export class ContentService {
         privateAlbum: false,
         shareLinkEnabled: false,
       },
+      coupleEntrance: {
+        mark: '♡',
+        title: '情侣入口',
+        subtitle: '输入只属于你们的暗号，进入这座温柔收藏的小世界。',
+        nameLabel: '浪漫账号',
+        namePlaceholder: 'love',
+        passwordLabel: '秘密暗号',
+        passwordPlaceholder: '输入你们的密码',
+        submitText: '进入我们的世界',
+      },
       reminders: {
         anniversaryEnabled: true,
         anniversaryDays: 1,
@@ -878,6 +888,7 @@ export class ContentService {
           : defaults.music.moodPlaylists,
       },
       privacy: { ...defaults.privacy, ...(source.privacy ?? {}) },
+      coupleEntrance: { ...defaults.coupleEntrance, ...(source.coupleEntrance ?? {}) },
       reminders: { ...defaults.reminders, ...(source.reminders ?? {}) },
       anniversaryPage: {
         ...defaults.anniversaryPage,
