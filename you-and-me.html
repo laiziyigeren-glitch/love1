@@ -1366,6 +1366,8 @@ nav {
 .reminder-toast-body { color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
 .settings-footer-btns { display: flex; gap: 12px; justify-content: center; margin-top: 0; }
 .settings-section-actions { justify-content: flex-end; }
+.anniversary-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.anniversary-title-row .card-title { margin-bottom: 0; }
 .settings-inline-save {
   min-height: 34px;
   padding: 7px 15px;
@@ -1684,14 +1686,14 @@ nav {
   .settings-section:not(.is-collapsed) .card-title::after {
     content: '收起';
   }
-  .settings-section > :not(.card-title) {
+  .settings-section > :not(.card-title):not(.anniversary-title-row) {
     margin-left: 16px;
     margin-right: 16px;
   }
   .settings-section > :last-child {
     margin-bottom: 16px;
   }
-  .settings-section.is-collapsed > :not(.card-title) {
+  .settings-section.is-collapsed > :not(.card-title):not(.anniversary-title-row) {
     display: none !important;
   }
   .media-lightbox-inner {
@@ -2659,11 +2661,13 @@ nav {
           <div class="setting-row"><div class="setting-label">玻璃质感</div><div class="toggle"></div></div>
         </div>
         <div class="glass-card settings-section" data-settings-section="anniversary">
-          <div class="card-title"><span>📅</span> 纪念日</div>
+          <div class="anniversary-title-row">
+            <div class="card-title"><span>📅</span> 纪念日</div>
+            <button class="settings-inline-save anniversary-save-btn" type="button">确定</button>
+          </div>
           <div class="setting-row"><div class="setting-label">在一起日期</div><div class="date-input-row"><div class="date-val">2025-05-20</div><span class="date-icon">📅</span></div></div>
           <div class="setting-row"><div class="setting-label">第一次见面</div><div class="date-input-row"><div class="date-val">2024-08-14</div><span class="date-icon">📅</span></div></div>
           <div class="setting-row"><div class="setting-label">倒计时显示</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">在首页显示倒计时</span><div class="toggle"></div></div></div>
-          <div class="setting-row settings-section-actions"><button class="settings-inline-save settings-save-btn" type="button">保存纪念日设置</button></div>
         </div>
         <div class="glass-card settings-section" data-settings-section="music">
           <div class="card-title"><span>🎵</span> 音乐</div>
@@ -5222,6 +5226,45 @@ async function saveSettingsToBackend() {
   await loadSpaceFromBackend();
 }
 
+async function saveAnniversarySettingsToBackend(button) {
+  if (!spaceData) {
+    await loadSpaceFromBackend({ force: true });
+    if (!spaceData) return showSaveToast();
+  }
+  const settings = getDraftSettingsFromPage();
+  const anniversaryPage = {
+    ...normalizeSettings(spaceData.site.settings || {}).anniversaryPage,
+    ...settings.anniversaryPage,
+    showCountdown: settings.anniversaryPage.showCountdown,
+  };
+  const originalText = button?.textContent || '确定';
+  if (button) {
+    button.disabled = true;
+    button.textContent = '保存中...';
+  }
+  try {
+    const saved = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/anniversary-page`, {
+      method: 'PATCH',
+      body: JSON.stringify(anniversaryPage),
+    });
+    spaceData.site.settings = normalizeSettings({
+      ...spaceData.site.settings,
+      anniversaryPage: saved.anniversaryPage || anniversaryPage,
+    });
+    renderHomeCountdown(spaceData.site.settings, spaceData.nextAnniversary);
+    renderAnniversaryPage(spaceData);
+    writeSpaceCache(spaceData);
+    settingsDirty = false;
+    showSaveToast();
+    setTimeout(() => loadSpaceFromBackend({ force: true }), 500);
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+}
+
 async function uploadPhotoToBackend(file) {
   const isVideo = file.type.startsWith('video/');
   const title = prompt('标题', file.name) || file.name;
@@ -5441,6 +5484,13 @@ function bindBackendActions() {
         console.error(error);
         alert(`保存失败：${error?.message || '请确认已经登录情侣入口，并且后端可以访问。'}`);
       });
+    });
+  });
+  document.querySelector('#page-settings .anniversary-save-btn')?.addEventListener('click', (event) => {
+    event.preventDefault();
+    saveAnniversarySettingsToBackend(event.currentTarget).catch(error => {
+      console.error(error);
+      alert(`保存失败：${error?.message || '请确认已经登录情侣入口，并且后端可以访问。'}`);
     });
   });
 

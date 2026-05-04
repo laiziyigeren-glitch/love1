@@ -46,4 +46,18 @@ export class CoupleController {
   updateThemeBackground(@Param('slug') slug: string, @Body() body: { backgroundUrl: string }) {
     return this.content.updateThemeBackground(slug, body.backgroundUrl);
   }
+
+  @Patch('anniversary-page')
+  updateAnniversaryPage(
+    @Param('slug') slug: string,
+    @Body()
+    body: {
+      startDate?: string;
+      startTitle?: string;
+      firstMeetDate?: string;
+      showCountdown?: boolean;
+    },
+  ) {
+    return this.content.updateAnniversaryPageSettings(slug, body);
+  }
 }

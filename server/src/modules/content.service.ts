@@ -227,6 +227,45 @@ export class ContentService {
     };
   }
 
+  async updateAnniversaryPageSettings(
+    slug: string,
+    anniversaryPage: Partial<HomeSettings['anniversaryPage']>,
+  ) {
+    const space = await this.getSpaceRef(slug);
+    const currentSite = await this.prisma.siteConfig.findUnique({ where: { spaceId: space.id } });
+    const currentSettings = this.asHomeSettings(currentSite?.settings);
+    const settings = {
+      ...currentSettings,
+      anniversaryPage: {
+        ...currentSettings.anniversaryPage,
+        ...anniversaryPage,
+        dailyQuotes: Array.isArray(anniversaryPage.dailyQuotes)
+          ? anniversaryPage.dailyQuotes
+          : currentSettings.anniversaryPage.dailyQuotes,
+      },
+    };
+
+    await this.prisma.siteConfig.upsert({
+      where: { spaceId: space.id },
+      create: {
+        spaceId: space.id,
+        heroTitle: space.name,
+        heroText: '',
+        story: '',
+        stats: [],
+        settings,
+      },
+      update: {
+        settings,
+      },
+    });
+
+    return {
+      anniversaryPage: settings.anniversaryPage,
+      settings,
+    };
+  }
+
   async listAnniversaries(slug: string) {
     const space = await this.getSpaceRef(slug);
     const items = await this.prisma.anniversary.findMany({
