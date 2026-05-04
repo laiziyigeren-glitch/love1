@@ -818,6 +818,7 @@ export class ContentService {
       },
       coupleEntrance: {
         mark: '♡',
+        imageUrl: '',
         title: '情侣入口',
         subtitle: '输入只属于你们的暗号，进入这座温柔收藏的小世界。',
         nameLabel: '浪漫账号',

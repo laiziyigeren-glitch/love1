@@ -162,6 +162,13 @@ body {
   background: linear-gradient(135deg, rgba(232,116,138,0.95), rgba(212,149,106,0.9));
   box-shadow: 0 0 30px rgba(232,116,138,0.52);
   animation: heartPulse 2.6s ease-in-out infinite;
+  overflow: hidden;
+}
+.couple-login-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .couple-login-title {
   text-align: center;
@@ -2512,6 +2519,7 @@ function defaultSettingsState() {
     privacy: { passwordEnabled: false, password: '520', privateAlbum: false, shareLinkEnabled: false },
     coupleEntrance: {
       mark: '♡',
+      imageUrl: '',
       title: '情侣入口',
       subtitle: '输入只属于你们的暗号，进入这座温柔收藏的小世界。',
       nameLabel: '浪漫账号',
@@ -2547,7 +2555,18 @@ function normalizeSettings(settings = {}) {
 
 function renderCoupleEntrance(settings = {}) {
   const entrance = normalizeSettings(settings).coupleEntrance;
-  setText('#coupleLoginMark', entrance.mark || '♡');
+  const mark = document.getElementById('coupleLoginMark');
+  if (mark) {
+    mark.textContent = '';
+    if (entrance.imageUrl) {
+      const image = document.createElement('img');
+      image.src = entrance.imageUrl;
+      image.alt = entrance.title || '情侣入口';
+      mark.appendChild(image);
+    } else {
+      mark.textContent = entrance.mark || '♡';
+    }
+  }
   setText('#coupleLoginTitle', entrance.title || '情侣入口');
   setText('#coupleLoginSubtitle', entrance.subtitle || '');
   setText('#coupleLoginNameLabel', entrance.nameLabel || '浪漫账号');

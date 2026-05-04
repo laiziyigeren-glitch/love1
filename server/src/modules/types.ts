@@ -70,6 +70,7 @@ export type HomeSettings = {
   };
   coupleEntrance: {
     mark: string;
+    imageUrl: string;
     title: string;
     subtitle: string;
     nameLabel: string;

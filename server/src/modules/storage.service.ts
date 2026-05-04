@@ -5,31 +5,30 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 @Injectable()
 export class StorageService {
-  private readonly client: S3Client;
-
-  constructor(private readonly config: ConfigService) {
-    this.client = new S3Client({
-      region: this.config.get<string>('S3_REGION') ?? 'us-east-1',
-      endpoint: this.config.get<string>('S3_ENDPOINT'),
-      forcePathStyle: true,
-      credentials: {
-        accessKeyId: this.config.get<string>('S3_ACCESS_KEY_ID') ?? '',
-        secretAccessKey: this.config.get<string>('S3_SECRET_ACCESS_KEY') ?? '',
-      },
-    });
-  }
+  constructor(private readonly config: ConfigService) {}
 
   async createUploadUrl(spaceSlug: string, fileName: string, mimeType: string) {
-    const bucket = this.config.get<string>('S3_BUCKET');
-    const endpoint = this.config.get<string>('S3_ENDPOINT');
-    const accessKeyId = this.config.get<string>('S3_ACCESS_KEY_ID');
-    const secretAccessKey = this.config.get<string>('S3_SECRET_ACCESS_KEY');
-    const publicBaseUrl = this.config.get<string>('S3_PUBLIC_BASE_URL');
+    const bucket = this.cleanEnv('S3_BUCKET');
+    const endpoint = this.cleanEnv('S3_ENDPOINT');
+    const accessKeyId = this.cleanEnv('S3_ACCESS_KEY_ID');
+    const secretAccessKey = this.cleanEnv('S3_SECRET_ACCESS_KEY');
+    const publicBaseUrl = this.cleanEnv('S3_PUBLIC_BASE_URL');
     if (!bucket || !endpoint || !accessKeyId || !secretAccessKey || !publicBaseUrl) {
       throw new ServiceUnavailableException('Object storage is not configured');
     }
 
-    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '-');
+    const normalizedEndpoint = this.normalizeEndpoint(endpoint);
+    const client = new S3Client({
+      region: this.cleanEnv('S3_REGION') || 'auto',
+      endpoint: normalizedEndpoint,
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
+
+    const safeName = String(fileName || `upload-${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, '-');
     const objectKey = `${spaceSlug}/${Date.now()}-${safeName}`;
     const command = new PutObjectCommand({
       Bucket: bucket,
@@ -39,7 +38,7 @@ export class StorageService {
 
     let uploadUrl: string;
     try {
-      uploadUrl = await getSignedUrl(this.client, command, { expiresIn: 300 });
+      uploadUrl = await getSignedUrl(client, command, { expiresIn: 300 });
     } catch (error) {
       console.error('Failed to create object storage upload URL.', error);
       throw new ServiceUnavailableException('Object storage upload URL failed');
@@ -51,5 +50,19 @@ export class StorageService {
       publicUrl: `${normalizedPublicBaseUrl}/${objectKey}`,
       expiresIn: 300,
     };
+  }
+
+  private cleanEnv(key: string) {
+    return String(this.config.get<string>(key) || '').trim();
+  }
+
+  private normalizeEndpoint(endpoint: string) {
+    try {
+      const url = new URL(endpoint);
+      return url.origin;
+    } catch (error) {
+      console.error('Invalid object storage endpoint.', { endpoint });
+      throw new ServiceUnavailableException('Object storage endpoint is invalid');
+    }
   }
 }

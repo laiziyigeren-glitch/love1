@@ -503,6 +503,21 @@
               <el-form-item label="顶部符号">
                 <el-input v-model="dashboard.site.settings.coupleEntrance.mark" maxlength="6" placeholder="♡" />
               </el-form-item>
+              <el-form-item label="图案图片">
+                <div class="inline-actions">
+                  <el-image
+                    v-if="dashboard.site.settings.coupleEntrance.imageUrl"
+                    class="entrance-preview"
+                    :src="dashboard.site.settings.coupleEntrance.imageUrl"
+                    fit="cover"
+                  />
+                  <el-input v-model="dashboard.site.settings.coupleEntrance.imageUrl" placeholder="图片地址或上传图片" />
+                  <el-upload :show-file-list="false" accept="image/*" :http-request="uploadCoupleEntranceImage">
+                    <el-button>上传</el-button>
+                  </el-upload>
+                  <el-button v-if="dashboard.site.settings.coupleEntrance.imageUrl" link type="danger" @click="dashboard.site.settings.coupleEntrance.imageUrl = ''">清除</el-button>
+                </div>
+              </el-form-item>
               <el-form-item label="标题">
                 <el-input v-model="dashboard.site.settings.coupleEntrance.title" placeholder="情侣入口" />
               </el-form-item>
@@ -905,6 +920,20 @@ async function uploadAboutImage(options: UploadRequestOptions) {
   }
 }
 
+async function uploadCoupleEntranceImage(options: UploadRequestOptions) {
+  if (!dashboard.value) return;
+  try {
+    const file = await compressImageFile(options.file, { maxSize: 640, quality: 0.88 });
+    const { publicUrl } = await uploadFileToObjectStorage(file);
+    dashboard.value.site.settings.coupleEntrance.imageUrl = publicUrl;
+    ElMessage.success('登录页图案已上传，记得保存隐私与提醒');
+    options.onSuccess?.({});
+  } catch (error) {
+    ElMessage.error('登录页图案上传失败，请确认 R2 环境变量和跨域规则已配置');
+    options.onError?.(error as never);
+  }
+}
+
 async function uploadPageHeaderImage(options: UploadRequestOptions, pageKey: PageHeaderKey) {
   if (!dashboard.value) return;
   try {
@@ -1173,6 +1202,7 @@ function ensureCoupleEntranceSettings() {
   const current = dashboard.value.site.settings.coupleEntrance || {};
   dashboard.value.site.settings.coupleEntrance = {
     mark: current.mark || '♡',
+    imageUrl: current.imageUrl || '',
     title: current.title || '情侣入口',
     subtitle: current.subtitle || '输入只属于你们的暗号，进入这座温柔收藏的小世界。',
     nameLabel: current.nameLabel || '浪漫账号',
@@ -1537,6 +1567,7 @@ onMounted(() => {
 .page-header-config .inline-actions { flex-wrap: nowrap; }
 .page-header-config .inline-actions .el-input { width: min(420px, 100%); }
 .tiny-preview { width: 76px; height: 44px; border-radius: 6px; background: #f3eeeb; flex: 0 0 auto; }
+.entrance-preview { width: 52px; height: 52px; border-radius: 999px; background: #f3eeeb; flex: 0 0 auto; overflow: hidden; }
 .profile-row { display: grid; grid-template-columns: 80px 100px 1fr 1fr; gap: 12px; align-items: center; margin-bottom: 18px; }
 .profile-row .el-form-item:last-child { grid-column: 3 / span 2; }
 .album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }

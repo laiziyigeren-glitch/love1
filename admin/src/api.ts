@@ -86,6 +86,7 @@ export type Dashboard = {
       };
       coupleEntrance: {
         mark: string;
+        imageUrl: string;
         title: string;
         subtitle: string;
         nameLabel: string;
