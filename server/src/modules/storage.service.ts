@@ -111,40 +111,41 @@ export class StorageService {
   resolveFolder(spaceSlug: string, mimeType: string, options: UploadPathOptions = {}) {
     const slug = this.cleanSegment(spaceSlug, 'default');
     const folder = this.cleanSegment(options.folder, '默认');
-    const group = this.cleanSegment(options.group, folder);
+    const normalizedFolder = String(options.folder || '').trim() ? folder : '默认';
+    const group = this.cleanSegment(options.group, normalizedFolder);
     const purpose = String(options.purpose || '').trim();
     const type = String(mimeType || '').toLowerCase();
 
     switch (purpose) {
       case 'avatar':
-        return `${slug}/images/avatars`;
+        return `${slug}/图片/头像`;
       case 'background':
-        return `${slug}/images/backgrounds`;
+        return `${slug}/图片/背景`;
       case 'about':
-        return `${slug}/images/about`;
+        return `${slug}/图片/关于`;
       case 'login':
-        return `${slug}/images/login`;
+        return `${slug}/图片/登录入口`;
       case 'page-header':
-        return `${slug}/images/page-headers/${group}`;
+        return `${slug}/图片/页面头图/${group}`;
       case 'album':
-        return type.startsWith('video/') ? `${slug}/videos/album/${folder}` : `${slug}/images/album/${folder}`;
+        return type.startsWith('video/') ? `${slug}/视频/相册/${normalizedFolder}` : `${slug}/图片/相册/${normalizedFolder}`;
       case 'video-poster':
-        return `${slug}/videos/posters/${folder}`;
+        return `${slug}/视频/封面/${normalizedFolder}`;
       case 'music-audio':
-        return `${slug}/music/songs/${folder}`;
+        return `${slug}/音乐/歌曲/${normalizedFolder}`;
       case 'music-cover':
-        return `${slug}/music/covers/${folder}`;
+        return `${slug}/音乐/歌曲封面/${normalizedFolder}`;
       case 'music-playlist-cover':
-        return `${slug}/music/playlists/${folder}`;
+        return `${slug}/音乐/心情歌单/${normalizedFolder}`;
       case 'heart-garden-cover':
-        return `${slug}/heart-garden/covers/${group}`;
+        return `${slug}/心动花园/封面/${group}`;
       case 'heart-garden-html':
-        return `${slug}/heart-garden/html/${group}`;
+        return `${slug}/心动花园/HTML/${group}`;
       default:
-        if (type.startsWith('video/')) return `${slug}/videos/misc`;
-        if (type.startsWith('audio/')) return `${slug}/music/misc`;
-        if (type.startsWith('image/')) return `${slug}/images/misc`;
-        return `${slug}/files/misc`;
+        if (type.startsWith('video/')) return `${slug}/视频/其他`;
+        if (type.startsWith('audio/')) return `${slug}/音乐/其他`;
+        if (type.startsWith('image/')) return `${slug}/图片/其他`;
+        return `${slug}/其他文件`;
     }
   }
 
