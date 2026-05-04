@@ -111,6 +111,142 @@ body {
   100% { opacity: 0; transform: translateY(-180px) scale(0.3); }
 }
 
+/* ===== COUPLE ENTRANCE ===== */
+.couple-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(244,160,176,0.2), transparent 28%),
+    radial-gradient(circle at 78% 22%, rgba(212,149,106,0.18), transparent 26%),
+    linear-gradient(145deg, rgba(17,8,8,0.94), rgba(44,16,19,0.9));
+  backdrop-filter: blur(16px) saturate(1.45);
+}
+.couple-login-overlay.open { display: flex; }
+.couple-login-card {
+  position: relative;
+  width: min(440px, 100%);
+  padding: 34px 30px 30px;
+  border: 1px solid rgba(244,160,176,0.38);
+  border-radius: 26px;
+  background: linear-gradient(160deg, rgba(67,26,30,0.74), rgba(24,9,10,0.76));
+  box-shadow: 0 28px 90px rgba(0,0,0,0.58), 0 0 42px rgba(232,116,138,0.24);
+  overflow: hidden;
+}
+.couple-login-card::before {
+  content: '';
+  position: absolute;
+  inset: -35% -20% auto;
+  height: 220px;
+  background: radial-gradient(circle, rgba(244,160,176,0.25), transparent 62%);
+  animation: entranceGlow 5s ease-in-out infinite alternate;
+}
+@keyframes entranceGlow {
+  from { transform: translate3d(-8px, -8px, 0) scale(0.98); opacity: 0.75; }
+  to { transform: translate3d(10px, 8px, 0) scale(1.08); opacity: 1; }
+}
+.couple-login-inner { position: relative; z-index: 1; }
+.couple-login-mark {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  background: linear-gradient(135deg, rgba(232,116,138,0.95), rgba(212,149,106,0.9));
+  box-shadow: 0 0 30px rgba(232,116,138,0.52);
+  animation: heartPulse 2.6s ease-in-out infinite;
+}
+.couple-login-title {
+  text-align: center;
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 34px;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+}
+.couple-login-sub {
+  margin: 10px auto 24px;
+  max-width: 320px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.8;
+}
+.couple-login-form { display: grid; gap: 14px; }
+.couple-login-field {
+  display: grid;
+  gap: 7px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.couple-login-field input {
+  width: 100%;
+  height: 46px;
+  border: 1px solid rgba(244,160,176,0.32);
+  border-radius: 16px;
+  outline: none;
+  padding: 0 15px;
+  color: var(--text-primary);
+  background: rgba(18,8,9,0.62);
+  font: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.couple-login-field input:focus {
+  border-color: rgba(244,160,176,0.72);
+  box-shadow: 0 0 0 4px rgba(232,116,138,0.12);
+}
+.couple-login-submit {
+  height: 48px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 999px;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--rose), var(--gold));
+  box-shadow: 0 12px 32px rgba(232,116,138,0.36);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.couple-login-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(232,116,138,0.46);
+}
+.couple-login-submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
+  transform: none;
+}
+.couple-login-error {
+  min-height: 20px;
+  margin-top: 8px;
+  color: #ffd0d8;
+  text-align: center;
+  font-size: 13px;
+}
+.couple-login-spark {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(244,160,176,0.82);
+  box-shadow: 0 0 18px rgba(244,160,176,0.85);
+  animation: entranceSpark 4.6s ease-in-out infinite;
+}
+.couple-login-spark:nth-child(1) { top: 28px; left: 38px; animation-delay: 0s; }
+.couple-login-spark:nth-child(2) { top: 88px; right: 44px; animation-delay: 1.1s; }
+.couple-login-spark:nth-child(3) { bottom: 56px; left: 64px; animation-delay: 2.2s; }
+@keyframes entranceSpark {
+  0%, 100% { opacity: 0.24; transform: translateY(0) scale(0.75); }
+  50% { opacity: 1; transform: translateY(-12px) scale(1.2); }
+}
+
 /* ===== APP WRAPPER ===== */
 .app { position: relative; z-index: 1; }
 
@@ -1266,6 +1402,32 @@ nav {
 </style>
 </head>
 <body>
+
+<!-- ===== COUPLE ENTRANCE ===== -->
+<div class="couple-login-overlay" id="coupleLoginOverlay" aria-hidden="true">
+  <div class="couple-login-card">
+    <span class="couple-login-spark"></span>
+    <span class="couple-login-spark"></span>
+    <span class="couple-login-spark"></span>
+    <div class="couple-login-inner">
+      <div class="couple-login-mark">♡</div>
+      <div class="couple-login-title">情侣入口</div>
+      <div class="couple-login-sub">输入只属于你们的暗号，进入这座温柔收藏的小世界。</div>
+      <form class="couple-login-form" id="coupleLoginForm">
+        <label class="couple-login-field">
+          <span>浪漫账号</span>
+          <input id="coupleLoginName" name="name" type="text" autocomplete="username" placeholder="love">
+        </label>
+        <label class="couple-login-field">
+          <span>秘密暗号</span>
+          <input id="coupleLoginPassword" name="password" type="password" autocomplete="current-password" placeholder="输入你们的密码">
+        </label>
+        <button class="couple-login-submit" id="coupleLoginSubmit" type="submit">进入我们的世界</button>
+        <div class="couple-login-error" id="coupleLoginError"></div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <!-- ===== BACKGROUNDS ===== -->
 <div class="bg-image"></div>
@@ -2893,6 +3055,7 @@ document.getElementById('loveModal').addEventListener('click', (e) => {
 const SPACE_SLUG = 'default';
 const API_BASE = window.LOVE1_API_BASE || `/api`;
 const SPACE_CACHE_KEY = `love1:space:${SPACE_SLUG}:v1`;
+const COUPLE_TOKEN_KEY = `love1:couple:${SPACE_SLUG}:token`;
 let spaceData = null;
 let lastSpaceSignature = '';
 let backendRefreshInFlight = false;
@@ -2996,6 +3159,104 @@ async function apiFetch(path, options = {}) {
   }).finally(() => clearTimeout(timer));
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
+}
+
+function getCoupleToken() {
+  try {
+    return localStorage.getItem(COUPLE_TOKEN_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+function setCoupleToken(token) {
+  try {
+    localStorage.setItem(COUPLE_TOKEN_KEY, token);
+  } catch (error) {
+    console.warn('Failed to save couple token.', error);
+  }
+}
+
+function clearCoupleToken() {
+  try {
+    localStorage.removeItem(COUPLE_TOKEN_KEY);
+  } catch {
+    // ignore storage cleanup errors
+  }
+}
+
+function showCoupleLogin(message = '') {
+  const overlay = document.getElementById('coupleLoginOverlay');
+  const error = document.getElementById('coupleLoginError');
+  if (error) error.textContent = message;
+  if (overlay) {
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+  }
+}
+
+function hideCoupleLogin() {
+  const overlay = document.getElementById('coupleLoginOverlay');
+  if (overlay) {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+}
+
+async function coupleApiFetch(path, options = {}) {
+  const token = getCoupleToken();
+  if (!token) {
+    showCoupleLogin('先输入你们的暗号，再上传新的回忆。');
+    throw new Error('Missing couple token');
+  }
+  return apiFetch(path, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`,
+    },
+  }).catch(error => {
+    if (String(error?.message || '').includes('401')) {
+      clearCoupleToken();
+      showCoupleLogin('暗号过期了，请重新进入。');
+    }
+    throw error;
+  });
+}
+
+function initCoupleEntrance() {
+  const form = document.getElementById('coupleLoginForm');
+  const nameInput = document.getElementById('coupleLoginName');
+  const passwordInput = document.getElementById('coupleLoginPassword');
+  const submitBtn = document.getElementById('coupleLoginSubmit');
+  const error = document.getElementById('coupleLoginError');
+  if (!getCoupleToken()) showCoupleLogin();
+  if (!form || !nameInput || !passwordInput || !submitBtn) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (error) error.textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = '正在确认心动暗号...';
+    try {
+      const data = await apiFetch('/couple/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: nameInput.value.trim(),
+          password: passwordInput.value,
+        }),
+      });
+      setCoupleToken(data.accessToken);
+      passwordInput.value = '';
+      hideCoupleLogin();
+    } catch (loginError) {
+      console.error(loginError);
+      if (error) error.textContent = '账号或暗号不对，再轻轻试一次。';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '进入我们的世界';
+    }
+  });
 }
 
 function readSpaceCache() {
@@ -4164,69 +4425,7 @@ async function saveSettingsToBackend() {
 }
 
 async function uploadPhotoToBackend(file) {
-  const signed = await apiFetch(`/admin/spaces/${SPACE_SLUG}/media/upload-url`, {
-    method: 'POST',
-    body: JSON.stringify({ fileName: file.name, mimeType: file.type }),
-  });
-  await fetch(signed.uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type },
-    body: file,
-  });
-  await apiFetch(`/admin/spaces/${SPACE_SLUG}/media/complete`, {
-    method: 'POST',
-    body: JSON.stringify({
-      objectKey: signed.objectKey,
-      url: signed.publicUrl,
-      thumbnailUrl: signed.publicUrl,
-      mimeType: file.type,
-      size: file.size,
-      title: file.name,
-      albumTitle: '默认相册',
-      takenAt: new Date().toISOString().slice(0, 10),
-    }),
-  });
-  await loadSpaceFromBackend();
-}
-
-function bindBackendActions() {
-  const saveBtn = document.querySelector('#page-settings .btn-primary');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', (event) => {
-      event.preventDefault();
-      saveSettingsToBackend().catch(error => {
-        console.error(error);
-        showSaveToast();
-      });
-    });
-  }
-
-  const uploadInput = document.createElement('input');
-  uploadInput.type = 'file';
-  uploadInput.accept = 'image/*,video/*';
-  uploadInput.style.display = 'none';
-  document.body.appendChild(uploadInput);
-  uploadInput.addEventListener('change', () => {
-    const file = uploadInput.files?.[0];
-    if (file) uploadPhotoToBackend(file).catch(error => console.error(error));
-    uploadInput.value = '';
-  });
-  document.querySelectorAll('.album-upload-btn, .settings-change-btn').forEach(btn => {
-    btn.addEventListener('click', (event) => {
-      event.preventDefault();
-      uploadInput.click();
-    });
-  });
-}
-
-// Override the initial upload binding for local MySQL development:
-// images are compressed in browser and saved as data URLs, so MinIO/S3 is not required.
-async function uploadPhotoToBackend(file) {
   const isVideo = file.type.startsWith('video/');
-  if (isVideo && file.size > 12 * 1024 * 1024) {
-    alert('当前本地版本把视频保存到 MySQL，请先上传 12MB 以内的视频。');
-    return;
-  }
   const title = prompt('标题', file.name) || file.name;
   const albumTitle = prompt('分类标签，例如：旅行 / 日常 / 约会 / 夜晚', '默认相册') || '默认相册';
   const location = prompt('地点，可以留空', '') || '';
@@ -4236,13 +4435,20 @@ async function uploadPhotoToBackend(file) {
     .split(',')
     .map(item => item.trim())
     .filter(Boolean);
-  const dataUrl = await fileToDataUrl(file, isVideo ? 0 : 960);
-  const thumbnailUrl = isVideo ? await videoToPosterDataUrl(file) : dataUrl;
-  await apiFetch(`/admin/spaces/${SPACE_SLUG}/media/complete`, {
+  const uploaded = await uploadFileToObjectStorage(file);
+  let thumbnailUrl = uploaded.publicUrl;
+  if (isVideo) {
+    const posterBlob = await videoToPosterBlob(file);
+    if (posterBlob) {
+      const posterFile = new File([posterBlob], `${file.name || 'video'}-poster.jpg`, { type: 'image/jpeg' });
+      thumbnailUrl = (await uploadFileToObjectStorage(posterFile)).publicUrl;
+    }
+  }
+  await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/media/complete`, {
     method: 'POST',
     body: JSON.stringify({
-      objectKey: `local/${Date.now()}-${file.name}`,
-      url: dataUrl,
+      objectKey: uploaded.objectKey,
+      url: uploaded.publicUrl,
       thumbnailUrl,
       mimeType: file.type,
       size: file.size,
@@ -4260,46 +4466,50 @@ async function uploadPhotoToBackend(file) {
 async function uploadAvatarToBackend(file) {
   if (!spaceData) await loadSpaceFromBackend();
   if (!spaceData) return;
-  const avatarUrl = await fileToDataUrl(file, 260);
-  const profile = {
-    ...(spaceData.profiles?.[0] || { id: 'profile-couple', name: spaceData.name, nickname: '' }),
-    avatarUrl,
-  };
-  await apiFetch(`/admin/spaces/${SPACE_SLUG}/profiles`, {
+  const uploaded = await uploadFileToObjectStorage(file);
+  await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/avatar`, {
     method: 'PATCH',
-    body: JSON.stringify({ profiles: [profile] }),
+    body: JSON.stringify({ avatarUrl: uploaded.publicUrl }),
   });
   await loadSpaceFromBackend();
 }
 
-function fileToDataUrl(file, maxSize) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error);
-    reader.onload = () => {
-      if (file.type.startsWith('video/') || !maxSize) {
-        resolve(String(reader.result));
-        return;
-      }
-      const img = new Image();
-      img.onerror = () => resolve(String(reader.result));
-      img.onload = () => {
-        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(img.width * scale));
-        canvas.height = Math.max(1, Math.round(img.height * scale));
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return resolve(String(reader.result));
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.76));
-      };
-      img.src = String(reader.result);
-    };
-    reader.readAsDataURL(file);
+async function uploadThemeBackgroundToBackend(file) {
+  const uploaded = await uploadFileToObjectStorage(file);
+  const data = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/theme-background`, {
+    method: 'PATCH',
+    body: JSON.stringify({ backgroundUrl: uploaded.publicUrl }),
   });
+  spaceData.theme = { ...spaceData.theme, backgroundUrl: data.backgroundUrl || uploaded.publicUrl };
+  spaceData.site.settings = {
+    ...normalizeSettings(spaceData.site.settings || {}),
+    ...(data.settings || {}),
+    themeCustomBackgroundUrl: uploaded.publicUrl,
+  };
+  applyTheme(spaceData.theme);
+  const preview = document.querySelector('#page-settings .theme-preview-img img');
+  if (preview) preview.src = uploaded.publicUrl;
+  updateCustomBackgroundButton(spaceData.site.settings);
+  writeSpaceCache(spaceData);
+  showReminder('背景图已同步', '新的背景图已经保存到对象存储，并同步到网站。');
 }
 
-function videoToPosterDataUrl(file) {
+async function uploadFileToObjectStorage(file) {
+  const mimeType = file.type || 'application/octet-stream';
+  const signed = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/media/upload-url`, {
+    method: 'POST',
+    body: JSON.stringify({ fileName: file.name || `upload-${Date.now()}`, mimeType }),
+  });
+  const res = await fetch(signed.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': mimeType },
+    body: file,
+  });
+  if (!res.ok) throw new Error(`R2 upload ${res.status}`);
+  return signed;
+}
+
+function videoToPosterBlob(file) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
     const video = document.createElement('video');
@@ -4316,7 +4526,7 @@ function videoToPosterDataUrl(file) {
     video.onseeked = capture;
     video.onerror = () => {
       URL.revokeObjectURL(url);
-      resolve('');
+      resolve(null);
     };
     function capture() {
       try {
@@ -4327,11 +4537,11 @@ function videoToPosterDataUrl(file) {
         canvas.width = Math.max(1, Math.round(width * scale));
         canvas.height = Math.max(1, Math.round(height * scale));
         const ctx = canvas.getContext('2d');
-        if (!ctx) return resolve('');
+        if (!ctx) return resolve(null);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.76));
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.76);
       } catch {
-        resolve('');
+        resolve(null);
       } finally {
         URL.revokeObjectURL(url);
       }
@@ -4345,12 +4555,11 @@ function openThemeBackgroundPicker(event) {
   const customUrl = settings.themeCustomBackgroundUrl || '';
   if (customUrl && spaceData?.theme?.backgroundUrl !== customUrl && !event?.ctrlKey) {
     spaceData.theme = { ...spaceData.theme, backgroundUrl: customUrl };
-    settingsDirty = true;
     applyTheme(spaceData.theme);
     const preview = document.querySelector('#page-settings .theme-preview-img img');
     if (preview) preview.src = customUrl;
     updateCustomBackgroundButton(settings);
-    showReminder('已切回自定义背景', '点击保存设置后，自定义背景会成为当前网站背景。');
+    showReminder('已切回自定义背景', '自定义背景已经是当前网站背景。');
     return;
   }
   const input = document.createElement('input');
@@ -4363,18 +4572,7 @@ function openThemeBackgroundPicker(event) {
     input.remove();
     if (!file || !spaceData) return;
     try {
-      const backgroundUrl = await fileToDataUrl(file, 1440);
-      spaceData.theme = { ...spaceData.theme, backgroundUrl };
-      spaceData.site.settings = {
-        ...normalizeSettings(spaceData.site.settings || {}),
-        themeCustomBackgroundUrl: backgroundUrl,
-      };
-      settingsDirty = true;
-      applyTheme(spaceData.theme);
-      const preview = document.querySelector('#page-settings .theme-preview-img img');
-      if (preview) preview.src = backgroundUrl;
-      updateCustomBackgroundButton(spaceData.site.settings);
-      showReminder('背景图已替换', '点击保存设置后，新的背景图会同步到网站和后台。');
+      await uploadThemeBackgroundToBackend(file);
     } catch (error) {
       console.error(error);
       alert('背景图上传失败，请换一张图片试试。');
@@ -4404,7 +4602,7 @@ function bindBackendActions() {
     const file = photoInput.files?.[0];
     if (file) uploadPhotoToBackend(file).catch(error => {
       console.error(error);
-      alert('上传失败，请确认后端已重启；视频请先用较小文件测试。');
+      alert('上传失败，请确认已经登录情侣入口，并且 R2 已配置好。');
     });
     photoInput.value = '';
   });
@@ -4416,7 +4614,10 @@ function bindBackendActions() {
   document.body.appendChild(avatarInput);
   avatarInput.addEventListener('change', () => {
     const file = avatarInput.files?.[0];
-    if (file) uploadAvatarToBackend(file).catch(error => console.error(error));
+    if (file) uploadAvatarToBackend(file).catch(error => {
+      console.error(error);
+      alert('头像上传失败，请确认情侣入口和 R2 配置正常。');
+    });
     avatarInput.value = '';
   });
 
@@ -4435,6 +4636,7 @@ function bindBackendActions() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  initCoupleEntrance();
   bindBackendActions();
   bindSettingsPageControls();
   renderRomanceProjects();

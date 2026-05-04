@@ -58,6 +58,35 @@ export class AuthService {
     };
   }
 
+  async loginCouple(name: string, password: string) {
+    const normalizedName = String(name || '').trim();
+    const normalizedPassword = String(password || '');
+    const coupleName = String(this.config.get<string>('COUPLE_LOGIN_NAME') || 'love').trim();
+    const couplePassword = String(this.config.get<string>('COUPLE_LOGIN_PASSWORD') || '5201314');
+
+    if (!normalizedName || !normalizedPassword || normalizedName !== coupleName || normalizedPassword !== couplePassword) {
+      throw new UnauthorizedException('Invalid couple credentials');
+    }
+
+    const accessToken = await this.jwt.signAsync(
+      {
+        sub: 'couple',
+        name: normalizedName,
+        role: 'couple',
+      },
+      {
+        secret: this.getCoupleJwtSecret(),
+        expiresIn: '30d',
+      },
+    );
+
+    return {
+      accessToken,
+      name: normalizedName,
+      expiresIn: 30 * 24 * 60 * 60,
+    };
+  }
+
   getJwtSecret() {
     return (
       this.config.get<string>('ADMIN_JWT_SECRET') ||
@@ -65,5 +94,13 @@ export class AuthService {
       'love1-local-admin-secret'
     );
   }
-}
 
+  getCoupleJwtSecret() {
+    return (
+      this.config.get<string>('COUPLE_JWT_SECRET') ||
+      this.config.get<string>('ADMIN_JWT_SECRET') ||
+      this.config.get<string>('ADMIN_PASSWORD') ||
+      'love1-local-couple-secret'
+    );
+  }
+}

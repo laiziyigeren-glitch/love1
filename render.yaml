@@ -33,3 +33,9 @@ services:
         sync: false
       - key: S3_PUBLIC_BASE_URL
         sync: false
+      - key: COUPLE_LOGIN_NAME
+        sync: false
+      - key: COUPLE_LOGIN_PASSWORD
+        sync: false
+      - key: COUPLE_JWT_SECRET
+        sync: false

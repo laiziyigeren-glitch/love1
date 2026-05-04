@@ -152,6 +152,77 @@ export class ContentService {
     });
   }
 
+  async updatePrimaryAvatar(slug: string, avatarUrl: string) {
+    const space = await this.getSpaceRef(slug);
+    const current = await this.prisma.profile.findFirst({
+      where: { spaceId: space.id },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    if (current) {
+      return this.prisma.profile.update({
+        where: { id: current.id },
+        data: { avatarUrl },
+      });
+    }
+
+    return this.prisma.profile.create({
+      data: {
+        id: 'profile-couple',
+        spaceId: space.id,
+        name: space.name,
+        nickname: '',
+        avatarUrl,
+        bio: '',
+        sortOrder: 0,
+      },
+    });
+  }
+
+  async updateThemeBackground(slug: string, backgroundUrl: string) {
+    const space = await this.getSpaceRef(slug);
+    const currentTheme = await this.prisma.themeConfig.findUnique({ where: { spaceId: space.id } });
+    const currentSite = await this.prisma.siteConfig.findUnique({ where: { spaceId: space.id } });
+    const settings = {
+      ...this.asHomeSettings(currentSite?.settings),
+      themeCustomBackgroundUrl: backgroundUrl,
+    };
+
+    const theme = await this.prisma.themeConfig.upsert({
+      where: { spaceId: space.id },
+      create: {
+        spaceId: space.id,
+        primaryColor: '#e8748a',
+        accentColor: '#d4956a',
+        backgroundUrl,
+        effects: this.asEffects(undefined),
+      },
+      update: {
+        backgroundUrl,
+      },
+    });
+
+    await this.prisma.siteConfig.upsert({
+      where: { spaceId: space.id },
+      create: {
+        spaceId: space.id,
+        heroTitle: space.name,
+        heroText: '',
+        story: '',
+        stats: [],
+        settings,
+      },
+      update: {
+        settings,
+      },
+    });
+
+    return {
+      backgroundUrl: theme.backgroundUrl ?? currentTheme?.backgroundUrl ?? backgroundUrl,
+      settings,
+    };
+  }
+
   async listAnniversaries(slug: string) {
     const space = await this.getSpaceRef(slug);
     const items = await this.prisma.anniversary.findMany({
