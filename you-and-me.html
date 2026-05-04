@@ -3193,13 +3193,13 @@ const romanceProjects = [
 ];
 
 async function apiFetch(path, options = {}) {
-  const { timeoutMs = 20000, ...fetchOptions } = options;
+  const { timeoutMs = 20000, headers = {}, ...fetchOptions } = options;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    signal: controller.signal,
     ...fetchOptions,
+    headers: { 'Content-Type': 'application/json', ...headers },
+    signal: controller.signal,
   }).finally(() => clearTimeout(timer));
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
