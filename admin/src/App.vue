@@ -188,7 +188,7 @@
                 <el-form-item label="专属称呼"><el-input v-model="profile.nickname" /></el-form-item>
                 <el-form-item label="头像地址"><el-input v-model="profile.avatarUrl" /></el-form-item>
               </div>
-              <el-button type="primary" @click="saveProfileAndSite">保存资料</el-button>
+              <el-button type="primary" :loading="profileSaving" :disabled="profileSaving" @click="saveProfileAndSite">保存资料</el-button>
             </el-form>
           </el-card>
         </section>
@@ -227,7 +227,7 @@
                   <template #default="{ $index }"><el-button link type="danger" @click="removeDailyQuote($index)">删除</el-button></template>
                 </el-table-column>
               </el-table>
-              <el-button type="primary" class="save-row" @click="saveAnniversaryPage">保存页面配置</el-button>
+              <el-button type="primary" class="save-row" :loading="anniversaryPageSaving" :disabled="anniversaryPageSaving" @click="saveAnniversaryPage">保存页面配置</el-button>
             </el-form>
           </el-card>
           <el-card shadow="never">
@@ -632,6 +632,8 @@ import {
 const active = ref('dashboard');
 const loading = ref(false);
 const loginLoading = ref(false);
+const profileSaving = ref(false);
+const anniversaryPageSaving = ref(false);
 const isAuthenticated = ref(Boolean(getAdminToken()));
 const loginForm = reactive({
   email: '',
@@ -832,10 +834,23 @@ async function saveHome() {
 }
 
 async function saveProfileAndSite() {
-  if (!dashboard.value) return;
-  await saveSite(dashboard.value.site);
-  await saveProfiles(dashboard.value.profiles);
-  ElMessage.success('资料已保存，前台会自动同步');
+  if (!dashboard.value || profileSaving.value) return;
+  profileSaving.value = true;
+  const savingMessage = ElMessage({
+    message: '正在保存资料...',
+    type: 'info',
+    duration: 0,
+  });
+  try {
+    await Promise.all([
+      saveSite(dashboard.value.site),
+      saveProfiles(dashboard.value.profiles),
+    ]);
+    ElMessage.success('资料已保存，前台会自动同步');
+  } finally {
+    savingMessage.close();
+    profileSaving.value = false;
+  }
 }
 
 async function saveThemeConfig() {
@@ -910,9 +925,20 @@ function removeDailyQuote(index: number) {
 }
 
 async function saveAnniversaryPage() {
-  if (!dashboard.value) return;
-  await saveSite(dashboard.value.site);
-  ElMessage.success('纪念日页面配置已保存，前台会自动同步');
+  if (!dashboard.value || anniversaryPageSaving.value) return;
+  anniversaryPageSaving.value = true;
+  const savingMessage = ElMessage({
+    message: '正在保存纪念日页面配置...',
+    type: 'info',
+    duration: 0,
+  });
+  try {
+    await saveSite(dashboard.value.site);
+    ElMessage.success('纪念日页面配置已保存，前台会自动同步');
+  } finally {
+    savingMessage.close();
+    anniversaryPageSaving.value = false;
+  }
 }
 
 async function uploadAboutImage(options: UploadRequestOptions) {

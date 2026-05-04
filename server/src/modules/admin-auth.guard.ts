@@ -19,13 +19,16 @@ export class AdminAuthGuard implements CanActivate {
     }
 
     try {
-      request.admin = await this.jwt.verifyAsync(token, {
+      const payload = await this.jwt.verifyAsync(token, {
         secret: this.auth.getJwtSecret(),
       });
+      if (payload?.role !== 'admin') {
+        throw new Error('Invalid role');
+      }
+      request.admin = payload;
       return true;
     } catch {
       throw new UnauthorizedException('Invalid admin token');
     }
   }
 }
-

@@ -1354,6 +1354,18 @@ nav {
 .reminder-toast-title { color: var(--rose-light); font-weight: 700; margin-bottom: 5px; }
 .reminder-toast-body { color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
 .settings-footer-btns { display: flex; gap: 12px; justify-content: flex-end; margin-top: 4px; }
+.settings-section-actions { justify-content: flex-end; }
+.settings-inline-save {
+  min-height: 34px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: rgba(232,116,138,0.14);
+  border: 1px solid rgba(232,116,138,0.36);
+  color: var(--rose-light);
+  font-size: 12px;
+  cursor: pointer;
+}
+.settings-inline-save:hover { background: rgba(232,116,138,0.22); }
 .btn-secondary { padding: 11px 26px; background: var(--bg-card2); border: 1px solid var(--border); border-radius: 13px; cursor: pointer; color: var(--text-secondary); font-size: 13px; font-family: inherit; display: flex; align-items: center; gap: 7px; transition: all 0.2s; }
 .btn-secondary:hover { background: var(--rose-pale); color: var(--rose-light); }
 .btn-primary { padding: 11px 26px; background: linear-gradient(135deg, var(--rose), #c04060); border: none; border-radius: 13px; cursor: pointer; color: white; font-size: 13px; font-family: inherit; display: flex; align-items: center; gap: 7px; box-shadow: 0 5px 18px rgba(232,116,138,0.45); transition: all 0.3s; }
@@ -2642,6 +2654,7 @@ nav {
           <div class="setting-row"><div class="setting-label">在一起日期</div><div class="date-input-row"><div class="date-val">2025-05-20</div><span class="date-icon">📅</span></div></div>
           <div class="setting-row"><div class="setting-label">第一次见面</div><div class="date-input-row"><div class="date-val">2024-08-14</div><span class="date-icon">📅</span></div></div>
           <div class="setting-row"><div class="setting-label">倒计时显示</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">在首页显示倒计时</span><div class="toggle"></div></div></div>
+          <div class="setting-row settings-section-actions"><button class="settings-inline-save settings-save-btn" type="button">保存纪念日设置</button></div>
         </div>
         <div class="glass-card settings-section" data-settings-section="music">
           <div class="card-title"><span>🎵</span> 音乐</div>
@@ -2660,7 +2673,7 @@ nav {
         </div>
         <div class="settings-grid-2 settings-footer-btns" style="display:flex;align-items:center;justify-content:flex-end;gap:13px">
           <button class="btn-secondary">↺ 恢复默认</button>
-          <button class="btn-primary">❤️ 保存设置</button>
+          <button class="btn-primary settings-save-btn">❤️ 保存设置</button>
         </div>
       </div>
     </div>
@@ -3268,6 +3281,8 @@ function setSettingsMusicVolume(pct) {
 function getDraftSettingsFromPage() {
   const settings = normalizeSettings(spaceData?.site?.settings || {});
   const bgmSelect = document.querySelector('#page-settings .music-select');
+  settings.anniversaryPage.startDate = findSettingRow('在一起日期')?.querySelector('.settings-date-input')?.value || settings.anniversaryPage.startDate;
+  settings.anniversaryPage.firstMeetDate = findSettingRow('第一次见面')?.querySelector('.settings-date-input')?.value || settings.anniversaryPage.firstMeetDate;
   settings.anniversaryPage.showCountdown = isToggleOn(findSettingRow('倒计时显示')?.querySelector('.toggle'));
   settings.music.bgmSongId = bgmSelect?.value || settings.music.bgmSongId || '';
   settings.music.volume = getSliderValue(findSettingRow('音量大小'), settings.music.volume);
@@ -3281,10 +3296,23 @@ function getDraftSettingsFromPage() {
   return settings;
 }
 
+function refreshAnniversaryFromSettingsDraft() {
+  if (!spaceData) return;
+  spaceData.site.settings = getDraftSettingsFromPage();
+  renderHomeCountdown(spaceData.site.settings, spaceData.nextAnniversary);
+  renderAnniversaryPage(spaceData);
+}
+
 function bindSettingsPageControls() {
   document.querySelectorAll('#page-settings input, #page-settings select').forEach(control => {
     control.addEventListener('input', () => { settingsDirty = true; });
-    control.addEventListener('change', () => { settingsDirty = true; });
+    control.addEventListener('change', () => {
+      settingsDirty = true;
+      const rowLabel = control.closest('.setting-row')?.querySelector('.setting-label')?.textContent.trim();
+      if (rowLabel === '在一起日期' || rowLabel === '第一次见面') {
+        refreshAnniversaryFromSettingsDraft();
+      }
+    });
   });
   document.querySelectorAll('#page-settings .toggle').forEach(toggle => {
     toggle.addEventListener('click', () => {
@@ -4238,12 +4266,15 @@ let anniversaryCalendarDate = new Date();
 let selectedAnniversaryDate = null;
 let togetherStartDate = null;
 
-function parseLocalDate(value) {
-  if (!value) return null;
-  if (String(value).includes('T')) {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
+        function parseLocalDate(value) {
+            if (!value) return null;
+            if (value instanceof Date) {
+                return Number.isNaN(value.getTime()) ? null : value;
+            }
+            if (String(value).includes('T')) {
+                const date = new Date(value);
+                return Number.isNaN(date.getTime()) ? null : date;
+            }
   const [year, month, day] = String(value).split('-').map(Number);
   if (!year || !month || !day) return null;
   return new Date(year, month - 1, day);
@@ -4400,6 +4431,28 @@ function eventsForDate(date, items = []) {
   });
 }
 
+function getSettingsAnniversaryEvents(settings = {}) {
+  const normalized = normalizeSettings(settings);
+  const startDate = parseLocalDate(normalized.anniversaryPage.startDate);
+  const firstMeetDate = parseLocalDate(normalized.anniversaryPage.firstMeetDate);
+  return [
+    startDate && {
+      title: normalized.anniversaryPage.startTitle || '我们的开始',
+      eventDate: formatDateKey(startDate),
+      description: `从 ${formatChineseDate(startDate)} 开始`,
+      repeatYearly: true,
+      countdownEligible: true,
+    },
+    firstMeetDate && {
+      title: '第一次见面',
+      eventDate: formatDateKey(firstMeetDate),
+      description: `第一次遇见是在 ${formatChineseDate(firstMeetDate)}`,
+      repeatYearly: true,
+      countdownEligible: true,
+    },
+  ].filter(Boolean);
+}
+
 function getNextEvent(items = []) {
   const now = new Date();
   const years = [now.getFullYear(), now.getFullYear() + 1];
@@ -4506,13 +4559,12 @@ function renderAnniversaryPage(data) {
     setText('#page-anniversary .quote-author', `-- ${quote.author || data.name}`);
   }
   setText('#page-anniversary .love-note-content', settings.note || '');
-  const startEvent = {
-    title: settings.startTitle || '我们的开始',
-    eventDate: formatDateKey(startDate),
-    description: `我们已经相处 ${togetherDays} 天`,
-    repeatYearly: true,
-  };
-  const events = [startEvent, ...(data.anniversaries || [])].filter((item, index, list) =>
+  const settingsEvents = getSettingsAnniversaryEvents(settings).map(item =>
+    item.title === (settings.startTitle || '我们的开始')
+      ? { ...item, description: `我们已经相处 ${togetherDays} 天` }
+      : item
+  );
+  const events = [...settingsEvents, ...(data.anniversaries || [])].filter((item, index, list) =>
     index === list.findIndex(other => other.title === item.title && other.eventDate === item.eventDate)
   );
   bindAnniversaryCalendar(events);
@@ -4890,8 +4942,13 @@ function renderHomeCountdown(settings = {}, nextAnniversary) {
     card.className = 'heart-chart-card home-countdown-card';
     sidebar.appendChild(card);
   }
-  const eventTitle = nextAnniversary?.title || nextAnniversary?.name || '下一个纪念日';
-  const rawDate = nextAnniversary?.nextDate || nextAnniversary?.eventDate || nextAnniversary?.date;
+  const localNextAnniversary = getNextEvent([
+    ...getSettingsAnniversaryEvents(normalized),
+    ...(spaceData?.anniversaries || []),
+  ]);
+  const sourceAnniversary = localNextAnniversary || nextAnniversary;
+  const eventTitle = sourceAnniversary?.title || sourceAnniversary?.name || '下一个纪念日';
+  const rawDate = sourceAnniversary?.nextDate || sourceAnniversary?.eventDate || sourceAnniversary?.date;
   const target = parseLocalDate(rawDate) || getNextEvent(spaceData?.anniversaries || [])?.nextDate;
   if (!target) {
     card.innerHTML = '<div class="chart-title">⏳ 下一纪念日倒计时</div><div class="chart-quote">后台添加纪念日后，这里会自动显示倒计时。</div>';
@@ -5105,6 +5162,14 @@ async function saveSettingsToBackend() {
     method: 'PATCH',
     body: JSON.stringify(theme),
   });
+  spaceData.site.settings = settings;
+  spaceData.theme = theme;
+  if (spaceData.profiles?.[0]) {
+    spaceData.profiles[0] = { ...spaceData.profiles[0], ...profile };
+  }
+  renderHomeCountdown(settings, spaceData.nextAnniversary);
+  renderAnniversaryPage(spaceData);
+  writeSpaceCache(spaceData);
   showSaveToast();
   settingsDirty = false;
   await loadSpaceFromBackend();
@@ -5322,16 +5387,15 @@ function openThemeBackgroundPicker(event) {
 }
 
 function bindBackendActions() {
-  const saveBtn = document.querySelector('#page-settings .btn-primary');
-  if (saveBtn) {
+  document.querySelectorAll('#page-settings .settings-save-btn').forEach(saveBtn => {
     saveBtn.addEventListener('click', (event) => {
       event.preventDefault();
       saveSettingsToBackend().catch(error => {
         console.error(error);
-        showSaveToast();
+        alert(`保存失败：${error?.message || '请确认已经登录情侣入口，并且后端可以访问。'}`);
       });
     });
-  }
+  });
 
   const photoInput = document.createElement('input');
   photoInput.type = 'file';
