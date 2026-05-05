@@ -1246,11 +1246,16 @@ nav {
   transition: all 0.22s ease;
 }
 .lyric-line.active {
+  font-size: 15px;
+  font-weight: 700;
   color: var(--rose-light);
   transform: translateX(4px);
   text-shadow: 0 0 18px rgba(232,116,138,0.25);
 }
-.lyric-line.nearby { color: var(--text-secondary); }
+.lyric-line.nearby {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
 .lyric-empty { font-size: 13px; line-height: 2.1; color: var(--text-muted); padding-top: 6px; }
 .lyrics-song { font-size: 11px; color: var(--text-muted); margin-top: 14px; display: flex; align-items: center; gap: 6px; }
 
@@ -5794,7 +5799,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   setInterval(() => {
     if (document.visibilityState === 'visible' && !settingsDirty) loadSpaceFromBackend();
-  }, 60000);
+  }, 15000);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && !settingsDirty) loadSpaceFromBackend({ force: true });
   });

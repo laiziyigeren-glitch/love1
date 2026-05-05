@@ -356,7 +356,15 @@
               <el-table-column label="时长" width="130"><template #default="{ row }"><el-input :model-value="formatDurationInput(row.duration)" placeholder="04:25" @update:model-value="(value: string) => row.duration = parseDurationInput(value)" /></template></el-table-column>
               <el-table-column label="封面地址" min-width="220"><template #default="{ row }"><el-input v-model="row.coverUrl" /></template></el-table-column>
               <el-table-column label="MP3 地址" min-width="260"><template #default="{ row }"><el-input v-model="row.audioUrl" placeholder="上传 MP3 后自动填入" /></template></el-table-column>
-              <el-table-column label="上传" width="180"><template #default="{ row }"><div class="song-upload-actions"><el-upload :show-file-list="false" accept="audio/mpeg,audio/mp3,.mp3" :http-request="(options: UploadRequestOptions) => uploadSongAudio(options, row)"><el-button size="small">上传MP3</el-button></el-upload><el-upload :show-file-list="false" accept="image/*" :http-request="(options: UploadRequestOptions) => uploadSongCover(options, row)"><el-button size="small">封面</el-button></el-upload></div></template></el-table-column>
+              <el-table-column label="上传" width="250">
+                <template #default="{ row }">
+                  <div class="song-upload-actions">
+                    <el-upload :show-file-list="false" accept="audio/mpeg,audio/mp3,.mp3" :http-request="(options: UploadRequestOptions) => uploadSongAudio(options, row)"><el-button size="small">上传MP3</el-button></el-upload>
+                    <el-upload :show-file-list="false" accept="image/*" :http-request="(options: UploadRequestOptions) => uploadSongCover(options, row)"><el-button size="small">封面</el-button></el-upload>
+                    <el-upload :show-file-list="false" accept=".lrc,.txt,text/plain" :http-request="(options: UploadRequestOptions) => uploadSongLyricsFile(options, row)"><el-button size="small">歌词</el-button></el-upload>
+                  </div>
+                </template>
+              </el-table-column>
               <el-table-column label="歌词内容" min-width="280">
                 <template #default="{ row }">
                   <el-input
@@ -1500,10 +1508,10 @@ function parseDurationInput(value: string) {
   return Math.max(0, (Number(minutes) || 0) * 60 + Math.min(59, Number(seconds) || 0));
 }
 
-async function saveOneSong(item: Dashboard['songs'][number]) {
+async function saveOneSong(item: Dashboard['songs'][number], options: { silent?: boolean } = {}) {
   const saved = await saveSong(item);
   item.id = saved.id;
-  ElMessage.success('歌曲已保存');
+  if (!options.silent) ElMessage.success('歌曲已保存');
   await load();
 }
 
@@ -1519,7 +1527,8 @@ async function uploadSongAudio(options: UploadRequestOptions, item: Dashboard['s
     item.audioUrl = publicUrl;
     if (!item.title || item.title === '新的歌曲') item.title = file.name.replace(/\.[^.]+$/, '');
     if (!item.duration) item.duration = await getAudioDuration(file);
-    await saveOneSong(item);
+    await saveOneSong(item, { silent: true });
+    ElMessage.success('MP3 已上传并保存');
     options.onSuccess?.({});
   } catch (error) {
     ElMessage.error('MP3 上传失败，请确认 R2 环境变量和跨域规则已配置');
@@ -1532,10 +1541,64 @@ async function uploadSongCover(options: UploadRequestOptions, item: Dashboard['s
     const file = await compressImageFile(options.file, { maxSize: 800, quality: 0.86 });
     const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'music-cover', folder: item.title || '未命名歌曲' });
     item.coverUrl = publicUrl;
-    await saveOneSong(item);
+    await saveOneSong(item, { silent: true });
+    ElMessage.success('封面已上传并保存');
     options.onSuccess?.({});
   } catch (error) {
     ElMessage.error('封面上传失败');
+    options.onError?.(error as never);
+  }
+}
+
+function parseLyricsMetadata(text: string) {
+  const artist = text.match(/^\[ar:(.*?)\]$/im)?.[1]?.trim() || '';
+  const title = text.match(/^\[ti:(.*?)\]$/im)?.[1]?.trim() || '';
+  return { artist, title };
+}
+
+async function readLyricsFileText(file: File) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  const encodings = ['utf-8', 'gb18030', 'utf-16le'];
+  for (const encoding of encodings) {
+    try {
+      const decoded = new TextDecoder(encoding as any, { fatal: encoding === 'utf-8' }).decode(bytes);
+      if (decoded.trim()) return decoded.replace(/^\uFEFF/, '');
+    } catch {
+      continue;
+    }
+  }
+  return new TextDecoder().decode(bytes).replace(/^\uFEFF/, '');
+}
+
+async function uploadSongLyricsFile(options: UploadRequestOptions, item: Dashboard['songs'][number]) {
+  try {
+    const file = options.file;
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith('.lrc') && !lowerName.endsWith('.txt') && !(file.type || '').includes('text')) {
+      ElMessage.error('请上传 .lrc 或 .txt 歌词文件');
+      options.onError?.(new Error('Only lyric files are supported') as never);
+      return;
+    }
+    const text = await readLyricsFileText(file);
+    if (!text.trim()) {
+      ElMessage.warning('歌词文件内容是空的');
+      options.onError?.(new Error('Empty lyric file') as never);
+      return;
+    }
+    item.lyric = text;
+    const metadata = parseLyricsMetadata(text);
+    if ((!item.title || item.title === '新的歌曲') && metadata.title) item.title = metadata.title;
+    if (!item.artist && metadata.artist) item.artist = metadata.artist;
+    if (item.title && item.artist) {
+      await saveOneSong(item, { silent: true });
+      ElMessage.success('歌词文件已导入并保存');
+    } else {
+      ElMessage.success('歌词文件已导入，请补全歌名和歌手后保存');
+    }
+    options.onSuccess?.({});
+  } catch (error) {
+    ElMessage.error('歌词文件导入失败');
     options.onError?.(error as never);
   }
 }
