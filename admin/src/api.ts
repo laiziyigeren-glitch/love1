@@ -127,6 +127,23 @@ export type Dashboard = {
           cover: string;
           status: 'ready' | 'pending';
           content?: string;
+          entryFile?: string;
+          linkedAssets?: Array<{
+            id: string;
+            sourceType: 'album' | 'video' | 'song';
+            sourceId: string;
+            title: string;
+            url: string;
+          }>;
+          files?: Array<{
+            id: string;
+            path: string;
+            type: 'html' | 'css' | 'js' | 'image' | 'audio' | 'video' | 'other';
+            content?: string;
+            url?: string;
+            objectKey?: string;
+            size?: number;
+          }>;
         }>;
       };
     };
@@ -268,6 +285,7 @@ export type UploadPathOptions = {
     | 'music-playlist-cover'
     | 'heart-garden-cover'
     | 'heart-garden-html'
+    | 'heart-garden-asset'
     | 'misc';
   folder?: string;
   group?: string;

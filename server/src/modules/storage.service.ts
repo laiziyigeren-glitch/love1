@@ -16,6 +16,7 @@ export type UploadPurpose =
   | 'music-playlist-cover'
   | 'heart-garden-cover'
   | 'heart-garden-html'
+  | 'heart-garden-asset'
   | 'misc';
 
 export type UploadPathOptions = {
@@ -168,6 +169,11 @@ export class StorageService {
         return `${slug}/心动花园/封面/${group}`;
       case 'heart-garden-html':
         return `${slug}/心动花园/HTML/${group}`;
+      case 'heart-garden-asset':
+        if (type.startsWith('image/')) return `${slug}/蹇冨姩鑺卞洯/椤圭洰/${group}/images`;
+        if (type.startsWith('audio/')) return `${slug}/蹇冨姩鑺卞洯/椤圭洰/${group}/audio`;
+        if (type.startsWith('video/')) return `${slug}/蹇冨姩鑺卞洯/椤圭洰/${group}/video`;
+        return `${slug}/蹇冨姩鑺卞洯/椤圭洰/${group}/assets`;
       default:
         if (type.startsWith('video/')) return `${slug}/视频/其他`;
         if (type.startsWith('audio/')) return `${slug}/音乐/其他`;

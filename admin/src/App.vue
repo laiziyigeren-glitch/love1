@@ -405,7 +405,7 @@
               type="info"
               show-icon
               :closable="false"
-              title="心动花园目前只展示 HTML：可以上传单文件 HTML，或把整套 HTML 项目放进爱心代码合集后填写 /heart-garden/... 地址。"
+              title="心动花园目前只展示 HTML：可以上传单文件 HTML，或把整套 HTML 项目放进爱心代码合集后填写 /heart-garden/... 地址；也可以从站内素材生成图片、视频、音乐引用代码。"
             />
             <el-table :data="dashboard.site.settings.heartGarden.projects" row-key="id" class="garden-table">
               <el-table-column label="预览" width="92">
@@ -457,7 +457,14 @@
                       <el-upload :show-file-list="false" accept="image/*" :http-request="(options: UploadRequestOptions) => uploadHeartGardenCover(options, row)">
                         <el-button size="small">封面</el-button>
                       </el-upload>
+                      <el-button size="small" type="primary" plain @click="openHeartGardenAssetPicker(row)">站内素材</el-button>
+                      <el-button size="small" type="success" plain @click="openHeartGardenCodeEditor(row)">代码编辑</el-button>
                       <el-tag v-if="row.content" type="success">已上传HTML</el-tag>
+                    </div>
+                    <div v-if="row.linkedAssets?.length" class="linked-assets">
+                      <el-tag v-for="asset in row.linkedAssets" :key="asset.id" closable size="small" @close="removeHeartGardenLinkedAsset(row, asset.id)">
+                        {{ asset.title }}
+                      </el-tag>
                     </div>
                   </div>
                 </template>
@@ -474,6 +481,135 @@
               <el-button type="primary" @click="saveHeartGarden">保存心动花园</el-button>
             </div>
           </el-card>
+          <el-dialog v-model="assetPicker.visible" title="选择站内素材" width="820px">
+            <el-alert
+              class="section-tip"
+              type="info"
+              show-icon
+              :closable="false"
+              title="选择素材后会生成 HTML 片段并记录到当前心动花园项目。复制后粘进你的 HTML 代码里即可。"
+            />
+            <el-tabs v-model="assetPicker.activeTab">
+              <el-tab-pane label="相册图片" name="images">
+                <div v-if="heartGardenImageAssets.length" class="asset-picker-grid">
+                  <article v-for="asset in heartGardenImageAssets" :key="asset.id" class="asset-card" @click="selectHeartGardenAsset(asset)">
+                    <img :src="asset.thumbUrl || asset.url" :alt="asset.title" />
+                    <strong>{{ asset.title }}</strong>
+                    <span>{{ asset.subtitle }}</span>
+                  </article>
+                </div>
+                <el-empty v-else description="相册里还没有可引用的图片" />
+              </el-tab-pane>
+              <el-tab-pane label="相册视频" name="videos">
+                <div v-if="heartGardenVideoAssets.length" class="asset-picker-grid">
+                  <article v-for="asset in heartGardenVideoAssets" :key="asset.id" class="asset-card" @click="selectHeartGardenAsset(asset)">
+                    <img v-if="asset.thumbUrl" :src="asset.thumbUrl" :alt="asset.title" />
+                    <div v-else class="asset-placeholder">VIDEO</div>
+                    <strong>{{ asset.title }}</strong>
+                    <span>{{ asset.subtitle }}</span>
+                  </article>
+                </div>
+                <el-empty v-else description="相册里还没有可引用的视频" />
+              </el-tab-pane>
+              <el-tab-pane label="音乐歌曲" name="songs">
+                <div v-if="heartGardenSongAssets.length" class="asset-picker-grid">
+                  <article v-for="asset in heartGardenSongAssets" :key="asset.id" class="asset-card" @click="selectHeartGardenAsset(asset)">
+                    <img v-if="asset.thumbUrl" :src="asset.thumbUrl" :alt="asset.title" />
+                    <div v-else class="asset-placeholder">MUSIC</div>
+                    <strong>{{ asset.title }}</strong>
+                    <span>{{ asset.subtitle }}</span>
+                  </article>
+                </div>
+                <el-empty v-else description="音乐页还没有可引用的歌曲" />
+              </el-tab-pane>
+            </el-tabs>
+            <div class="snippet-box">
+              <div class="card-header">
+                <strong>{{ assetPicker.selectedTitle ? `生成的 HTML 片段：${assetPicker.selectedTitle}` : '生成的 HTML 片段' }}</strong>
+                <el-button size="small" type="primary" :disabled="!assetPicker.snippet" @click="copyHeartGardenSnippet">复制代码</el-button>
+              </div>
+              <el-input v-model="assetPicker.snippet" type="textarea" :rows="5" readonly placeholder="点选上方素材后，这里会生成可粘贴的 HTML 代码。" />
+            </div>
+            <template #footer>
+              <el-button @click="assetPicker.visible = false">关闭</el-button>
+              <el-button type="success" :disabled="!assetPicker.snippet" @click="copyHeartGardenSnippet">复制代码</el-button>
+            </template>
+          </el-dialog>
+          <el-dialog v-model="codeEditor.visible" title="心动花园代码编辑区" width="980px" class="code-editor-dialog">
+            <el-alert
+              class="section-tip"
+              type="info"
+              show-icon
+              :closable="false"
+              title="一个心动花园项目就是一个小文件夹。HTML/CSS/JS 可以直接编辑，图片、视频、音乐等素材上传后会生成 URL，可复制到代码里引用。"
+            />
+            <div class="code-editor-layout">
+              <aside class="code-file-panel">
+                <div class="card-header">
+                  <strong>项目文件</strong>
+                  <el-tag size="small">{{ codeEditor.project?.title || '未选择' }}</el-tag>
+                </div>
+                <el-select v-model="codeEditor.entryFile" placeholder="入口文件" class="code-entry-select">
+                  <el-option
+                    v-for="file in codeEditorTextFiles"
+                    :key="file.id"
+                    :label="file.path"
+                    :value="file.path"
+                    :disabled="file.type !== 'html'"
+                  />
+                </el-select>
+                <div class="code-file-list">
+                  <button
+                    v-for="file in codeEditorFiles"
+                    :key="file.id"
+                    type="button"
+                    class="code-file-item"
+                    :class="{ active: file.id === codeEditor.activeFileId }"
+                    @click="selectHeartGardenFile(file.id)"
+                  >
+                    <span>{{ file.path }}</span>
+                    <small>{{ file.type }}</small>
+                  </button>
+                </div>
+                <div class="code-new-file">
+                  <el-input v-model="codeEditor.newFilePath" size="small" placeholder="例如 index.html / style.css" />
+                  <el-button size="small" type="primary" @click="addHeartGardenFile">新建文件</el-button>
+                </div>
+                <el-upload :show-file-list="false" :http-request="uploadHeartGardenProjectAsset">
+                  <el-button class="code-upload-button" size="small">上传项目素材</el-button>
+                </el-upload>
+              </aside>
+              <main class="code-file-editor">
+                <template v-if="codeEditorCurrentFile">
+                  <div class="card-header">
+                    <strong>{{ codeEditorCurrentFile.path }}</strong>
+                    <div class="inline-actions compact">
+                      <el-button v-if="codeEditorCurrentFile.url" size="small" @click="copyTextValue(codeEditorCurrentFile.url)">复制 URL</el-button>
+                      <el-button size="small" type="danger" plain @click="removeHeartGardenFile(codeEditorCurrentFile.id)">删除文件</el-button>
+                    </div>
+                  </div>
+                  <el-input
+                    v-if="codeEditorCurrentFile.content !== undefined"
+                    v-model="codeEditorCurrentFile.content"
+                    type="textarea"
+                    :rows="18"
+                    resize="vertical"
+                    placeholder="在这里写 HTML / CSS / JS"
+                  />
+                  <div v-else class="asset-file-detail">
+                    <div class="asset-placeholder">{{ codeEditorCurrentFile.type.toUpperCase() }}</div>
+                    <el-input :model-value="codeEditorCurrentFile.url" readonly />
+                    <p>这个素材已经上传到 R2。复制 URL 后，可以在 HTML 里用 img、video 或 audio 引用它。</p>
+                  </div>
+                </template>
+                <el-empty v-else description="请选择或新建一个文件" />
+              </main>
+            </div>
+            <template #footer>
+              <el-button @click="codeEditor.visible = false">关闭</el-button>
+              <el-button type="primary" @click="saveHeartGardenCodeProject">保存并生成预览</el-button>
+            </template>
+          </el-dialog>
         </section>
 
         <section v-show="active === 'theme'">
@@ -659,6 +795,17 @@ const pageHeaderKeys = [
 ] as const;
 type PageHeaderKey = (typeof pageHeaderKeys)[number]['key'];
 type HeartGardenProject = Dashboard['site']['settings']['heartGarden']['projects'][number];
+type HeartGardenAsset = {
+  id: string;
+  sourceType: 'album' | 'video' | 'song';
+  sourceId: string;
+  title: string;
+  subtitle: string;
+  url: string;
+  thumbUrl: string;
+  snippetType: 'image' | 'video' | 'audio';
+};
+type HeartGardenFile = NonNullable<HeartGardenProject['files']>[number];
 const uploadMeta = reactive({
   title: '',
   albumTitle: '默认相册',
@@ -679,6 +826,20 @@ const albumEditor = reactive({
     favorite: false,
     visibility: 'PUBLIC' as 'PUBLIC' | 'PRIVATE',
   },
+});
+const assetPicker = reactive({
+  visible: false,
+  activeTab: 'images' as 'images' | 'videos' | 'songs',
+  project: null as HeartGardenProject | null,
+  snippet: '',
+  selectedTitle: '',
+});
+const codeEditor = reactive({
+  visible: false,
+  project: null as HeartGardenProject | null,
+  activeFileId: '',
+  entryFile: 'index.html',
+  newFilePath: '',
 });
 
 const pageTitle = computed(() => ({
@@ -711,6 +872,55 @@ const albumCategories = computed(() => {
   dashboard.value?.albumItems.forEach((item) => values.add(item.album));
   return [...values];
 });
+
+const heartGardenImageAssets = computed<HeartGardenAsset[]>(() => (
+  dashboard.value?.albumItems
+    .filter((item) => item.mediaType === 'IMAGE' && item.url)
+    .map((item) => ({
+      id: `image-${item.id}`,
+      sourceType: 'album',
+      sourceId: item.id,
+      title: item.title || item.album || '相册图片',
+      subtitle: [item.album || '默认相册', item.takenAt].filter(Boolean).join(' / '),
+      url: item.url,
+      thumbUrl: item.thumbnailUrl || item.url,
+      snippetType: 'image',
+    })) || []
+));
+
+const heartGardenVideoAssets = computed<HeartGardenAsset[]>(() => (
+  dashboard.value?.albumItems
+    .filter((item) => item.mediaType === 'VIDEO' && item.url)
+    .map((item) => ({
+      id: `video-${item.id}`,
+      sourceType: 'video',
+      sourceId: item.id,
+      title: item.title || item.album || '相册视频',
+      subtitle: [item.album || '默认相册', item.takenAt].filter(Boolean).join(' / '),
+      url: item.url,
+      thumbUrl: item.thumbnailUrl || '',
+      snippetType: 'video',
+    })) || []
+));
+
+const heartGardenSongAssets = computed<HeartGardenAsset[]>(() => (
+  dashboard.value?.songs
+    .filter((item) => item.audioUrl)
+    .map((item) => ({
+      id: `song-${item.id || item.title}`,
+      sourceType: 'song',
+      sourceId: item.id || item.title,
+      title: item.title || '音乐',
+      subtitle: [item.artist || '未填歌手', item.duration ? formatDurationInput(item.duration) : ''].filter(Boolean).join(' / '),
+      url: item.audioUrl,
+      thumbUrl: item.coverUrl || '',
+      snippetType: 'audio',
+    })) || []
+));
+
+const codeEditorFiles = computed(() => codeEditor.project?.files || []);
+const codeEditorTextFiles = computed(() => codeEditorFiles.value.filter((file) => file.content !== undefined));
+const codeEditorCurrentFile = computed(() => codeEditorFiles.value.find((file) => file.id === codeEditor.activeFileId) || null);
 
 const profileCardTagsText = computed({
   get: () => dashboard.value?.site.settings.profileCard?.tags?.join('\n') ?? '',
@@ -1402,6 +1612,44 @@ function ensureHeartGardenSettings() {
     project.url ||= '';
     project.cover ||= '';
     project.status = project.url || project.content ? 'ready' : 'pending';
+    project.entryFile ||= 'index.html';
+    project.files = Array.isArray(project.files)
+      ? project.files
+        .filter((file) => file?.path)
+        .map((file) => ({
+          id: file.id || `file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          path: normalizeHeartGardenFilePath(file.path),
+          type: normalizeHeartGardenFileType(file.path, file.type),
+          content: file.content,
+          url: file.url,
+          objectKey: file.objectKey,
+          size: file.size,
+        }))
+      : [];
+    if (!project.files.length && project.content) {
+      project.files = [{
+        id: `file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        path: project.entryFile || 'index.html',
+        type: 'html',
+        content: project.content,
+      }];
+    }
+    project.linkedAssets = Array.isArray(project.linkedAssets)
+      ? project.linkedAssets
+        .filter((asset) => asset?.url)
+        .map((asset) => {
+          const sourceType = ['album', 'video', 'song'].includes(String(asset.sourceType))
+            ? asset.sourceType
+            : 'album';
+          return {
+            id: asset.id || `asset-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            sourceType,
+            sourceId: asset.sourceId || asset.id || '',
+            title: asset.title || '站内素材',
+            url: asset.url,
+          };
+        })
+      : [];
   });
 }
 
@@ -1419,6 +1667,14 @@ function addHeartGardenProject() {
     cover: '',
     status: 'pending',
     content: '',
+    linkedAssets: [],
+    entryFile: 'index.html',
+    files: [{
+      id: `file-${Date.now()}-index`,
+      path: 'index.html',
+      type: 'html',
+      content: '<!doctype html>\n<html lang="zh-CN">\n<head>\n  <meta charset="utf-8" />\n  <meta name="viewport" content="width=device-width, initial-scale=1" />\n  <title>新的心动项目</title>\n</head>\n<body>\n  <h1>写下你的小浪漫</h1>\n</body>\n</html>\n',
+    }],
   });
 }
 
@@ -1481,6 +1737,254 @@ async function saveHeartGarden() {
   ensureHeartGardenSettings();
   await saveSite(dashboard.value.site);
   ElMessage.success('心动花园已保存，前台会自动同步');
+}
+
+function openHeartGardenAssetPicker(project: HeartGardenProject) {
+  assetPicker.project = project;
+  assetPicker.activeTab = 'images';
+  assetPicker.snippet = '';
+  assetPicker.selectedTitle = '';
+  assetPicker.visible = true;
+}
+
+function escapeHtmlAttribute(value: string) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function buildHeartGardenSnippet(asset: HeartGardenAsset) {
+  const url = escapeHtmlAttribute(asset.url);
+  const title = escapeHtmlAttribute(asset.title);
+  if (asset.snippetType === 'image') {
+    return `<img src="${url}" alt="${title}" loading="lazy" style="max-width:100%;height:auto;border-radius:16px;" />`;
+  }
+  if (asset.snippetType === 'video') {
+    const poster = asset.thumbUrl ? ` poster="${escapeHtmlAttribute(asset.thumbUrl)}"` : '';
+    return `<video src="${url}"${poster} controls playsinline preload="metadata" style="max-width:100%;border-radius:16px;"></video>`;
+  }
+  return `<audio src="${url}" controls preload="metadata" style="width:100%;"></audio>`;
+}
+
+async function writeClipboardText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  textarea.remove();
+}
+
+async function selectHeartGardenAsset(asset: HeartGardenAsset) {
+  if (!assetPicker.project) return;
+  assetPicker.project.linkedAssets ||= [];
+  if (!assetPicker.project.linkedAssets.some((item) => item.url === asset.url)) {
+    assetPicker.project.linkedAssets.push({
+      id: `linked-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      sourceType: asset.sourceType,
+      sourceId: asset.sourceId,
+      title: asset.title,
+      url: asset.url,
+    });
+  }
+  assetPicker.snippet = buildHeartGardenSnippet(asset);
+  assetPicker.selectedTitle = asset.title;
+  await writeClipboardText(assetPicker.snippet);
+  ElMessage.success('素材代码已复制，可以粘到 HTML 里');
+}
+
+async function copyHeartGardenSnippet() {
+  if (!assetPicker.snippet) return;
+  await writeClipboardText(assetPicker.snippet);
+  ElMessage.success('HTML 片段已复制');
+}
+
+function removeHeartGardenLinkedAsset(project: HeartGardenProject, assetId: string) {
+  project.linkedAssets = (project.linkedAssets || []).filter((asset) => asset.id !== assetId);
+}
+
+function normalizeHeartGardenFilePath(path: string) {
+  return String(path || '')
+    .trim()
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '')
+    .replace(/\/+/g, '/')
+    .replace(/\.\./g, '')
+    || 'index.html';
+}
+
+function normalizeHeartGardenFileType(path: string, fallback?: HeartGardenFile['type']): HeartGardenFile['type'] {
+  const text = String(path || '').toLowerCase();
+  if (text.endsWith('.html') || text.endsWith('.htm')) return 'html';
+  if (text.endsWith('.css')) return 'css';
+  if (text.endsWith('.js') || text.endsWith('.mjs')) return 'js';
+  if (/\.(png|jpe?g|gif|webp|svg)$/.test(text)) return 'image';
+  if (/\.(mp3|wav|ogg|m4a|flac)$/.test(text)) return 'audio';
+  if (/\.(mp4|webm|mov|m4v)$/.test(text)) return 'video';
+  return fallback || 'other';
+}
+
+function heartGardenAssetPath(file: File) {
+  const type = normalizeHeartGardenFileType(file.name);
+  if (type === 'image') return `images/${file.name}`;
+  if (type === 'audio') return `audio/${file.name}`;
+  if (type === 'video') return `video/${file.name}`;
+  return `assets/${file.name}`;
+}
+
+function ensureHeartGardenProjectFiles(project: HeartGardenProject) {
+  project.entryFile ||= 'index.html';
+  project.files ||= [];
+  if (!project.files.length) {
+    project.files.push({
+      id: `file-${Date.now()}-index`,
+      path: project.entryFile,
+      type: 'html',
+      content: project.content || '<!doctype html>\n<html lang="zh-CN">\n<head>\n  <meta charset="utf-8" />\n  <meta name="viewport" content="width=device-width, initial-scale=1" />\n  <title>心动花园</title>\n</head>\n<body>\n  <h1>心动花园</h1>\n</body>\n</html>\n',
+    });
+  }
+}
+
+function openHeartGardenCodeEditor(project: HeartGardenProject) {
+  ensureHeartGardenProjectFiles(project);
+  codeEditor.project = project;
+  codeEditor.entryFile = project.entryFile || 'index.html';
+  codeEditor.activeFileId = project.files?.[0]?.id || '';
+  codeEditor.newFilePath = '';
+  codeEditor.visible = true;
+}
+
+function selectHeartGardenFile(fileId: string) {
+  codeEditor.activeFileId = fileId;
+}
+
+function addHeartGardenFile() {
+  if (!codeEditor.project) return;
+  const path = normalizeHeartGardenFilePath(codeEditor.newFilePath);
+  if (!path) return;
+  codeEditor.project.files ||= [];
+  if (codeEditor.project.files.some((file) => file.path === path)) {
+    ElMessage.warning('这个文件已经存在');
+    return;
+  }
+  const type = normalizeHeartGardenFileType(path);
+  const content = type === 'css'
+    ? 'body {\n  margin: 0;\n}\n'
+    : type === 'js'
+      ? "console.log('heart garden');\n"
+      : type === 'html'
+        ? '<!doctype html>\n<html lang="zh-CN">\n<head>\n  <meta charset="utf-8" />\n  <meta name="viewport" content="width=device-width, initial-scale=1" />\n  <title>心动花园</title>\n</head>\n<body>\n\n</body>\n</html>\n'
+        : '';
+  const file: HeartGardenFile = {
+    id: `file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    path,
+    type,
+    content,
+  };
+  codeEditor.project.files.push(file);
+  codeEditor.activeFileId = file.id;
+  if (type === 'html' && !codeEditor.entryFile) codeEditor.entryFile = path;
+  codeEditor.newFilePath = '';
+}
+
+async function uploadHeartGardenProjectAsset(options: UploadRequestOptions) {
+  if (!codeEditor.project) return;
+  try {
+    const file = options.file;
+    const uploaded = await uploadFileToObjectStorage(file, {
+      purpose: 'heart-garden-asset',
+      folder: codeEditor.project.title,
+      group: codeEditor.project.title || codeEditor.project.group || codeEditor.project.tag,
+    });
+    const assetFile: HeartGardenFile = {
+      id: `file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      path: heartGardenAssetPath(file),
+      type: normalizeHeartGardenFileType(file.name),
+      url: uploaded.publicUrl,
+      objectKey: uploaded.objectKey,
+      size: file.size,
+    };
+    codeEditor.project.files ||= [];
+    codeEditor.project.files.push(assetFile);
+    codeEditor.activeFileId = assetFile.id;
+    options.onSuccess?.({});
+    ElMessage.success('项目素材已上传，可以复制 URL 引用');
+  } catch (error) {
+    ElMessage.error('项目素材上传失败，请确认 R2 已配置');
+    options.onError?.(error as never);
+  }
+}
+
+function removeHeartGardenFile(fileId: string) {
+  if (!codeEditor.project?.files) return;
+  const target = codeEditor.project.files.find((file) => file.id === fileId);
+  if (target?.path === codeEditor.entryFile) {
+    ElMessage.warning('入口文件不能直接删除，请先切换入口文件');
+    return;
+  }
+  codeEditor.project.files = codeEditor.project.files.filter((file) => file.id !== fileId);
+  codeEditor.activeFileId = codeEditor.project.files[0]?.id || '';
+}
+
+function escapeRegExp(value: string) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function compileHeartGardenProject(project: HeartGardenProject, entryPath: string) {
+  const files = project.files || [];
+  const entry = files.find((file) => file.path === entryPath && file.type === 'html') || files.find((file) => file.type === 'html');
+  if (!entry?.content) return '';
+  let html = entry.content;
+  const cssFiles = files.filter((file) => file.type === 'css' && file.content);
+  const jsFiles = files.filter((file) => file.type === 'js' && file.content);
+  cssFiles.forEach((file) => {
+    const path = escapeRegExp(file.path.replace(/^\.?\//, ''));
+    html = html.replace(new RegExp(`<link[^>]+href=["'](?:\\./|/)?${path}["'][^>]*>`, 'gi'), '');
+  });
+  jsFiles.forEach((file) => {
+    const path = escapeRegExp(file.path.replace(/^\.?\//, ''));
+    const closeScriptPattern = '<' + '\\/script>';
+    html = html.replace(new RegExp(`<script[^>]+src=["'](?:\\./|/)?${path}["'][^>]*>\\s*${closeScriptPattern}`, 'gi'), '');
+  });
+  const styles = cssFiles.map((file) => `<style data-file="${escapeHtmlAttribute(file.path)}">\n${file.content}\n</style>`).join('\n');
+  const scripts = jsFiles.map((file) => {
+    const openTag = `<script data-file="${escapeHtmlAttribute(file.path)}">`;
+    const closeTag = '<' + '/script>';
+    return `${openTag}\n${file.content}\n${closeTag}`;
+  }).join('\n');
+  if (styles) {
+    html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${styles}\n</head>`) : `${styles}\n${html}`;
+  }
+  if (scripts) {
+    html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${scripts}\n</body>`) : `${html}\n${scripts}`;
+  }
+  return html;
+}
+
+function saveHeartGardenCodeProject() {
+  if (!codeEditor.project) return;
+  const entryPath = normalizeHeartGardenFilePath(codeEditor.entryFile || codeEditor.project.entryFile || 'index.html');
+  codeEditor.project.entryFile = entryPath;
+  codeEditor.project.content = compileHeartGardenProject(codeEditor.project, entryPath);
+  codeEditor.project.type = 'html';
+  codeEditor.project.status = codeEditor.project.content || codeEditor.project.url ? 'ready' : 'pending';
+  codeEditor.visible = false;
+  ElMessage.success('代码编辑区已保存，记得保存心动花园同步到前台');
+}
+
+async function copyTextValue(text: string) {
+  if (!text) return;
+  await writeClipboardText(text);
+  ElMessage.success('已复制');
 }
 
 function addMoodPlaylist() {
@@ -1733,6 +2237,135 @@ onMounted(() => {
   font-size: 28px;
 }
 .garden-preview .el-image { width: 100%; height: 100%; }
+.linked-assets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.asset-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.asset-card {
+  border: 1px solid #eadfda;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fffaf7;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+.asset-card:hover {
+  border-color: #e58b75;
+  box-shadow: 0 8px 22px rgba(74, 34, 34, 0.12);
+  transform: translateY(-1px);
+}
+.asset-card img,
+.asset-placeholder {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #2a1518;
+  color: #f7eeee;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  letter-spacing: 0;
+  margin-bottom: 8px;
+}
+.asset-card strong,
+.asset-card span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.asset-card span {
+  color: #806f6a;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.snippet-box {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #eadfda;
+}
+.code-editor-dialog :deep(.el-dialog__body) {
+  padding-top: 8px;
+}
+.code-editor-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  min-height: 520px;
+}
+.code-file-panel,
+.code-file-editor {
+  border: 1px solid #eadfda;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fffaf7;
+}
+.code-entry-select {
+  width: 100%;
+  margin-bottom: 12px;
+}
+.code-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+  margin-bottom: 12px;
+}
+.code-file-item {
+  border: 1px solid #eadfda;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  color: #2b1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.code-file-item.active {
+  border-color: #e58b75;
+  background: #f8e7e5;
+}
+.code-file-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-file-item small {
+  color: #806f6a;
+  flex: 0 0 auto;
+}
+.code-new-file {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.code-upload-button {
+  width: 100%;
+  margin-top: 8px;
+}
+.asset-file-detail {
+  display: grid;
+  gap: 12px;
+}
+.asset-file-detail .asset-placeholder {
+  width: 180px;
+  margin-bottom: 0;
+}
+.asset-file-detail p {
+  margin: 0;
+  color: #806f6a;
+}
 .page-header-configs { display: flex; flex-direction: column; gap: 12px; }
 .page-header-config {
   display: grid;
