@@ -1939,10 +1939,84 @@ function escapeRegExp(value: string) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function isExternalAssetPath(value: string) {
+  return /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(String(value || '').trim());
+}
+
+function splitAssetPathSuffix(value: string) {
+  const text = String(value || '');
+  const index = text.search(/[?#]/);
+  if (index < 0) return { pathname: text, suffix: '' };
+  return { pathname: text.slice(0, index), suffix: text.slice(index) };
+}
+
+function normalizeRelativeAssetPath(value: string, basePath = '') {
+  const text = String(value || '').trim().replace(/\\/g, '/');
+  if (!text || isExternalAssetPath(text)) return '';
+  const { pathname } = splitAssetPathSuffix(text);
+  const baseParts = basePath.includes('/') ? basePath.split('/').slice(0, -1) : [];
+  const parts = pathname.startsWith('/') ? [] : baseParts;
+  pathname.split('/').forEach((part) => {
+    if (!part || part === '.') return;
+    if (part === '..') {
+      parts.pop();
+      return;
+    }
+    parts.push(part);
+  });
+  return parts.join('/');
+}
+
+function createHeartGardenAssetUrlResolver(files: HeartGardenFile[]) {
+  const assetMap = new Map<string, string>();
+  files.forEach((file) => {
+    if (!file.url) return;
+    assetMap.set(normalizeRelativeAssetPath(file.path), file.url);
+  });
+  return (value: string, basePath = '') => {
+    const text = String(value || '').trim();
+    if (!text || isExternalAssetPath(text)) return value;
+    const { pathname, suffix } = splitAssetPathSuffix(text);
+    const normalized = normalizeRelativeAssetPath(pathname, basePath);
+    return normalized && assetMap.has(normalized) ? `${assetMap.get(normalized)}${suffix}` : value;
+  };
+}
+
+function rewriteCssAssetUrls(css: string, basePath: string, resolveAssetUrl: (value: string, basePath?: string) => string) {
+  return String(css || '').replace(/url\(\s*(["']?)([^"')]+)\1\s*\)/gi, (match, quote, rawUrl) => {
+    const resolved = resolveAssetUrl(rawUrl, basePath);
+    return resolved === rawUrl ? match : `url(${quote}${resolved}${quote})`;
+  });
+}
+
+function rewriteHtmlAssetUrls(html: string, resolveAssetUrl: (value: string, basePath?: string) => string) {
+  let result = String(html || '').replace(/\b(src|href|poster)=("([^"]*)"|'([^']*)')/gi, (match, attr, wrapped, doubleValue, singleValue) => {
+    const rawValue = doubleValue ?? singleValue ?? '';
+    const resolved = resolveAssetUrl(rawValue);
+    if (resolved === rawValue) return match;
+    const quote = wrapped.startsWith("'") ? "'" : '"';
+    return `${attr}=${quote}${escapeHtmlAttribute(resolved)}${quote}`;
+  });
+  result = result.replace(/\bsrcset=("([^"]*)"|'([^']*)')/gi, (match, wrapped, doubleValue, singleValue) => {
+    const rawValue = doubleValue ?? singleValue ?? '';
+    const rewritten = rawValue.split(',').map((candidate: string) => {
+      const parts = candidate.trim().split(/\s+/);
+      if (!parts[0]) return candidate;
+      const resolved = resolveAssetUrl(parts[0]);
+      return [resolved, ...parts.slice(1)].join(' ');
+    }).join(', ');
+    if (rewritten === rawValue) return match;
+    const quote = wrapped.startsWith("'") ? "'" : '"';
+    return `srcset=${quote}${escapeHtmlAttribute(rewritten)}${quote}`;
+  });
+  return rewriteCssAssetUrls(result, '', resolveAssetUrl);
+}
+
 function compileHeartGardenProject(project: HeartGardenProject, entryPath: string) {
   const files = project.files || [];
   const entry = files.find((file) => file.path === entryPath && file.type === 'html') || files.find((file) => file.type === 'html');
   if (!entry?.content) return '';
+  const resolveAssetUrl = createHeartGardenAssetUrlResolver(files);
   let html = entry.content;
   const cssFiles = files.filter((file) => file.type === 'css' && file.content);
   const jsFiles = files.filter((file) => file.type === 'js' && file.content);
@@ -1955,7 +2029,11 @@ function compileHeartGardenProject(project: HeartGardenProject, entryPath: strin
     const closeScriptPattern = '<' + '\\/script>';
     html = html.replace(new RegExp(`<script[^>]+src=["'](?:\\./|/)?${path}["'][^>]*>\\s*${closeScriptPattern}`, 'gi'), '');
   });
-  const styles = cssFiles.map((file) => `<style data-file="${escapeHtmlAttribute(file.path)}">\n${file.content}\n</style>`).join('\n');
+  html = rewriteHtmlAssetUrls(html, resolveAssetUrl);
+  const styles = cssFiles.map((file) => {
+    const content = rewriteCssAssetUrls(file.content || '', file.path, resolveAssetUrl);
+    return `<style data-file="${escapeHtmlAttribute(file.path)}">\n${content}\n</style>`;
+  }).join('\n');
   const scripts = jsFiles.map((file) => {
     const openTag = `<script data-file="${escapeHtmlAttribute(file.path)}">`;
     const closeTag = '<' + '/script>';
