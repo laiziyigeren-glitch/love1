@@ -1229,8 +1229,30 @@ nav {
 .rec-refresh { font-size: 11px; color: var(--rose-light); cursor: pointer; }
 
 .lyrics-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 22px; box-shadow: var(--shadow); }
-.lyrics-text { font-size: 13px; line-height: 2.4; color: var(--text-secondary); }
-.lyrics-song { font-size: 11px; color: var(--text-muted); margin-top: 12px; display: flex; align-items: center; gap: 6px; }
+.lyrics-scroll {
+  margin-top: 14px;
+  height: 238px;
+  overflow-y: auto;
+  padding-right: 6px;
+  scroll-behavior: smooth;
+}
+.lyrics-scroll::-webkit-scrollbar { width: 6px; }
+.lyrics-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
+.lyric-line {
+  font-size: 13px;
+  line-height: 2;
+  color: var(--text-muted);
+  padding: 4px 2px;
+  transition: all 0.22s ease;
+}
+.lyric-line.active {
+  color: var(--rose-light);
+  transform: translateX(4px);
+  text-shadow: 0 0 18px rgba(232,116,138,0.25);
+}
+.lyric-line.nearby { color: var(--text-secondary); }
+.lyric-empty { font-size: 13px; line-height: 2.1; color: var(--text-muted); padding-top: 6px; }
+.lyrics-song { font-size: 11px; color: var(--text-muted); margin-top: 14px; display: flex; align-items: center; gap: 6px; }
 
 .mood-playlist-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 22px; box-shadow: var(--shadow); }
 .mood-list-panel {
@@ -2536,8 +2558,13 @@ nav {
           </div>
         </div>
         <div class="lyrics-card">
-          <div class="card-title"><span>🎤</span> 歌词片段</div>
-          <div class="lyrics-text">原来你是我最想留住的幸运<br>原来我们和爱情曾经靠得那么近<br>那为我对抗世界的决定<br>那陪我淋的雨。</div>
+          <div class="card-title"><span>🎤</span> 歌词展示</div>
+          <div class="lyrics-scroll" id="lyricsScroll">
+            <div class="lyric-line active">原来你是我最想留住的幸运</div>
+            <div class="lyric-line nearby">原来我们和爱情曾经靠得那么近</div>
+            <div class="lyric-line nearby">那为我对抗世界的决定</div>
+            <div class="lyric-line">那陪我淋的雨</div>
+          </div>
           <div class="lyrics-song">— 小幸运 · 田馥甄 <span style="color:var(--rose)">❤️</span></div>
         </div>
         <div class="mood-playlist-card">
@@ -2883,6 +2910,9 @@ const musicState = {
   recommendationIndex: 0,
   playRequestId: 0,
   autoplayAttemptedKey: '',
+  lyricMode: 'empty',
+  lyricLines: [],
+  lyricActiveIndex: -1,
 };
 
 let reminderTimer = null;
@@ -2941,7 +2971,7 @@ function setMusicSong(index, shouldPlay = false) {
   const song = normalizeSongDisplay(musicState.songs[musicState.currentIndex]);
   setText('.song-title', song.title || '未命名歌曲');
   setText('.song-artist', song.artist || '未填歌手');
-  setText('.song-lyric', song.lyric || '这首歌还没有填写歌词片段。');
+  renderLyricsCard(song);
   if (song.audioUrl && audio.src !== song.audioUrl) audio.src = song.audioUrl;
   if (!song.audioUrl) audio.removeAttribute('src');
   audio.loop = musicState.loop;
@@ -2950,6 +2980,7 @@ function setMusicSong(index, shouldPlay = false) {
   });
   updateMusicProgress();
   updatePlayerButtons();
+  syncLyricsByTime(audio.currentTime || 0);
   if (shouldPlay) playCurrentSong();
 }
 
@@ -2973,6 +3004,97 @@ function normalizeSongDisplay(song = {}) {
   return result;
 }
 
+function parseLyricTimeToken(token = '') {
+  const match = String(token).trim().match(/^(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?$/);
+  if (!match) return null;
+  const minutes = Number(match[1] || 0);
+  const seconds = Number(match[2] || 0);
+  const fractionRaw = match[3] || '';
+  const fraction = fractionRaw ? Number(`0.${fractionRaw.padEnd(3, '0').slice(0, 3)}`) : 0;
+  return minutes * 60 + seconds + fraction;
+}
+
+function parseSongLyrics(rawLyric = '') {
+  const raw = String(rawLyric || '').replace(/\r/g, '').trim();
+  if (!raw) return { mode: 'empty', lines: [] };
+  const lines = [];
+  raw.split('\n').forEach((line) => {
+    const tokens = [...line.matchAll(/\[(\d{1,2}:\d{2}(?:[.:]\d{1,3})?)\]/g)];
+    if (!tokens.length) return;
+    const text = line.replace(/\[(\d{1,2}:\d{2}(?:[.:]\d{1,3})?)\]/g, '').trim();
+    tokens.forEach((token) => {
+      const time = parseLyricTimeToken(token[1]);
+      if (time === null) return;
+      lines.push({ time, text: text || '...' });
+    });
+  });
+  if (lines.length) {
+    lines.sort((a, b) => a.time - b.time);
+    return { mode: 'lrc', lines };
+  }
+  return {
+    mode: 'plain',
+    lines: raw.split('\n').map((line) => line.trim()).filter(Boolean).map((text, index) => ({ time: index, text })),
+  };
+}
+
+function getSongLyricPreview(song = {}) {
+  const parsed = parseSongLyrics(song.lyric || '');
+  if (!parsed.lines.length) return '这首歌还没有填写歌词。';
+  return parsed.lines.find((line) => line.text)?.text || '这首歌还没有填写歌词。';
+}
+
+function updateSongLyricHeadline(text) {
+  setText('.song-lyric', text || '这首歌还没有填写歌词。');
+}
+
+function renderLyricsCard(song = {}) {
+  const wrap = document.getElementById('lyricsScroll');
+  const lyricSong = document.querySelector('.lyrics-song');
+  const parsed = parseSongLyrics(song.lyric || '');
+  musicState.lyricMode = parsed.mode;
+  musicState.lyricLines = parsed.lines;
+  musicState.lyricActiveIndex = -1;
+  if (wrap) {
+    if (!parsed.lines.length) {
+      wrap.innerHTML = '<div class="lyric-empty">这首歌还没有填写歌词。</div>';
+    } else {
+      wrap.innerHTML = parsed.lines.map((line, index) => {
+        const className = parsed.mode === 'plain'
+          ? `lyric-line${index === 0 ? ' active' : ''}`
+          : `lyric-line${index <= 1 ? ' nearby' : ''}`;
+        return `<div class="${className}" data-lyric-index="${index}">${escapeHtml(line.text)}</div>`;
+      }).join('');
+    }
+    wrap.scrollTop = 0;
+  }
+  if (lyricSong) {
+    lyricSong.innerHTML = `— ${escapeHtml(song.title || '未命名歌曲')} · ${escapeHtml(song.artist || '未填歌手')} <span style="color:var(--rose)">❤️</span>`;
+  }
+  updateSongLyricHeadline(getSongLyricPreview(song));
+}
+
+function syncLyricsByTime(currentTime = 0) {
+  const wrap = document.getElementById('lyricsScroll');
+  if (!wrap || !musicState.lyricLines.length || musicState.lyricMode !== 'lrc') return;
+  let activeIndex = -1;
+  musicState.lyricLines.forEach((line, index) => {
+    if (currentTime >= line.time) activeIndex = index;
+  });
+  if (activeIndex < 0 || activeIndex === musicState.lyricActiveIndex) return;
+  musicState.lyricActiveIndex = activeIndex;
+  wrap.querySelectorAll('.lyric-line').forEach((node, index) => {
+    node.classList.toggle('active', index === activeIndex);
+    node.classList.toggle('nearby', Math.abs(index - activeIndex) === 1);
+  });
+  const currentLine = wrap.querySelector(`.lyric-line[data-lyric-index="${activeIndex}"]`);
+  if (currentLine instanceof HTMLElement) {
+    updateSongLyricHeadline(currentLine.textContent || '');
+    const targetTop = currentLine.offsetTop - wrap.clientHeight / 2 + currentLine.clientHeight / 2;
+    wrap.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+  }
+}
+
 function getDailySongIndex(items = []) {
   if (!items.length) return 0;
   const today = new Date();
@@ -2982,8 +3104,6 @@ function getDailySongIndex(items = []) {
 
 function renderRecommendation(index = musicState.recommendationIndex) {
   const card = document.querySelector('.today-rec');
-  const lyricText = document.querySelector('.lyrics-text');
-  const lyricSong = document.querySelector('.lyrics-song');
   if (!card || !musicState.songs.length) return;
   musicState.recommendationIndex = (index + musicState.songs.length) % musicState.songs.length;
   const song = normalizeSongDisplay(musicState.songs[musicState.recommendationIndex]);
@@ -2994,7 +3114,7 @@ function renderRecommendation(index = musicState.recommendationIndex) {
       <div class="rec-info">
         <div class="rec-title">${escapeHtml(song.title || '未命名歌曲')}</div>
         <div class="rec-artist">${escapeHtml(song.artist || '未填歌手')}</div>
-        <div class="rec-desc">${escapeHtml(song.lyric || '这首歌还没有填写歌词片段。')}</div>
+        <div class="rec-desc">${escapeHtml(getSongLyricPreview(song))}</div>
       </div>
       <button class="rec-play-btn">▶</button>
     </div>
@@ -3006,8 +3126,6 @@ function renderRecommendation(index = musicState.recommendationIndex) {
     renderRecommendation(next);
   });
   card.querySelector('.rec-play-btn')?.addEventListener('click', () => setMusicSong(musicState.recommendationIndex, true));
-  if (lyricText) lyricText.innerHTML = escapeHtml(song.lyric || '这首歌还没有填写歌词片段。').replace(/\n/g, '<br>');
-  if (lyricSong) lyricSong.innerHTML = `— ${escapeHtml(song.title || '未命名歌曲')} · ${escapeHtml(song.artist || '未填歌手')} <span style="color:var(--rose)">❤️</span>`;
 }
 
 function getRecentSongs() {
@@ -3662,7 +3780,10 @@ function initMusicPlayer() {
   const volBar = document.getElementById('volBar');
   if (!audio) return;
   audio.volume = 0.45;
-  audio.addEventListener('timeupdate', updateMusicProgress);
+  audio.addEventListener('timeupdate', () => {
+    updateMusicProgress();
+    syncLyricsByTime(audio.currentTime || 0);
+  });
   audio.addEventListener('loadedmetadata', updateMusicProgress);
   audio.addEventListener('play', updatePlayerButtons);
   audio.addEventListener('pause', updatePlayerButtons);

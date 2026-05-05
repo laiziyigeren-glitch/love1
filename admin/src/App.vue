@@ -357,7 +357,17 @@
               <el-table-column label="封面地址" min-width="220"><template #default="{ row }"><el-input v-model="row.coverUrl" /></template></el-table-column>
               <el-table-column label="MP3 地址" min-width="260"><template #default="{ row }"><el-input v-model="row.audioUrl" placeholder="上传 MP3 后自动填入" /></template></el-table-column>
               <el-table-column label="上传" width="180"><template #default="{ row }"><div class="song-upload-actions"><el-upload :show-file-list="false" accept="audio/mpeg,audio/mp3,.mp3" :http-request="(options: UploadRequestOptions) => uploadSongAudio(options, row)"><el-button size="small">上传MP3</el-button></el-upload><el-upload :show-file-list="false" accept="image/*" :http-request="(options: UploadRequestOptions) => uploadSongCover(options, row)"><el-button size="small">封面</el-button></el-upload></div></template></el-table-column>
-              <el-table-column label="歌词片段" min-width="220"><template #default="{ row }"><el-input v-model="row.lyric" /></template></el-table-column>
+              <el-table-column label="歌词内容" min-width="280">
+                <template #default="{ row }">
+                  <el-input
+                    v-model="row.lyric"
+                    type="textarea"
+                    :rows="5"
+                    resize="vertical"
+                    placeholder="支持普通歌词和 LRC 时间轴歌词，例如 [00:12.30]原来你是我最想留住的幸运"
+                  />
+                </template>
+              </el-table-column>
               <el-table-column label="收藏" width="90"><template #default="{ row }"><el-switch v-model="row.favorite" /></template></el-table-column>
               <el-table-column label="操作" width="150" fixed="right"><template #default="{ row, $index }"><el-button link type="primary" @click="saveOneSong(row)">保存</el-button><el-button link type="danger" @click="removeSong(row, $index)">删除</el-button></template></el-table-column>
             </el-table>
