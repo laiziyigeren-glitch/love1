@@ -21,7 +21,7 @@ export type Profile = {
 
 export type HomeSettings = {
   pageHeaders: Record<
-    'home' | 'anniversary' | 'album' | 'music' | 'settings',
+    'home' | 'anniversary' | 'album' | 'music' | 'romance' | 'settings',
     {
       title: string;
       subtitle: string;
@@ -67,6 +67,9 @@ export type HomeSettings = {
     password: string;
     privateAlbum: boolean;
     shareLinkEnabled: boolean;
+  };
+  profileCard: {
+    tags: string[];
   };
   coupleEntrance: {
     mark: string;

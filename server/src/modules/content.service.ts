@@ -846,16 +846,21 @@ export class ContentService {
           subtitle: '照片和视频都来自我们的真实回忆，按时间慢慢发光。',
           imageUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80',
         },
-        music: {
-          title: '把喜欢的歌，放进我们的音乐盒',
-          subtitle: '每一首歌都有一个场景，也有一个想起你的理由。',
-          imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=640&q=80',
-        },
-        settings: {
-          title: '把这份浪漫，调成我们喜欢的样子',
-          subtitle: '主题、音乐、纪念日和相册，都可以在这里慢慢定制。',
-          imageUrl: 'https://images.unsplash.com/photo-1517534573028-3db0dab0d31c?auto=format&fit=crop&w=640&q=80',
-        },
+      music: {
+        title: '把喜欢的歌，放进我们的音乐盒',
+        subtitle: '每一首歌都有一个场景，也有一个想起你的理由。',
+        imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=640&q=80',
+      },
+      romance: {
+        title: '把收集来的爱心代码，变成可以随手打开的小惊喜',
+        subtitle: '每次点开，都像在花园里多认领一朵会发光的小花。',
+        imageUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80',
+      },
+      settings: {
+        title: '把这份浪漫，调成我们喜欢的样子',
+        subtitle: '主题、音乐、纪念日和相册，都可以在这里慢慢定制。',
+        imageUrl: 'https://images.unsplash.com/photo-1517534573028-3db0dab0d31c?auto=format&fit=crop&w=640&q=80',
+      },
       },
       heartIndex: {
         value: 98,
@@ -900,6 +905,9 @@ export class ContentService {
         password: '520',
         privateAlbum: false,
         shareLinkEnabled: false,
+      },
+      profileCard: {
+        tags: ['❤️ 我们的故事', '⭐ 彼此的唯一', '∞ 永远在一起'],
       },
       coupleEntrance: {
         mark: '♡',
@@ -952,12 +960,18 @@ export class ContentService {
       return defaults;
     }
     const source = value as Partial<HomeSettings>;
+    const rawPageHeaders = (source.pageHeaders ?? {}) as Record<string, HomeSettings['pageHeaders'][keyof HomeSettings['pageHeaders']]>;
+    const romanceHeader = rawPageHeaders.romance ?? rawPageHeaders.heartGarden;
     return {
       ...defaults,
       ...source,
       pageHeaders: {
         ...defaults.pageHeaders,
-        ...(source.pageHeaders ?? {}),
+        ...rawPageHeaders,
+        romance: {
+          ...defaults.pageHeaders.romance,
+          ...(romanceHeader ?? {}),
+        },
       },
       heartIndex: { ...defaults.heartIndex, ...(source.heartIndex ?? {}) },
       moments: Array.isArray(source.moments) ? source.moments : defaults.moments,
@@ -974,6 +988,13 @@ export class ContentService {
           : defaults.music.moodPlaylists,
       },
       privacy: { ...defaults.privacy, ...(source.privacy ?? {}) },
+      profileCard: {
+        ...defaults.profileCard,
+        ...(source.profileCard ?? {}),
+        tags: Array.isArray(source.profileCard?.tags) && source.profileCard.tags.length
+          ? source.profileCard.tags
+          : defaults.profileCard.tags,
+      },
       coupleEntrance: { ...defaults.coupleEntrance, ...(source.coupleEntrance ?? {}) },
       reminders: { ...defaults.reminders, ...(source.reminders ?? {}) },
       anniversaryPage: {
@@ -998,6 +1019,72 @@ export class ContentService {
           : defaults.heartGarden.projects,
       },
     };
+  }
+
+  async updatePrimaryProfile(slug: string, profile: Partial<Profile>) {
+    const space = await this.getSpaceRef(slug);
+    const current = await this.prisma.profile.findFirst({
+      where: { spaceId: space.id },
+      orderBy: { sortOrder: 'asc' },
+    });
+    const data = {
+      name: profile.name ?? current?.name ?? space.name,
+      nickname: profile.nickname ?? current?.nickname ?? '',
+      avatarUrl: profile.avatarUrl ?? current?.avatarUrl ?? '',
+      bio: profile.bio ?? current?.bio ?? '',
+    };
+
+    const saved = current
+      ? await this.prisma.profile.update({
+          where: { id: current.id },
+          data,
+        })
+      : await this.prisma.profile.create({
+          data: {
+            id: profile.id || 'profile-couple',
+            spaceId: space.id,
+            sortOrder: 0,
+            ...data,
+          },
+        });
+
+    return {
+      id: saved.id,
+      name: saved.name,
+      nickname: saved.nickname ?? '',
+      avatarUrl: saved.avatarUrl ?? '',
+      bio: saved.bio ?? '',
+    };
+  }
+
+  async saveCoupleSettings(
+    slug: string,
+    payload: {
+      profile?: Partial<Profile>;
+      settings?: Partial<HomeSettings>;
+      theme?: Partial<ThemeConfig>;
+    },
+  ) {
+    const result: {
+      profile?: Awaited<ReturnType<ContentService['updatePrimaryProfile']>>;
+      settings?: HomeSettings;
+      theme?: ThemeConfig;
+    } = {};
+
+    if (payload.profile) {
+      result.profile = await this.updatePrimaryProfile(slug, payload.profile);
+    }
+    if (payload.settings) {
+      const savedSite = await this.updateSite(slug, {
+        settings: this.asHomeSettings(payload.settings as Prisma.JsonValue | undefined),
+      });
+      result.settings = savedSite.settings;
+    }
+    if (payload.theme) {
+      result.theme = await this.updateTheme(slug, payload.theme);
+    }
+
+    return result;
   }
 
   private defaultHeartGardenProjects(): HeartGardenProject[] {

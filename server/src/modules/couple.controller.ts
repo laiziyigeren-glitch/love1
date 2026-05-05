@@ -1,7 +1,8 @@
-import { Body, Controller, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ContentService } from './content.service';
 import { CoupleAuthGuard } from './couple-auth.guard';
 import { StorageService, type UploadPathOptions } from './storage.service';
+import { Profile, ThemeConfig, type HomeSettings } from './types';
 
 @Controller('couple/spaces/:slug')
 @UseGuards(CoupleAuthGuard)
@@ -42,6 +43,35 @@ export class CoupleController {
     return this.content.updatePrimaryAvatar(slug, body.avatarUrl);
   }
 
+  @Post('avatar-upload')
+  async uploadAvatar(
+    @Param('slug') slug: string,
+    @Body()
+    body: {
+      fileName: string;
+      mimeType: string;
+      dataUrl: string;
+    },
+  ) {
+    const match = String(body.dataUrl || '').match(/^data:([^;,]+);base64,(.+)$/);
+    if (!match) {
+      throw new BadRequestException('Invalid avatar payload');
+    }
+    const [, mimeType, base64] = match;
+    const uploaded = await this.storage.uploadContent(
+      slug,
+      body.fileName || `avatar-${Date.now()}.jpg`,
+      body.mimeType || mimeType || 'image/jpeg',
+      Buffer.from(base64, 'base64'),
+      { purpose: 'avatar' },
+    );
+    const profile = await this.content.updatePrimaryProfile(slug, { avatarUrl: uploaded.publicUrl });
+    return {
+      profile,
+      publicUrl: uploaded.publicUrl,
+    };
+  }
+
   @Patch('theme-background')
   updateThemeBackground(@Param('slug') slug: string, @Body() body: { backgroundUrl: string }) {
     return this.content.updateThemeBackground(slug, body.backgroundUrl);
@@ -59,5 +89,18 @@ export class CoupleController {
     },
   ) {
     return this.content.updateAnniversaryPageSettings(slug, body);
+  }
+
+  @Patch('settings')
+  updateSettings(
+    @Param('slug') slug: string,
+    @Body()
+    body: {
+      profile?: Partial<Profile>;
+      settings?: Partial<HomeSettings>;
+      theme?: Partial<ThemeConfig>;
+    },
+  ) {
+    return this.content.saveCoupleSettings(slug, body);
   }
 }

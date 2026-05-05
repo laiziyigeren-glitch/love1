@@ -186,8 +186,12 @@
                 </el-upload>
                 <el-form-item label="昵称"><el-input v-model="profile.name" /></el-form-item>
                 <el-form-item label="专属称呼"><el-input v-model="profile.nickname" /></el-form-item>
+                <el-form-item label="说明文案"><el-input v-model="profile.bio" /></el-form-item>
                 <el-form-item label="头像地址"><el-input v-model="profile.avatarUrl" /></el-form-item>
               </div>
+              <el-form-item label="资料标签">
+                <el-input v-model="profileCardTagsText" type="textarea" :rows="3" placeholder="每行一个标签，会同步到每个前台页面侧边资料卡" />
+              </el-form-item>
               <el-button type="primary" :loading="profileSaving" :disabled="profileSaving" @click="saveProfileAndSite">保存资料</el-button>
             </el-form>
           </el-card>
@@ -650,6 +654,7 @@ const pageHeaderKeys = [
   { key: 'anniversary', label: '纪念日' },
   { key: 'album', label: '相册' },
   { key: 'music', label: '音乐' },
+  { key: 'romance', label: '心动花园' },
   { key: 'settings', label: '设置页' },
 ] as const;
 type PageHeaderKey = (typeof pageHeaderKeys)[number]['key'];
@@ -707,6 +712,18 @@ const albumCategories = computed(() => {
   return [...values];
 });
 
+const profileCardTagsText = computed({
+  get: () => dashboard.value?.site.settings.profileCard?.tags?.join('\n') ?? '',
+  set: (value: string) => {
+    if (!dashboard.value) return;
+    dashboard.value.site.settings.profileCard ||= { tags: [] };
+    dashboard.value.site.settings.profileCard.tags = value
+      .split(/\r?\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  },
+});
+
 const heartLabelsText = computed({
   get: () => dashboard.value?.site.settings.heartIndex.labels.join(',') ?? '',
   set: (value: string) => {
@@ -738,6 +755,7 @@ async function load() {
     dashboard.value.albumItems ||= [];
     dashboard.value.profiles ||= [];
     ensurePageHeaders();
+    ensureProfileCardSettings();
     ensureMusicSettings();
     ensurePrivacyReminderSettings();
     ensureCoupleEntranceSettings();
@@ -808,15 +826,25 @@ function ensurePageHeaders() {
       subtitle: '每一首歌都有一个场景，也有一个想起你的理由。',
       imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=640&q=80',
     },
+    romance: {
+      title: '把收集来的爱心代码，变成可以随手打开的小惊喜',
+      subtitle: '每次点开，都像在花园里多认领一朵会发光的小花。',
+      imageUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80',
+    },
     settings: {
       title: '把这份浪漫，调成我们喜欢的样子',
       subtitle: '主题、音乐、纪念日和相册，都可以在这里慢慢定制。',
       imageUrl: 'https://images.unsplash.com/photo-1517534573028-3db0dab0d31c?auto=format&fit=crop&w=640&q=80',
     },
   };
+  const legacyHeaders = (dashboard.value.site.settings.pageHeaders as Record<string, typeof defaults.home> | undefined) || {};
   dashboard.value.site.settings.pageHeaders = {
     ...defaults,
-    ...(dashboard.value.site.settings.pageHeaders || {}),
+    ...legacyHeaders,
+    romance: {
+      ...defaults.romance,
+      ...(legacyHeaders.romance || legacyHeaders.heartGarden || {}),
+    },
   };
 }
 
@@ -825,6 +853,17 @@ function pageHeader(key: PageHeaderKey) {
   if (!current) throw new Error('Dashboard is not loaded');
   if (!current.site.settings.pageHeaders?.[key]) ensurePageHeaders();
   return current.site.settings.pageHeaders[key];
+}
+
+function ensureProfileCardSettings() {
+  if (!dashboard.value) return;
+  dashboard.value.site.settings.profileCard = {
+    ...(dashboard.value.site.settings.profileCard || {}),
+    tags: dashboard.value.site.settings.profileCard?.tags || ['❤️ 我们的故事', '⭐ 彼此的唯一', '∞ 永远在一起'],
+  };
+  if (!dashboard.value.site.settings.profileCard.tags?.length) {
+    dashboard.value.site.settings.profileCard.tags = ['❤️ 我们的故事', '⭐ 彼此的唯一', '∞ 永远在一起'];
+  }
 }
 
 async function saveHome() {

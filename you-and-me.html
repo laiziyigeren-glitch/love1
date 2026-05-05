@@ -777,11 +777,18 @@ nav {
 .album-stats-row { display: flex; gap: 22px; margin-top: 10px; }
 .album-stat { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
 
-.album-grid-main { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 14px; }
+.album-grid-main {
+  --album-gap: 14px;
+  --album-feature-height: clamp(260px, 28vw, 360px);
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+  gap: var(--album-gap);
+  align-items: start;
+}
 .album-featured {
-  grid-row: span 2; background: var(--bg-card2); border-radius: 18px; overflow: hidden;
+  background: var(--bg-card2); border-radius: 18px; overflow: hidden;
   border: 1px solid var(--border); position: relative; cursor: pointer;
-  min-height: 290px; display: flex; align-items: center; justify-content: center;
+  height: var(--album-feature-height); display: flex; align-items: center; justify-content: center;
   transition: transform 0.3s; box-shadow: var(--shadow);
 }
 .album-featured:hover { transform: scale(1.015); }
@@ -805,9 +812,9 @@ nav {
   transition: transform 0.2s; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 .album-heart:hover { transform: scale(1.3); }
-.album-small-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.album-small-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--album-gap); align-content: start; }
 .album-thumb {
-  height: 134px; border-radius: 16px; overflow: hidden;
+  height: calc((var(--album-feature-height) - var(--album-gap)) / 2); border-radius: 16px; overflow: hidden;
   background: var(--bg-card2); border: 1px solid var(--border);
   position: relative; display: flex; align-items: center; justify-content: center;
   font-size: 38px; cursor: pointer; transition: all 0.25s;
@@ -821,6 +828,13 @@ nav {
   background: linear-gradient(transparent, rgba(0,0,0,0.65));
   padding: 14px 6px 8px;
 }
+.album-rest-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--album-gap);
+}
+.album-rest-grid .album-thumb { height: 150px; }
 
 .memories-strip { display: flex; gap: 10px; align-items: center; overflow-x: auto; padding-bottom: 4px; }
 .memory-item { text-align: center; flex-shrink: 0; }
@@ -1314,6 +1328,7 @@ nav {
 .settings-input:focus { border-color: var(--rose); }
 .settings-input-row { display: flex; align-items: center; justify-content: flex-end; gap: 9px; }
 .settings-input { flex: 1; }
+.profile-tags-input { min-height: 82px; resize: vertical; line-height: 1.6; }
 .date-input-row { display: flex; align-items: center; gap: 9px; }
 .date-val { flex: 1; background: var(--bg-card2); border: 1px solid var(--border); border-radius: 9px; padding: 7px 13px; color: var(--text-primary); font-size: 13px; }
 .settings-date-input {
@@ -1554,13 +1569,18 @@ nav {
   }
   .album-featured {
     grid-row: auto;
-    min-height: 230px;
+    height: 230px;
   }
   .album-small-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
-  .album-thumb { height: 128px; }
+  .album-rest-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .album-thumb,
+  .album-rest-grid .album-thumb { height: 128px; }
   .album-toolbar {
     align-items: stretch;
   }
@@ -1888,9 +1908,11 @@ nav {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .thumb { height: 86px; }
-  .album-small-grid { grid-template-columns: 1fr; }
-  .album-featured { min-height: 210px; }
-  .album-thumb { height: 180px; }
+  .album-small-grid,
+  .album-rest-grid { grid-template-columns: 1fr; }
+  .album-featured { height: 210px; }
+  .album-thumb,
+  .album-rest-grid .album-thumb { height: 180px; }
   .album-stats-row,
   .page-stat-row {
     gap: 12px;
@@ -2648,8 +2670,12 @@ nav {
             <div class="setting-label">头像</div>
             <div class="settings-avatar-row"><div class="settings-avatar"><img src="https://images.unsplash.com/photo-1474552226712-ac0f0961a954?auto=format&fit=crop&w=60&q=70" alt="" onerror="this.outerHTML='💑'"></div><button class="settings-change-btn">更换</button></div>
           </div>
-          <div class="setting-row"><div class="setting-label">昵称</div><input class="settings-input" value="You &amp; Me" style="max-width:160px"></div>
-          <div class="setting-row"><div class="setting-label">专属称呼</div><div class="settings-input-row"><input class="settings-input" value="我的全世界" style="max-width:140px"><span style="color:var(--rose)">❤️</span></div></div>
+          <div class="setting-row"><div class="setting-label">昵称</div><input class="settings-input" data-profile-field="name" value="You &amp; Me" style="max-width:160px"></div>
+          <div class="setting-row"><div class="setting-label">专属称呼</div><div class="settings-input-row"><input class="settings-input" data-profile-field="nickname" value="我的全世界" style="max-width:140px"><span style="color:var(--rose)">❤️</span></div></div>
+          <div class="setting-row"><div class="setting-label">说明文案</div><input class="settings-input" data-profile-field="bio" value="因为有你，世界变得温柔" style="max-width:260px"></div>
+          <div class="setting-row"><div class="setting-label">资料标签</div><textarea class="settings-input profile-tags-input" data-profile-field="tags" rows="3" placeholder="每行一个标签">❤️ 我们的故事
+⭐ 彼此的唯一
+∞ 永远在一起</textarea></div>
         </div>
         <div class="glass-card settings-section" data-settings-section="theme">
           <div class="card-title"><span>🎨</span> 主题</div>
@@ -3106,6 +3132,11 @@ function defaultSettingsState() {
         subtitle: '每一首歌都有一个场景，也有一个想起你的理由。',
         imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=640&q=80',
       },
+      romance: {
+        title: '把收集来的爱心代码，变成可以随手打开的小惊喜',
+        subtitle: '每次点开，都像在花园里多认领一朵会发光的小花。',
+        imageUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80',
+      },
       settings: {
         title: '把这份浪漫，调成我们喜欢的样子',
         subtitle: '主题、音乐、纪念日和相册，都可以在这里慢慢定制。',
@@ -3114,6 +3145,9 @@ function defaultSettingsState() {
     },
     music: { bgmSongId: '', volume: 70, autoplay: false, moodPlaylists: [] },
     privacy: { passwordEnabled: false, password: '520', privateAlbum: false, shareLinkEnabled: false },
+    profileCard: {
+      tags: ['❤️ 我们的故事', '⭐ 彼此的唯一', '∞ 永远在一起'],
+    },
     coupleEntrance: {
       mark: '♡',
       imageUrl: '',
@@ -3134,11 +3168,24 @@ function defaultSettingsState() {
 
 function normalizeSettings(settings = {}) {
   const defaults = defaultSettingsState();
+  const rawPageHeaders = settings.pageHeaders || {};
+  const romanceHeader = rawPageHeaders.romance || rawPageHeaders.heartGarden;
   return {
     ...settings,
-    pageHeaders: { ...defaults.pageHeaders, ...(settings.pageHeaders || {}) },
+    pageHeaders: {
+      ...defaults.pageHeaders,
+      ...rawPageHeaders,
+      romance: { ...defaults.pageHeaders.romance, ...(romanceHeader || {}) },
+    },
     music: { ...defaults.music, ...(settings.music || {}) },
     privacy: { ...defaults.privacy, ...(settings.privacy || {}) },
+    profileCard: {
+      ...defaults.profileCard,
+      ...(settings.profileCard || {}),
+      tags: Array.isArray(settings.profileCard?.tags) && settings.profileCard.tags.length
+        ? settings.profileCard.tags
+        : defaults.profileCard.tags,
+    },
     coupleEntrance: { ...defaults.coupleEntrance, ...(settings.coupleEntrance || {}) },
     reminders: { ...defaults.reminders, ...(settings.reminders || {}) },
     anniversaryPage: { ...defaults.anniversaryPage, ...(settings.anniversaryPage || {}) },
@@ -3223,12 +3270,35 @@ function getSliderValue(row, fallback = 0) {
   return Number.isFinite(value) ? value : fallback;
 }
 
+function getProfileCardTags(settings = {}) {
+  return normalizeSettings(settings).profileCard.tags
+    .map(item => String(item || '').trim())
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+function renderProfileCards(data, settings = data?.site?.settings || {}) {
+  const profile = data?.profiles?.[0] || {};
+  const tags = getProfileCardTags(settings);
+  setText('.profile-name', profile.name || data?.name || 'You & Me');
+  setText('.profile-tagline', profile.bio || data?.subtitle || '因为有你，世界变得温柔');
+  document.querySelectorAll('.profile-tags').forEach(box => {
+    box.innerHTML = tags.map(tag => `<div class="profile-tag">${escapeHtml(tag)}</div>`).join('');
+  });
+  ensureAvatarImages(profile.avatarUrl);
+}
+
 function renderSettingsPage(data) {
   const settings = normalizeSettings(data.site.settings || {});
   const profile = data.profiles?.[0] || {};
-  const inputs = document.querySelectorAll('#page-settings .settings-input');
-  if (inputs[0]) inputs[0].value = profile.name || data.name || 'You & Me';
-  if (inputs[1]) inputs[1].value = profile.nickname || '我的全世界';
+  const nameInput = document.querySelector('#page-settings [data-profile-field="name"]');
+  const nicknameInput = document.querySelector('#page-settings [data-profile-field="nickname"]');
+  const bioInput = document.querySelector('#page-settings [data-profile-field="bio"]');
+  const tagsInput = document.querySelector('#page-settings [data-profile-field="tags"]');
+  if (nameInput) nameInput.value = profile.name || data.name || 'You & Me';
+  if (nicknameInput) nicknameInput.value = profile.nickname || '我的全世界';
+  if (bioInput) bioInput.value = profile.bio || data.subtitle || '因为有你，世界变得温柔';
+  if (tagsInput) tagsInput.value = getProfileCardTags(settings).join('\n');
   setImage('#page-settings .settings-avatar img', profile.avatarUrl);
 
   document.querySelectorAll('#page-settings .swatch').forEach(swatch => {
@@ -4160,6 +4230,15 @@ function renderAlbums(items = []) {
     return;
   }
   const [featured, ...rest] = sorted;
+  const sideItems = rest.slice(0, 4);
+  const extraItems = rest.slice(4);
+  const renderAlbumThumb = (item) => `
+    <div class="album-thumb" onclick="openMediaPreviewById('${item.id}')">
+      ${mediaMarkup(item)}
+      <div class="album-heart" style="font-size:14px">${item.favorite ? '❤️' : '♡'}</div>
+      <div class="album-thumb-label">${escapeHtml(item.location || item.album || '美好回忆')}<br>${escapeHtml(item.takenAt || '')}</div>
+    </div>
+  `;
   grid.innerHTML = `
     <div class="album-featured" onclick="openMediaPreviewById('${featured.id}')">
       ${mediaMarkup(featured)}
@@ -4172,14 +4251,9 @@ function renderAlbums(items = []) {
       </div>
     </div>
     <div class="album-small-grid">
-      ${rest.map(item => `
-        <div class="album-thumb" onclick="openMediaPreviewById('${item.id}')">
-          ${mediaMarkup(item)}
-          <div class="album-heart" style="font-size:14px">${item.favorite ? '❤️' : '♡'}</div>
-          <div class="album-thumb-label">${escapeHtml(item.location || item.album || '美好回忆')}<br>${escapeHtml(item.takenAt || '')}</div>
-        </div>
-      `).join('')}
+      ${sideItems.map(renderAlbumThumb).join('')}
     </div>
+    ${extraItems.length ? `<div class="album-rest-grid">${extraItems.map(renderAlbumThumb).join('')}</div>` : ''}
   `;
   renderAlbumMemories(visibleItems);
 }
@@ -5113,11 +5187,9 @@ function renderSpace(data) {
   document.title = `${data.name} | ${settings.pageHeaders.home.title || data.site.heroTitle}`;
   applyTheme(data.theme);
   renderCoupleEntrance(settings);
-  setText('.profile-name', data.name);
-  setText('.profile-tagline', data.subtitle);
   setText('.about-text', data.site.story);
   renderPageHeaders(settings, data);
-  ensureAvatarImages(data.profiles?.[0]?.avatarUrl);
+  renderProfileCards(data, settings);
   setImage('.profile-avatar img, .settings-avatar img', data.profiles?.[0]?.avatarUrl);
   updateProfileDerivedStats(data);
   renderHomeSettings(data.site.settings, data);
@@ -5164,8 +5236,10 @@ async function saveSettingsToBackend() {
     await loadSpaceFromBackend();
     if (!spaceData) return showSaveToast();
   }
-  const nameInput = document.querySelector('#page-settings .settings-input');
-  const nicknameInput = document.querySelectorAll('#page-settings .settings-input')[1];
+  const nameInput = document.querySelector('#page-settings [data-profile-field="name"]');
+  const nicknameInput = document.querySelector('#page-settings [data-profile-field="nickname"]');
+  const bioInput = document.querySelector('#page-settings [data-profile-field="bio"]');
+  const tagsInput = document.querySelector('#page-settings [data-profile-field="tags"]');
   const settings = normalizeSettings(spaceData.site.settings || {});
   const bgmSelect = document.querySelector('#page-settings .music-select');
   const activeSwatch = document.querySelector('#page-settings .swatch.active');
@@ -5186,17 +5260,19 @@ async function saveSettingsToBackend() {
   settings.reminders.dailyQuoteTime = '20:00';
   const profile = {
     ...(spaceData.profiles?.[0] || {}),
-    name: nameInput?.value || spaceData.name,
+    name: nameInput?.value || spaceData.profiles?.[0]?.name || spaceData.name,
     nickname: nicknameInput?.value || spaceData.profiles?.[0]?.nickname || '',
+    bio: bioInput?.value || spaceData.profiles?.[0]?.bio || spaceData.subtitle || '',
   };
-  await apiFetch(`/admin/spaces/${SPACE_SLUG}/profiles`, {
-    method: 'PATCH',
-    body: JSON.stringify({ profiles: [profile] }),
-  });
-  await apiFetch(`/admin/spaces/${SPACE_SLUG}/site-config`, {
-    method: 'PATCH',
-    body: JSON.stringify({ ...spaceData.site, settings }),
-  });
+  const profileTags = String(tagsInput?.value || '')
+    .split(/\r?\n|,/)
+    .map(item => item.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  settings.profileCard = {
+    ...(settings.profileCard || {}),
+    tags: profileTags.length ? profileTags : getProfileCardTags(settings),
+  };
   const theme = {
     ...spaceData.theme,
     primaryColor: selectedColor || spaceData.theme.primaryColor,
@@ -5209,17 +5285,26 @@ async function saveSettingsToBackend() {
       glass: isToggleOn(findSettingRow('玻璃质感')?.querySelector('.toggle')),
     },
   };
-  await apiFetch(`/admin/spaces/${SPACE_SLUG}/theme-config`, {
+  const saved = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/settings`, {
     method: 'PATCH',
-    body: JSON.stringify(theme),
+    body: JSON.stringify({ profile, settings, theme }),
   });
-  spaceData.site.settings = settings;
-  spaceData.theme = theme;
+  spaceData.site.settings = normalizeSettings(saved.settings || settings);
+  spaceData.theme = { ...spaceData.theme, ...(saved.theme || theme) };
+  const savedProfile = saved.profile || profile;
   if (spaceData.profiles?.[0]) {
-    spaceData.profiles[0] = { ...spaceData.profiles[0], ...profile };
+    spaceData.profiles[0] = { ...spaceData.profiles[0], ...savedProfile };
+  } else {
+    spaceData.profiles = [savedProfile];
   }
-  renderHomeCountdown(settings, spaceData.nextAnniversary);
+  renderProfileCards(spaceData, spaceData.site.settings);
+  setText('.profile-name', savedProfile.name || spaceData.name);
+  setText('.profile-tagline', savedProfile.bio || spaceData.subtitle || '因为有你，世界变得温柔');
+  setImage('.profile-avatar img, .settings-avatar img', savedProfile.avatarUrl || spaceData.profiles?.[0]?.avatarUrl);
+  applyTheme(spaceData.theme);
+  renderHomeCountdown(spaceData.site.settings, spaceData.nextAnniversary);
   renderAnniversaryPage(spaceData);
+  renderAlbums(spaceData.albumItems || []);
   writeSpaceCache(spaceData);
   showSaveToast();
   settingsDirty = false;
@@ -5313,14 +5398,24 @@ async function uploadAvatarToBackend(file) {
   if (!spaceData) await loadSpaceFromBackend();
   if (!spaceData) return;
   const uploadFile = await compressImageFile(file, { maxSize: 600, quality: 0.86 });
-  const uploaded = await uploadFileToObjectStorage(uploadFile, { purpose: 'avatar' });
-  await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/avatar`, {
-    method: 'PATCH',
-    body: JSON.stringify({ avatarUrl: uploaded.publicUrl }),
+  const dataUrl = await fileToDataUrl(uploadFile);
+  const saved = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/avatar-upload`, {
+    method: 'POST',
+    body: JSON.stringify({
+      fileName: uploadFile.name || `avatar-${Date.now()}.jpg`,
+      mimeType: uploadFile.type || 'image/jpeg',
+      dataUrl,
+    }),
   });
-  ensureAvatarImages(uploaded.publicUrl);
-  setImage('.profile-avatar img, .settings-avatar img', uploaded.publicUrl);
-  if (spaceData.profiles?.[0]) spaceData.profiles[0].avatarUrl = uploaded.publicUrl;
+  const avatarUrl = saved.publicUrl || saved.profile?.avatarUrl || '';
+  ensureAvatarImages(avatarUrl);
+  setImage('.profile-avatar img, .settings-avatar img', avatarUrl);
+  if (spaceData.profiles?.[0]) {
+    spaceData.profiles[0] = { ...spaceData.profiles[0], ...(saved.profile || {}), avatarUrl };
+  } else if (saved.profile) {
+    spaceData.profiles = [{ ...saved.profile, avatarUrl }];
+  }
+  renderProfileCards(spaceData, spaceData.site.settings);
   writeSpaceCache(spaceData);
   showReminder('头像已同步', '新的头像已经显示出来了。');
   setTimeout(() => loadSpaceFromBackend({ force: true }), 800);
@@ -5400,6 +5495,15 @@ function compressImageFile(file, { maxSize, quality }) {
       };
       img.src = String(reader.result || '');
     };
+    reader.readAsDataURL(file);
+  });
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('头像读取失败'));
+    reader.onload = () => resolve(String(reader.result || ''));
     reader.readAsDataURL(file);
   });
 }

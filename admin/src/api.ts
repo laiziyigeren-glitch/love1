@@ -48,7 +48,7 @@ export type Dashboard = {
     stats: Array<{ label: string; value: string }>;
     settings: {
       pageHeaders: Record<
-        'home' | 'anniversary' | 'album' | 'music' | 'settings',
+        'home' | 'anniversary' | 'album' | 'music' | 'romance' | 'settings',
         {
           title: string;
           subtitle: string;
@@ -83,6 +83,9 @@ export type Dashboard = {
         password: string;
         privateAlbum: boolean;
         shareLinkEnabled: boolean;
+      };
+      profileCard: {
+        tags: string[];
       };
       coupleEntrance: {
         mark: string;

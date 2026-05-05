@@ -53,6 +53,33 @@ export class StorageService {
     };
   }
 
+  async uploadContent(
+    spaceSlug: string,
+    fileName: string,
+    mimeType: string,
+    content: Buffer | Uint8Array | string,
+    options: UploadPathOptions = {},
+  ) {
+    const { bucket, client } = this.getStorageClient();
+    const safeName = String(fileName || `upload-${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, '-');
+    const objectKey = `${this.resolveFolder(spaceSlug, mimeType, options)}/${Date.now()}-${safeName}`;
+    try {
+      await client.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: objectKey,
+        ContentType: mimeType,
+        Body: content,
+      }));
+    } catch (error) {
+      console.error('Failed to upload object storage file directly.', error);
+      throw new ServiceUnavailableException('Object storage upload failed');
+    }
+    return {
+      objectKey,
+      publicUrl: this.getPublicUrl(objectKey),
+    };
+  }
+
   async moveObjectToUploadFolder(sourceKey: string, mimeType: string, spaceSlug: string, options: UploadPathOptions = {}) {
     const safeSourceKey = String(sourceKey || '').trim();
     if (!safeSourceKey) return null;
