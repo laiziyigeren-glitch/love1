@@ -1233,30 +1233,36 @@ nav {
   margin-top: 14px;
   height: 238px;
   overflow-y: auto;
-  padding-right: 6px;
+  padding-right: 4px;
   scroll-behavior: smooth;
+  text-align: center;
 }
 .lyrics-scroll::-webkit-scrollbar { width: 6px; }
 .lyrics-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
+.lyric-spacer { height: 96px; pointer-events: none; }
 .lyric-line {
+  display: flex;
+  justify-content: center;
   font-size: 13px;
   line-height: 2;
   color: var(--text-muted);
-  padding: 4px 2px;
+  text-align: center;
+  padding: 6px 16px;
+  transform-origin: center center;
   transition: all 0.22s ease;
 }
 .lyric-line.active {
   font-size: 15px;
   font-weight: 700;
   color: var(--rose-light);
-  transform: translateX(4px);
+  transform: scale(1.03);
   text-shadow: 0 0 18px rgba(232,116,138,0.25);
 }
 .lyric-line.nearby {
   font-size: 14px;
   color: var(--text-secondary);
 }
-.lyric-empty { font-size: 13px; line-height: 2.1; color: var(--text-muted); padding-top: 6px; }
+.lyric-empty { font-size: 13px; line-height: 2.1; color: var(--text-muted); padding: 80px 16px 0; text-align: center; }
 .lyrics-song { font-size: 11px; color: var(--text-muted); margin-top: 14px; display: flex; align-items: center; gap: 6px; }
 
 .mood-playlist-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 22px; box-shadow: var(--shadow); }
@@ -3053,6 +3059,14 @@ function updateSongLyricHeadline(text) {
   setText('.song-lyric', text || '这首歌还没有填写歌词。');
 }
 
+function updateLyricsViewportPadding(wrap) {
+  if (!(wrap instanceof HTMLElement)) return;
+  const spacerHeight = Math.max(48, Math.round(wrap.clientHeight / 2 - 26));
+  wrap.querySelectorAll('.lyric-spacer').forEach((node) => {
+    if (node instanceof HTMLElement) node.style.height = `${spacerHeight}px`;
+  });
+}
+
 function renderLyricsCard(song = {}) {
   const wrap = document.getElementById('lyricsScroll');
   const lyricSong = document.querySelector('.lyrics-song');
@@ -3064,13 +3078,15 @@ function renderLyricsCard(song = {}) {
     if (!parsed.lines.length) {
       wrap.innerHTML = '<div class="lyric-empty">这首歌还没有填写歌词。</div>';
     } else {
-      wrap.innerHTML = parsed.lines.map((line, index) => {
+      const linesHtml = parsed.lines.map((line, index) => {
         const className = parsed.mode === 'plain'
           ? `lyric-line${index === 0 ? ' active' : ''}`
           : `lyric-line${index <= 1 ? ' nearby' : ''}`;
         return `<div class="${className}" data-lyric-index="${index}">${escapeHtml(line.text)}</div>`;
       }).join('');
+      wrap.innerHTML = `<div class="lyric-spacer" aria-hidden="true"></div>${linesHtml}<div class="lyric-spacer" aria-hidden="true"></div>`;
     }
+    updateLyricsViewportPadding(wrap);
     wrap.scrollTop = 0;
   }
   if (lyricSong) {
@@ -3082,6 +3098,7 @@ function renderLyricsCard(song = {}) {
 function syncLyricsByTime(currentTime = 0) {
   const wrap = document.getElementById('lyricsScroll');
   if (!wrap || !musicState.lyricLines.length || musicState.lyricMode !== 'lrc') return;
+  updateLyricsViewportPadding(wrap);
   let activeIndex = -1;
   musicState.lyricLines.forEach((line, index) => {
     if (currentTime >= line.time) activeIndex = index;
