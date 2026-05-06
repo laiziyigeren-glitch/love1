@@ -238,11 +238,11 @@
             <template #header><div class="card-header"><span>纪念日管理</span><el-button type="primary" @click="addAnniversary">新增纪念日</el-button></div></template>
             <el-table :data="dashboard.anniversaries" row-key="id">
               <el-table-column label="标题" min-width="150"><template #default="{ row }"><el-input v-model="row.title" /></template></el-table-column>
-              <el-table-column label="日期" width="180"><template #default="{ row }"><el-date-picker v-model="row.eventDate" type="datetime" value-format="YYYY-MM-DDTHH:mm" format="YYYY-MM-DD HH:mm" /></template></el-table-column>
+              <el-table-column label="日期" width="180"><template #default="{ row }"><el-date-picker v-model="row.eventDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" /></template></el-table-column>
               <el-table-column label="每年重复" width="110"><template #default="{ row }"><el-switch v-model="row.repeatYearly" /></template></el-table-column>
               <el-table-column label="倒计时" width="100"><template #default="{ row }"><el-switch v-model="row.showCountdown" /></template></el-table-column>
               <el-table-column label="说明" min-width="220"><template #default="{ row }"><el-input v-model="row.description" /></template></el-table-column>
-              <el-table-column label="操作" width="150" fixed="right"><template #default="{ row, $index }"><el-button link type="primary" @click="saveOneAnniversary(row)">保存</el-button><el-button link type="danger" @click="removeAnniversary(row, $index)">删除</el-button></template></el-table-column>
+              <el-table-column label="操作" width="150" fixed="right"><template #default="{ row, $index }"><el-button link type="primary" :loading="isRowBusy('anniversary', row)" :disabled="isRowBusy('anniversary', row)" @click="saveOneAnniversary(row)">保存</el-button><el-button link type="danger" :loading="isRowBusy('anniversary', row)" :disabled="isRowBusy('anniversary', row)" @click="removeAnniversary(row, $index)">删除</el-button></template></el-table-column>
             </el-table>
           </el-card>
         </section>
@@ -325,8 +325,8 @@
                       <el-option label="草稿" value="DRAFT" />
                       <el-option label="隐藏" value="HIDDEN" />
                     </el-select>
-                    <el-button type="primary" @click="saveOneLetter(letter)">保存</el-button>
-                    <el-button type="danger" @click="removeLetter(letter, index)">删除</el-button>
+                    <el-button type="primary" :loading="isRowBusy('letter', letter)" :disabled="isRowBusy('letter', letter)" @click="saveOneLetter(letter)">保存</el-button>
+                    <el-button type="danger" :loading="isRowBusy('letter', letter)" :disabled="isRowBusy('letter', letter)" @click="removeLetter(letter, index)">删除</el-button>
                   </div>
                 </el-form>
               </el-collapse-item>
@@ -377,7 +377,7 @@
                 </template>
               </el-table-column>
               <el-table-column label="收藏" width="90"><template #default="{ row }"><el-switch v-model="row.favorite" /></template></el-table-column>
-              <el-table-column label="操作" width="150" fixed="right"><template #default="{ row, $index }"><el-button link type="primary" @click="saveOneSong(row)">保存</el-button><el-button link type="danger" @click="removeSong(row, $index)">删除</el-button></template></el-table-column>
+              <el-table-column label="操作" width="150" fixed="right"><template #default="{ row, $index }"><el-button link type="primary" :loading="isRowBusy('song', row)" :disabled="isRowBusy('song', row)" @click="saveOneSong(row)">保存</el-button><el-button link type="danger" :loading="isRowBusy('song', row)" :disabled="isRowBusy('song', row)" @click="removeSong(row, $index)">删除</el-button></template></el-table-column>
             </el-table>
           </el-card>
           <el-card shadow="never" class="section-card">
@@ -792,6 +792,11 @@ const loading = ref(false);
 const loginLoading = ref(false);
 const profileSaving = ref(false);
 const anniversaryPageSaving = ref(false);
+const rowBusyState = reactive<Record<'letter' | 'anniversary' | 'song', Record<string, boolean>>>({
+  letter: {},
+  anniversary: {},
+  song: {},
+});
 const isAuthenticated = ref(Boolean(getAdminToken()));
 const loginForm = reactive({
   email: '',
@@ -824,6 +829,50 @@ type HeartGardenAsset = {
   snippetType: 'image' | 'video' | 'audio';
 };
 type HeartGardenFile = NonNullable<HeartGardenProject['files']>[number];
+
+function getRowBusyKey(bucket: 'letter' | 'anniversary' | 'song', item: unknown) {
+  const target = item as { id?: string; __rowBusyKey?: string };
+  if (!target.__rowBusyKey) {
+    target.__rowBusyKey = `${bucket}-${target.id || 'draft'}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+  return target.__rowBusyKey;
+}
+
+function isRowBusy(bucket: 'letter' | 'anniversary' | 'song', item: unknown) {
+  return Boolean(rowBusyState[bucket][getRowBusyKey(bucket, item)]);
+}
+
+async function withRowBusy<T>(bucket: 'letter' | 'anniversary' | 'song', item: unknown, task: () => Promise<T>) {
+  const key = getRowBusyKey(bucket, item);
+  if (rowBusyState[bucket][key]) return undefined;
+  rowBusyState[bucket][key] = true;
+  try {
+    return await task();
+  } finally {
+    delete rowBusyState[bucket][key];
+  }
+}
+
+function isConfirmCancel(error: unknown) {
+  return error === 'cancel' || error === 'close';
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  const data = (error as { response?: { data?: { message?: string | string[] } } })?.response?.data;
+  const message = data?.message;
+  if (Array.isArray(message)) return message.join('，');
+  if (typeof message === 'string' && message.trim()) return message;
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
+function removeListItem<T extends { id?: string }>(items: T[] | undefined, item: T, index: number) {
+  if (!items) return;
+  const matchedIndex = item.id ? items.findIndex((entry) => entry.id === item.id) : -1;
+  const targetIndex = matchedIndex >= 0 ? matchedIndex : index;
+  if (targetIndex >= 0) items.splice(targetIndex, 1);
+}
+
 const uploadMeta = reactive({
   title: '',
   albumTitle: '默认相册',
@@ -1275,6 +1324,42 @@ function syncPageSettingsFromAnniversary(item: Dashboard['anniversaries'][number
   return false;
 }
 
+function clearPageSettingsFromAnniversary(item: Dashboard['anniversaries'][number]) {
+  if (!dashboard.value) return false;
+  const page = dashboard.value.site.settings.anniversaryPage;
+  const kind = getAnniversarySyncKind(item);
+  if (kind === 'start') {
+    page.startDate = '';
+    page.startTitle = '';
+    page.showCountdown = false;
+    return true;
+  }
+  if (kind === 'meet') {
+    page.firstMeetDate = '';
+    return true;
+  }
+  return false;
+}
+
+function removeSongReferencesFromSettings(songId: string) {
+  if (!dashboard.value || !songId) return false;
+  const music = dashboard.value.site.settings.music;
+  let changed = false;
+  if (music.bgmSongId === songId) {
+    music.bgmSongId = '';
+    changed = true;
+  }
+  music.moodPlaylists = music.moodPlaylists.map((playlist) => {
+    if (!Array.isArray(playlist.songIds) || !playlist.songIds.includes(songId)) return playlist;
+    changed = true;
+    return {
+      ...playlist,
+      songIds: playlist.songIds.filter((id) => id !== songId),
+    };
+  });
+  return changed;
+}
+
 async function saveAnniversaryPage() {
   if (!dashboard.value || anniversaryPageSaving.value) return;
   anniversaryPageSaving.value = true;
@@ -1294,6 +1379,8 @@ async function saveAnniversaryPage() {
     ]);
     savedAnniversaries.forEach((item) => mergeSavedAnniversary(item));
     ElMessage.success('纪念日页面配置已保存，前台会自动同步');
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '纪念日页面配置保存失败'));
   } finally {
     savingMessage.close();
     anniversaryPageSaving.value = false;
@@ -1357,22 +1444,43 @@ function addAnniversary() {
 }
 
 async function saveOneAnniversary(item: Dashboard['anniversaries'][number]) {
-  const saved = await saveAnniversary(item);
-  Object.assign(item, saved);
-  const synced = syncPageSettingsFromAnniversary(saved);
-  if (synced && dashboard.value) {
-    await saveSite(dashboard.value.site);
-  }
-  ElMessage.success(synced ? '纪念日已保存，并同步到页面配置' : '纪念日已保存');
-  await load();
+  await withRowBusy('anniversary', item, async () => {
+    try {
+      const payload = {
+        ...item,
+        eventDate: String(item.eventDate || '').slice(0, 10),
+      };
+      const saved = await saveAnniversary(payload);
+      Object.assign(item, saved);
+      const synced = syncPageSettingsFromAnniversary(saved);
+      if (synced && dashboard.value) {
+        await saveSite(dashboard.value.site);
+      }
+      ElMessage.success(synced ? '纪念日已保存，并同步到页面配置' : '纪念日已保存');
+      await load();
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error, '纪念日保存失败'));
+    }
+  });
 }
 
 async function removeAnniversary(item: Dashboard['anniversaries'][number], index: number) {
-  await confirmDelete('确认删除这个纪念日？');
-  if (item.id) await deleteAnniversary(item.id);
-  dashboard.value?.anniversaries.splice(index, 1);
-  ElMessage.success('纪念日已删除');
-  await load();
+  await withRowBusy('anniversary', item, async () => {
+    try {
+      await confirmDelete('确认删除这个纪念日？');
+      if (item.id) await deleteAnniversary(item.id);
+      const synced = clearPageSettingsFromAnniversary(item);
+      if (synced && dashboard.value) {
+        await saveSite(dashboard.value.site);
+      }
+      removeListItem(dashboard.value?.anniversaries, item, index);
+      ElMessage.success('纪念日已删除');
+      await load();
+    } catch (error) {
+      if (isConfirmCancel(error)) return;
+      ElMessage.error(getErrorMessage(error, '纪念日删除失败'));
+    }
+  });
 }
 
 async function uploadAvatar(options: UploadRequestOptions, profile: Dashboard['profiles'][number]) {
@@ -1475,18 +1583,31 @@ function addLetter() {
 }
 
 async function saveOneLetter(item: Dashboard['letters'][number]) {
-  const saved = await saveLetter(item);
-  item.id = saved.id;
-  ElMessage.success('情书已保存');
-  await load();
+  await withRowBusy('letter', item, async () => {
+    try {
+      const saved = await saveLetter(item);
+      item.id = saved.id;
+      ElMessage.success('情书已保存');
+      await load();
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error, '情书保存失败'));
+    }
+  });
 }
 
 async function removeLetter(item: Dashboard['letters'][number], index: number) {
-  await confirmDelete('确认删除这封情书？');
-  if (item.id) await deleteLetter(item.id);
-  dashboard.value?.letters.splice(index, 1);
-  ElMessage.success('情书已删除');
-  await load();
+  await withRowBusy('letter', item, async () => {
+    try {
+      await confirmDelete('确认删除这封情书？');
+      if (item.id) await deleteLetter(item.id);
+      removeListItem(dashboard.value?.letters, item, index);
+      ElMessage.success('情书已删除');
+      await load();
+    } catch (error) {
+      if (isConfirmCancel(error)) return;
+      ElMessage.error(getErrorMessage(error, '情书删除失败'));
+    }
+  });
 }
 
 function addSong() {
@@ -1509,10 +1630,18 @@ function parseDurationInput(value: string) {
 }
 
 async function saveOneSong(item: Dashboard['songs'][number], options: { silent?: boolean } = {}) {
-  const saved = await saveSong(item);
-  item.id = saved.id;
-  if (!options.silent) ElMessage.success('歌曲已保存');
-  await load();
+  return withRowBusy('song', item, async () => {
+    try {
+      const saved = await saveSong(item);
+      item.id = saved.id;
+      if (!options.silent) ElMessage.success('歌曲已保存');
+      await load();
+      return saved;
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error, '歌曲保存失败'));
+      throw error;
+    }
+  });
 }
 
 async function uploadSongAudio(options: UploadRequestOptions, item: Dashboard['songs'][number]) {
@@ -2201,11 +2330,22 @@ async function saveCoupleAccessSettings() {
 }
 
 async function removeSong(item: Dashboard['songs'][number], index: number) {
-  await confirmDelete('确认删除这首歌？');
-  if (item.id) await deleteSong(item.id);
-  dashboard.value?.songs.splice(index, 1);
-  ElMessage.success('歌曲已删除');
-  await load();
+  await withRowBusy('song', item, async () => {
+    try {
+      await confirmDelete('确认删除这首歌？');
+      if (item.id) await deleteSong(item.id);
+      const settingsChanged = item.id ? removeSongReferencesFromSettings(item.id) : false;
+      if (settingsChanged && dashboard.value) {
+        await saveSite(dashboard.value.site);
+      }
+      removeListItem(dashboard.value?.songs, item, index);
+      ElMessage.success('歌曲已删除');
+      await load();
+    } catch (error) {
+      if (isConfirmCancel(error)) return;
+      ElMessage.error(getErrorMessage(error, '歌曲删除失败'));
+    }
+  });
 }
 
 function confirmDelete(message: string) {

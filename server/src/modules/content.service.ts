@@ -799,8 +799,16 @@ export class ContentService {
   }
 
   private parseDate(value: string) {
-    const [year, month, day] = value.split('-').map(Number);
-    return new Date(year, month - 1, day);
+    const text = String(value || '').trim();
+    if (!text) return new Date(NaN);
+
+    const normalized = text.replace(/\//g, '-');
+    const direct = new Date(normalized.includes('T') ? normalized : `${normalized}T00:00:00`);
+    if (!Number.isNaN(direct.getTime())) return direct;
+
+    const [datePart] = normalized.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    return new Date(year, (month || 1) - 1, day || 1);
   }
 
   private formatDate(date: Date) {
