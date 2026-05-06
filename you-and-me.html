@@ -1236,6 +1236,9 @@ nav {
   padding-right: 4px;
   scroll-behavior: smooth;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 .lyrics-scroll::-webkit-scrollbar { width: 6px; }
 .lyrics-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
@@ -1243,24 +1246,47 @@ nav {
 .lyric-line {
   display: flex;
   justify-content: center;
-  font-size: 13px;
-  line-height: 2;
-  color: var(--text-muted);
+  align-items: center;
+  min-height: 40px;
+  font-size: 14px;
+  line-height: 1.9;
+  color: rgba(255,245,247,0.48);
   text-align: center;
-  padding: 6px 16px;
+  padding: 7px 18px;
   transform-origin: center center;
-  transition: all 0.22s ease;
+  transition: transform 0.32s ease, color 0.32s ease, opacity 0.32s ease, filter 0.32s ease, text-shadow 0.32s ease, font-size 0.32s ease;
+  cursor: pointer;
+  user-select: none;
+  opacity: 0.32;
+  filter: blur(1.8px);
+  font-weight: 500;
 }
 .lyric-line.active {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--rose-light);
-  transform: scale(1.03);
-  text-shadow: 0 0 18px rgba(232,116,138,0.25);
+  font-size: 21px;
+  font-weight: 800;
+  color: #ffe4eb;
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1.02);
+  text-shadow: 0 0 22px rgba(255, 134, 173, 0.38);
 }
-.lyric-line.nearby {
-  font-size: 14px;
-  color: var(--text-secondary);
+.lyric-line.near-1 {
+  font-size: 17px;
+  color: rgba(255, 236, 241, 0.82);
+  opacity: 0.78;
+  filter: blur(0.35px);
+}
+.lyric-line.near-2 {
+  font-size: 15px;
+  color: rgba(255, 228, 235, 0.62);
+  opacity: 0.58;
+  filter: blur(0.9px);
+}
+.lyric-line.near-3 {
+  font-size: 13px;
+  color: rgba(255, 215, 224, 0.46);
+  opacity: 0.4;
+  filter: blur(1.4px);
 }
 .lyric-empty { font-size: 13px; line-height: 2.1; color: var(--text-muted); padding: 80px 16px 0; text-align: center; }
 .lyrics-song { font-size: 11px; color: var(--text-muted); margin-top: 14px; display: flex; align-items: center; gap: 6px; }
@@ -3061,10 +3087,27 @@ function updateSongLyricHeadline(text) {
 
 function updateLyricsViewportPadding(wrap) {
   if (!(wrap instanceof HTMLElement)) return;
-  const spacerHeight = Math.max(48, Math.round(wrap.clientHeight / 2 - 26));
+  const spacerHeight = Math.max(68, Math.round(wrap.clientHeight / 2 - 28));
   wrap.querySelectorAll('.lyric-spacer').forEach((node) => {
     if (node instanceof HTMLElement) node.style.height = `${spacerHeight}px`;
   });
+}
+
+function applyLyricsFocusState(wrap, activeIndex) {
+  if (!(wrap instanceof HTMLElement)) return;
+  wrap.querySelectorAll('.lyric-line').forEach((node, index) => {
+    const distance = Math.abs(index - activeIndex);
+    node.classList.toggle('active', index === activeIndex);
+    node.classList.toggle('near-1', distance === 1);
+    node.classList.toggle('near-2', distance === 2);
+    node.classList.toggle('near-3', distance === 3);
+  });
+}
+
+function centerLyricLine(wrap, line, behavior = 'smooth') {
+  if (!(wrap instanceof HTMLElement) || !(line instanceof HTMLElement)) return;
+  const targetTop = line.offsetTop - wrap.clientHeight / 2 + line.clientHeight / 2;
+  wrap.scrollTo({ top: Math.max(0, targetTop), behavior });
 }
 
 function renderLyricsCard(song = {}) {
@@ -3081,13 +3124,36 @@ function renderLyricsCard(song = {}) {
       const linesHtml = parsed.lines.map((line, index) => {
         const className = parsed.mode === 'plain'
           ? `lyric-line${index === 0 ? ' active' : ''}`
-          : `lyric-line${index <= 1 ? ' nearby' : ''}`;
-        return `<div class="${className}" data-lyric-index="${index}">${escapeHtml(line.text)}</div>`;
+          : 'lyric-line';
+        const timeAttr = Number.isFinite(line.time) ? ` data-lyric-time="${line.time}"` : '';
+        return `<div class="${className}" data-lyric-index="${index}"${timeAttr}>${escapeHtml(line.text)}</div>`;
       }).join('');
       wrap.innerHTML = `<div class="lyric-spacer" aria-hidden="true"></div>${linesHtml}<div class="lyric-spacer" aria-hidden="true"></div>`;
+      wrap.querySelectorAll('.lyric-line').forEach((node) => {
+        node.addEventListener('click', () => {
+          const index = Number(node.getAttribute('data-lyric-index'));
+          const line = musicState.lyricLines[index];
+          if (!line || !Number.isFinite(line.time) || musicState.lyricMode !== 'lrc') return;
+          const audio = getMusicAudio();
+          if (!audio) return;
+          audio.currentTime = Math.max(0, line.time);
+          syncLyricsByTime(audio.currentTime || 0);
+        });
+      });
     }
     updateLyricsViewportPadding(wrap);
     wrap.scrollTop = 0;
+    if (parsed.lines.length) {
+      const initialIndex = parsed.mode === 'lrc' ? -1 : 0;
+      if (initialIndex >= 0) {
+        musicState.lyricActiveIndex = initialIndex;
+        applyLyricsFocusState(wrap, initialIndex);
+        const currentLine = wrap.querySelector(`.lyric-line[data-lyric-index="${initialIndex}"]`);
+        if (currentLine instanceof HTMLElement) {
+          centerLyricLine(wrap, currentLine, 'auto');
+        }
+      }
+    }
   }
   if (lyricSong) {
     lyricSong.innerHTML = `— ${escapeHtml(song.title || '未命名歌曲')} · ${escapeHtml(song.artist || '未填歌手')} <span style="color:var(--rose)">❤️</span>`;
@@ -3105,15 +3171,11 @@ function syncLyricsByTime(currentTime = 0) {
   });
   if (activeIndex < 0 || activeIndex === musicState.lyricActiveIndex) return;
   musicState.lyricActiveIndex = activeIndex;
-  wrap.querySelectorAll('.lyric-line').forEach((node, index) => {
-    node.classList.toggle('active', index === activeIndex);
-    node.classList.toggle('nearby', Math.abs(index - activeIndex) === 1);
-  });
+  applyLyricsFocusState(wrap, activeIndex);
   const currentLine = wrap.querySelector(`.lyric-line[data-lyric-index="${activeIndex}"]`);
   if (currentLine instanceof HTMLElement) {
     updateSongLyricHeadline(currentLine.textContent || '');
-    const targetTop = currentLine.offsetTop - wrap.clientHeight / 2 + currentLine.clientHeight / 2;
-    wrap.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    centerLyricLine(wrap, currentLine, 'smooth');
   }
 }
 
