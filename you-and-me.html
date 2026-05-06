@@ -1232,16 +1232,18 @@ nav {
 .lyrics-scroll {
   margin-top: 14px;
   height: 238px;
-  overflow-y: auto;
-  padding-right: 4px;
-  scroll-behavior: smooth;
+  overflow: hidden;
+  padding-right: 0;
   text-align: center;
+  position: relative;
+}
+.lyrics-track {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  will-change: transform;
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.lyrics-scroll::-webkit-scrollbar { width: 6px; }
-.lyrics-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
 .lyric-spacer { height: 96px; pointer-events: none; }
 .lyric-line {
   display: flex;
@@ -3093,6 +3095,12 @@ function updateLyricsViewportPadding(wrap) {
   });
 }
 
+function getLyricsTrack(wrap) {
+  if (!(wrap instanceof HTMLElement)) return null;
+  const track = wrap.querySelector('.lyrics-track');
+  return track instanceof HTMLElement ? track : null;
+}
+
 function applyLyricsFocusState(wrap, activeIndex) {
   if (!(wrap instanceof HTMLElement)) return;
   wrap.querySelectorAll('.lyric-line').forEach((node, index) => {
@@ -3106,8 +3114,21 @@ function applyLyricsFocusState(wrap, activeIndex) {
 
 function centerLyricLine(wrap, line, behavior = 'smooth') {
   if (!(wrap instanceof HTMLElement) || !(line instanceof HTMLElement)) return;
-  const targetTop = line.offsetTop - wrap.clientHeight / 2 + line.clientHeight / 2;
-  wrap.scrollTo({ top: Math.max(0, targetTop), behavior });
+  const track = getLyricsTrack(wrap);
+  if (!(track instanceof HTMLElement)) return;
+  const lineCenter = line.offsetTop + line.offsetHeight / 2;
+  const viewportCenter = wrap.clientHeight / 2;
+  const translateY = viewportCenter - lineCenter;
+  if (behavior === 'auto') {
+    const previousTransition = track.style.transition;
+    track.style.transition = 'none';
+    track.style.transform = `translateY(${translateY}px)`;
+    requestAnimationFrame(() => {
+      track.style.transition = previousTransition || '';
+    });
+    return;
+  }
+  track.style.transform = `translateY(${translateY}px)`;
 }
 
 function renderLyricsCard(song = {}) {
@@ -3118,36 +3139,37 @@ function renderLyricsCard(song = {}) {
   musicState.lyricLines = parsed.lines;
   musicState.lyricActiveIndex = -1;
   if (wrap) {
-    if (!parsed.lines.length) {
-      wrap.innerHTML = '<div class="lyric-empty">这首歌还没有填写歌词。</div>';
-    } else {
-      const linesHtml = parsed.lines.map((line, index) => {
-        const className = parsed.mode === 'plain'
-          ? `lyric-line${index === 0 ? ' active' : ''}`
-          : 'lyric-line';
-        const timeAttr = Number.isFinite(line.time) ? ` data-lyric-time="${line.time}"` : '';
-        return `<div class="${className}" data-lyric-index="${index}"${timeAttr}>${escapeHtml(line.text)}</div>`;
-      }).join('');
-      wrap.innerHTML = `<div class="lyric-spacer" aria-hidden="true"></div>${linesHtml}<div class="lyric-spacer" aria-hidden="true"></div>`;
-      wrap.querySelectorAll('.lyric-line').forEach((node) => {
-        node.addEventListener('click', () => {
-          const index = Number(node.getAttribute('data-lyric-index'));
-          const line = musicState.lyricLines[index];
-          if (!line || !Number.isFinite(line.time) || musicState.lyricMode !== 'lrc') return;
+      if (!parsed.lines.length) {
+        wrap.innerHTML = '<div class="lyric-empty">这首歌还没有填写歌词。</div>';
+      } else {
+        const linesHtml = parsed.lines.map((line, index) => {
+          const className = parsed.mode === 'plain'
+            ? `lyric-line${index === 0 ? ' active' : ''}`
+            : 'lyric-line';
+          const timeAttr = Number.isFinite(line.time) ? ` data-lyric-time="${line.time}"` : '';
+          return `<div class="${className}" data-lyric-index="${index}"${timeAttr}>${escapeHtml(line.text)}</div>`;
+        }).join('');
+        wrap.innerHTML = `<div class="lyrics-track"><div class="lyric-spacer" aria-hidden="true"></div>${linesHtml}<div class="lyric-spacer" aria-hidden="true"></div></div>`;
+        wrap.querySelectorAll('.lyric-line').forEach((node) => {
+          node.addEventListener('click', () => {
+            const index = Number(node.getAttribute('data-lyric-index'));
+            const line = musicState.lyricLines[index];
+            if (!line || !Number.isFinite(line.time) || musicState.lyricMode !== 'lrc') return;
           const audio = getMusicAudio();
           if (!audio) return;
           audio.currentTime = Math.max(0, line.time);
           syncLyricsByTime(audio.currentTime || 0);
         });
-      });
-    }
-    updateLyricsViewportPadding(wrap);
-    wrap.scrollTop = 0;
-    if (parsed.lines.length) {
-      const initialIndex = parsed.mode === 'lrc' ? -1 : 0;
-      if (initialIndex >= 0) {
-        musicState.lyricActiveIndex = initialIndex;
-        applyLyricsFocusState(wrap, initialIndex);
+        });
+      }
+      updateLyricsViewportPadding(wrap);
+      const track = getLyricsTrack(wrap);
+      if (track) track.style.transform = 'translateY(0px)';
+      if (parsed.lines.length) {
+        const initialIndex = parsed.mode === 'lrc' ? -1 : 0;
+        if (initialIndex >= 0) {
+          musicState.lyricActiveIndex = initialIndex;
+          applyLyricsFocusState(wrap, initialIndex);
         const currentLine = wrap.querySelector(`.lyric-line[data-lyric-index="${initialIndex}"]`);
         if (currentLine instanceof HTMLElement) {
           centerLyricLine(wrap, currentLine, 'auto');
