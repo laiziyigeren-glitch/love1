@@ -1319,6 +1319,57 @@ nav {
 }
 .mood-cover img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
 .mood-playlist-items { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.mood-playlist-summary {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.mood-playlist-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.mood-playlist-count {
+  font-size: 11px;
+  color: var(--rose-light);
+  white-space: nowrap;
+}
+.mood-playlist-first {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.mood-playlist-first strong {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+.mood-playlist-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.mood-playlist-primary {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--gold), var(--rose));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 38px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(232,116,138,0.18);
+}
+.mood-playlist-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 .mood-playlist-row {
   display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
   padding: 9px 0; border-top: 1px solid var(--border);
@@ -2944,6 +2995,7 @@ setInterval(renderTogetherDuration, 1000);
 const musicState = {
   songs: [],
   currentIndex: 0,
+  queueSongIds: null,
   loop: false,
   ready: false,
   recommendationIndex: 0,
@@ -3026,6 +3078,42 @@ function setMusicSong(index, shouldPlay = false) {
 function setMusicSongById(songId, shouldPlay = true) {
   const index = musicState.songs.findIndex(song => song.id === songId);
   if (index >= 0) setMusicSong(index, shouldPlay);
+}
+
+function playSingleSongById(songId, shouldPlay = true) {
+  musicState.queueSongIds = null;
+  setMusicSongById(songId, shouldPlay);
+}
+
+function getActiveQueueSongIds() {
+  const defaultIds = musicState.songs.map(song => song.id).filter(Boolean);
+  if (!Array.isArray(musicState.queueSongIds) || !musicState.queueSongIds.length) return defaultIds;
+  const validIds = musicState.queueSongIds.filter(id => defaultIds.includes(id));
+  return validIds.length ? validIds : defaultIds;
+}
+
+function getCurrentSongId() {
+  return musicState.songs[musicState.currentIndex]?.id || '';
+}
+
+function stepMusicQueue(step = 1, shouldPlay = true) {
+  const queueIds = getActiveQueueSongIds();
+  if (!queueIds.length) return;
+  const currentId = getCurrentSongId();
+  const currentQueueIndex = queueIds.indexOf(currentId);
+  const nextQueueIndex = currentQueueIndex >= 0
+    ? (currentQueueIndex + step + queueIds.length) % queueIds.length
+    : 0;
+  setMusicSongById(queueIds[nextQueueIndex], shouldPlay);
+}
+
+function playMoodPlaylistSongs(songIds = []) {
+  const validIds = songIds
+    .map(id => String(id || '').trim())
+    .filter(id => musicState.songs.some(song => song.id === id));
+  if (!validIds.length) return;
+  musicState.queueSongIds = [...new Set(validIds)];
+  setMusicSongById(musicState.queueSongIds[0], true);
 }
 
 function normalizeSongDisplay(song = {}) {
@@ -3231,7 +3319,10 @@ function renderRecommendation(index = musicState.recommendationIndex) {
       : (musicState.recommendationIndex + 1 + Math.floor(Math.random() * (musicState.songs.length - 1))) % musicState.songs.length;
     renderRecommendation(next);
   });
-  card.querySelector('.rec-play-btn')?.addEventListener('click', () => setMusicSong(musicState.recommendationIndex, true));
+  card.querySelector('.rec-play-btn')?.addEventListener('click', () => {
+    musicState.queueSongIds = null;
+    setMusicSong(musicState.recommendationIndex, true);
+  });
 }
 
 function getRecentSongs() {
@@ -3277,7 +3368,7 @@ function renderRecentSongs() {
     `).join('')
     : '<div class="card-footer">还没有播放记录。</div>';
   grid.querySelectorAll('.recent-item').forEach(item => {
-    item.addEventListener('click', () => setMusicSongById(item.dataset.songId, true));
+    item.addEventListener('click', () => playSingleSongById(item.dataset.songId, true));
   });
   document.querySelector('.clear-btn')?.addEventListener('click', () => {
     localStorage.removeItem('love1RecentSongs');
@@ -3311,9 +3402,24 @@ function renderMoodPlaylists(settings = {}) {
     `;
   }).join('');
   const first = playlists[0];
+  const firstSongs = (first.songIds || [])
+    .map(id => musicState.songs.find(song => song.id === id))
+    .filter(Boolean)
+    .map(song => normalizeSongDisplay(song));
+  const firstSong = firstSongs[0];
   card.innerHTML = `
     <div class="card-title"><span>❤️</span> 心情歌单 <span class="mood-show-all" style="margin-left:auto;font-size:11px;color:var(--rose-light);cursor:pointer">查看全部</span></div>
     <div class="mood-cover">${first.coverUrl ? `<img src="${escapeHtml(first.coverUrl)}" alt="">` : '☁️'}</div>
+    <div class="mood-playlist-summary">
+      <div class="mood-playlist-title-row">
+        <div class="mood-playlist-name">${escapeHtml(first.title || '未命名心情歌单')}</div>
+        <div class="mood-playlist-count">共 ${firstSongs.length} 首</div>
+      </div>
+      <div class="mood-playlist-first">第一首：<strong>${escapeHtml(firstSong?.title || '还没有配置歌曲')}</strong></div>
+      <div class="mood-playlist-actions">
+        <button class="mood-playlist-primary" data-playlist-index="0" ${firstSongs.length ? '' : 'disabled'}>▶ 一键播放整张歌单</button>
+      </div>
+    </div>
     <div class="mood-playlist-items">
       ${rows}
     </div>
@@ -3328,7 +3434,15 @@ function renderMoodPlaylists(settings = {}) {
   }
   card.querySelectorAll('.mood-playlist-play').forEach(button => {
     button.addEventListener('click', () => {
-      if (button.dataset.songId) setMusicSongById(button.dataset.songId, true);
+      if (button.dataset.songId) playSingleSongById(button.dataset.songId, true);
+    });
+  });
+  card.querySelectorAll('.mood-playlist-primary').forEach(button => {
+    button.addEventListener('click', () => {
+      const playlistIndex = Number(button.dataset.playlistIndex || 0);
+      const playlist = playlists[playlistIndex];
+      if (!playlist) return;
+      playMoodPlaylistSongs(playlist.songIds || []);
     });
   });
 }
@@ -3898,12 +4012,12 @@ function initMusicPlayer() {
       audio.currentTime = 0;
       playCurrentSong();
     } else {
-      setMusicSong(musicState.currentIndex + 1, true);
+      stepMusicQueue(1, true);
     }
   });
   document.getElementById('playBtn')?.addEventListener('click', toggleMusicPlay);
-  document.getElementById('prevBtn')?.addEventListener('click', () => setMusicSong(musicState.currentIndex - 1, true));
-  document.getElementById('nextBtn')?.addEventListener('click', () => setMusicSong(musicState.currentIndex + 1, true));
+  document.getElementById('prevBtn')?.addEventListener('click', () => stepMusicQueue(-1, true));
+  document.getElementById('nextBtn')?.addEventListener('click', () => stepMusicQueue(1, true));
   document.getElementById('loopBtn')?.addEventListener('click', () => {
     musicState.loop = !musicState.loop;
     audio.loop = musicState.loop;
@@ -4565,7 +4679,10 @@ function renderSongs(items = []) {
     `}).join('')}
   `;
   list.querySelectorAll('.playlist-item').forEach(item => {
-    item.addEventListener('click', () => setMusicSong(Number(item.dataset.songIndex || 0), true));
+    item.addEventListener('click', () => {
+      musicState.queueSongIds = null;
+      setMusicSong(Number(item.dataset.songIndex || 0), true);
+    });
   });
   if (musicState.currentIndex >= items.length) musicState.currentIndex = 0;
   setMusicSong(musicState.currentIndex, false);
