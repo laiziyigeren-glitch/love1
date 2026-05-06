@@ -365,15 +365,12 @@
                   </div>
                 </template>
               </el-table-column>
-              <el-table-column label="歌词内容" min-width="280">
+              <el-table-column label="歌词状态" width="220">
                 <template #default="{ row }">
-                  <el-input
-                    v-model="row.lyric"
-                    type="textarea"
-                    :rows="5"
-                    resize="vertical"
-                    placeholder="支持普通歌词和 LRC 时间轴歌词，例如 [00:12.30]原来你是我最想留住的幸运"
-                  />
+                  <div class="lyric-status-cell">
+                    <strong>{{ row.lyric ? '已导入歌词' : '未导入歌词' }}</strong>
+                    <span>{{ formatLyricStatus(row.lyric) }}</span>
+                  </div>
                 </template>
               </el-table-column>
               <el-table-column label="收藏" width="90"><template #default="{ row }"><el-switch v-model="row.favorite" /></template></el-table-column>
@@ -1706,6 +1703,14 @@ function parseLyricsMetadata(text: string) {
   return { artist, title };
 }
 
+function formatLyricStatus(text = '') {
+  const normalized = String(text || '').trim();
+  if (!normalized) return '请直接上传 .lrc / .txt 歌词文件';
+  const lines = normalized.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const lyricLines = lines.filter((line) => /^\[\d{2}:\d{2}(?:[.:]\d{1,3})?\]/.test(line) || !/^\[[a-z]+:/i.test(line));
+  return `共 ${lyricLines.length || lines.length} 行，前台会自动滚动显示`;
+}
+
 async function readLyricsFileText(file: File) {
   const buffer = await file.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -1782,6 +1787,19 @@ function ensureMusicSettings() {
   if (!Array.isArray(dashboard.value.site.settings.music.moodPlaylists)) {
     dashboard.value.site.settings.music.moodPlaylists = [];
   }
+  const validSongIds = new Set((dashboard.value.songs || []).map((song) => song.id).filter(Boolean));
+  if (dashboard.value.site.settings.music.bgmSongId && !validSongIds.has(dashboard.value.site.settings.music.bgmSongId)) {
+    dashboard.value.site.settings.music.bgmSongId = '';
+  }
+  dashboard.value.site.settings.music.moodPlaylists = dashboard.value.site.settings.music.moodPlaylists.map((playlist, index) => ({
+    id: playlist.id || `mood-${Date.now()}-${index}`,
+    title: playlist.title || '新的心情歌单',
+    description: playlist.description || '',
+    coverUrl: playlist.coverUrl || '',
+    songIds: Array.from(new Set((Array.isArray(playlist.songIds) ? playlist.songIds : [])
+      .map((id) => String(id || '').trim())
+      .filter((id) => id && validSongIds.has(id)))),
+  }));
 }
 
 function ensurePrivacyReminderSettings() {
@@ -2380,7 +2398,8 @@ async function uploadMoodPlaylistCover(
 async function saveMusicSettings(options: { silent?: boolean } = {}) {
   if (!dashboard.value) return;
   ensureMusicSettings();
-  await saveSite(dashboard.value.site);
+  const savedSite = await saveSite(dashboard.value.site);
+  dashboard.value.site = savedSite;
   if (!options.silent) {
     ElMessage.success('音乐设置已保存，前台会自动同步');
   }
@@ -2593,6 +2612,9 @@ onMounted(() => {
 .inline-actions.compact .el-input { width: 96px; }
 .upload-actions .el-input, .upload-actions .el-select, .upload-actions .el-date-editor { width: 150px; }
 .song-upload-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.lyric-status-cell { display: flex; flex-direction: column; gap: 6px; line-height: 1.5; color: #6b5e59; }
+.lyric-status-cell strong { color: #3d2f2a; font-size: 13px; }
+.lyric-status-cell span { font-size: 12px; }
 .inline-actions .el-input { width: min(520px, 100%); }
 .inline-actions.compact .el-input { width: 96px; }
 .section-tip { margin-bottom: 14px; }

@@ -663,6 +663,9 @@ export class ContentService {
     if (!item) {
       throw new NotFoundException(`Song ${id} was not found`);
     }
+    await this.prisma.playlistItem.deleteMany({
+      where: { songId: id },
+    });
     await this.prisma.song.delete({ where: { id } });
     return { success: true };
   }
@@ -988,11 +991,19 @@ export class ContentService {
       music: {
         ...defaults.music,
         ...(source.music ?? {}),
-        bgmSongId: source.music?.bgmSongId ?? defaults.music.bgmSongId,
+        bgmSongId: typeof source.music?.bgmSongId === 'string' ? source.music.bgmSongId : defaults.music.bgmSongId,
         volume: Number.isFinite(source.music?.volume) ? Number(source.music?.volume) : defaults.music.volume,
         autoplay: source.music?.autoplay ?? defaults.music.autoplay,
         moodPlaylists: Array.isArray(source.music?.moodPlaylists)
-          ? source.music.moodPlaylists
+          ? source.music.moodPlaylists.map((playlist, index) => ({
+              id: String(playlist?.id || `mood-${index + 1}`),
+              title: String(playlist?.title || '新的心情歌单'),
+              description: String(playlist?.description || ''),
+              coverUrl: String(playlist?.coverUrl || ''),
+              songIds: Array.isArray(playlist?.songIds)
+                ? Array.from(new Set(playlist.songIds.map((songId) => String(songId || '').trim()).filter(Boolean)))
+                : [],
+            }))
           : defaults.music.moodPlaylists,
       },
       privacy: { ...defaults.privacy, ...(source.privacy ?? {}) },
