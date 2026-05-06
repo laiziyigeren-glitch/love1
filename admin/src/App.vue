@@ -1257,16 +1257,24 @@ function getAnniversarySyncKind(item: Dashboard['anniversaries'][number]) {
   return '';
 }
 
-function findSyncedAnniversary(kind: 'start' | 'meet') {
+function findSyncedAnniversaries(kind: 'start' | 'meet') {
   const items = dashboard.value?.anniversaries || [];
   if (kind === 'start') {
-    return items.find((item) => item.id === 'anniv-together')
-      || items.find((item) => item.type === 'love')
-      || items.find((item) => ['在一起', '开始', '确认关系'].some((keyword) => item.title.includes(keyword)));
+    return items.filter((item) =>
+      item.id === 'anniv-together'
+      || item.type === 'love'
+      || ['在一起', '开始', '确认关系'].some((keyword) => item.title.includes(keyword)),
+    );
   }
-  return items.find((item) => item.id === 'anniv-first-meet')
-    || items.find((item) => item.type === 'meet')
-    || items.find((item) => item.title.includes('第一次见面'));
+  return items.filter((item) =>
+    item.id === 'anniv-first-meet'
+    || item.type === 'meet'
+    || item.title.includes('第一次见面'),
+  );
+}
+
+function findSyncedAnniversary(kind: 'start' | 'meet') {
+  return findSyncedAnniversaries(kind)[0];
 }
 
 function mergeSavedAnniversary(saved: Dashboard['anniversaries'][number]) {
@@ -1277,6 +1285,25 @@ function mergeSavedAnniversary(saved: Dashboard['anniversaries'][number]) {
     items[index] = saved;
   } else {
     items.push(saved);
+  }
+}
+
+async function pruneDuplicateSyncedAnniversaries(savedItems: Dashboard['anniversaries']) {
+  if (!dashboard.value?.anniversaries?.length) return;
+  const keepIds = new Map(
+    savedItems
+      .map((item) => [getAnniversarySyncKind(item), item.id] as const)
+      .filter(([kind, id]) => Boolean(kind && id)),
+  );
+  for (const kind of ['start', 'meet'] as const) {
+    const keepId = keepIds.get(kind) || '';
+    const duplicates = findSyncedAnniversaries(kind).filter((item) => item.id && item.id !== keepId);
+    for (const duplicate of duplicates) {
+      await deleteAnniversary(duplicate.id);
+      const list = dashboard.value.anniversaries;
+      const index = list.findIndex((item) => item.id === duplicate.id);
+      if (index >= 0) list.splice(index, 1);
+    }
   }
 }
 
@@ -1381,7 +1408,9 @@ async function saveAnniversaryPage() {
       ...anniversaryItems.map((item) => saveAnniversary(item)),
     ]);
     savedAnniversaries.forEach((item) => mergeSavedAnniversary(item));
+    await pruneDuplicateSyncedAnniversaries(savedAnniversaries);
     ElMessage.success('纪念日页面配置已保存，前台会自动同步');
+    await load();
   } catch (error) {
     ElMessage.error(getErrorMessage(error, '纪念日页面配置保存失败'));
   } finally {
@@ -1458,6 +1487,7 @@ async function saveOneAnniversary(item: Dashboard['anniversaries'][number]) {
       const synced = syncPageSettingsFromAnniversary(saved);
       if (synced && dashboard.value) {
         await saveSite(dashboard.value.site);
+        await pruneDuplicateSyncedAnniversaries([saved]);
       }
       ElMessage.success(synced ? '纪念日已保存，并同步到页面配置' : '纪念日已保存');
       await load();

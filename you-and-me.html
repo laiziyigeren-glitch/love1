@@ -4883,13 +4883,27 @@ function getCalendarEvents(items = []) {
   return [...items, ...fixed];
 }
 
+function getAnniversaryEventPriority(item = {}) {
+  if (item.builtIn && item.countdownEligible !== false) return 0;
+  if (item.builtIn) return 1;
+  if (item.type === 'love' || item.type === 'meet') return 2;
+  return 3;
+}
+
+function sortAnniversaryEvents(items = []) {
+  return [...items].sort((a, b) =>
+    getAnniversaryEventPriority(a) - getAnniversaryEventPriority(b)
+    || String(a.title || '').localeCompare(String(b.title || ''), 'zh-CN')
+  );
+}
+
 function eventsForDate(date, items = []) {
   const key = formatDateKey(date);
   const monthDay = key.slice(5);
-  return getCalendarEvents(items).filter(item => {
+  return sortAnniversaryEvents(getCalendarEvents(items).filter(item => {
     if (item.repeatYearly) return String(item.eventDate).slice(5) === monthDay;
     return item.eventDate === key;
-  });
+  }));
 }
 
 function getSettingsAnniversaryEvents(settings = {}) {
@@ -4950,7 +4964,11 @@ function getNextEvent(items = []) {
       return { ...item, nextDate: next, secondsUntil };
     })
     .filter(Boolean)
-    .sort((a, b) => a.secondsUntil - b.secondsUntil)[0] || null;
+    .sort((a, b) =>
+      a.secondsUntil - b.secondsUntil
+      || getAnniversaryEventPriority(a) - getAnniversaryEventPriority(b)
+      || String(a.title || '').localeCompare(String(b.title || ''), 'zh-CN')
+    )[0] || null;
 }
 
 function selectAnniversaryDate(date, items = []) {
@@ -4961,7 +4979,12 @@ function selectAnniversaryDate(date, items = []) {
   if (box) box.classList.remove('anniv-duration');
   setText('#page-anniversary .anniv-date', `${String(date.getMonth() + 1).padStart(2, '0')} · ${String(date.getDate()).padStart(2, '0')}`);
   setText('#page-anniversary .anniv-label', first?.title || '这一天');
-  setText('#page-anniversary .anniv-sub', first?.description || (events.length ? '特别日子' : '普通但值得珍惜的一天'));
+  setText(
+    '#page-anniversary .anniv-sub',
+    first
+      ? `${first.description || '特别日子'}${events.length > 1 ? ` · 同一天还有 ${events.length - 1} 个纪念日/节日` : ''}`
+      : (events.length ? '特别日子' : '普通但值得珍惜的一天'),
+  );
   setText('#page-anniversary .anniv-sub2', formatChineseDate(date));
   renderAnniversaryCalendar(items);
 }
@@ -4983,6 +5006,7 @@ function renderAnniversaryCalendar(items = []) {
     const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
     const key = formatDateKey(date);
     const events = eventsForDate(date, items);
+    const primaryEvent = events[0];
     const hasRomantic = events.some(item => item.countdownEligible !== false);
     const hasCalendarOnly = events.some(item => item.countdownEligible === false);
     const isCurrentMonth = date.getMonth() === month;
@@ -4995,7 +5019,7 @@ function renderAnniversaryCalendar(items = []) {
       hasRomantic ? 'romantic-day' : '',
       hasCalendarOnly && !hasRomantic ? 'calendar-only-day' : '',
     ].filter(Boolean).join(' ');
-    const label = events[0]?.title ? `<div class="cal-day-label">${escapeHtml(events[0].title.slice(0, 4))}</div>` : '';
+    const label = primaryEvent?.title ? `<div class="cal-day-label">${escapeHtml(primaryEvent.title.slice(0, 4))}</div>` : '';
     cells.push(`<div class="${className}" data-date="${key}">${date.getDate()}${label}</div>`);
   }
   grid.innerHTML = cells.join('');
