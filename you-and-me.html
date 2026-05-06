@@ -559,6 +559,18 @@ nav {
 
 /* TIMELINE */
 .timeline { display: flex; flex-direction: column; }
+.timeline-scroll {
+  max-height: 248px;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+.timeline-scroll::-webkit-scrollbar { width: 6px; }
+.timeline-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.16);
+  border-radius: 999px;
+}
 .timeline-item { display: flex; align-items: flex-start; gap: 12px; padding: 7px 0; position: relative; }
 .timeline-item:not(:last-child)::before {
   content: ''; position: absolute; left: 7px; top: 20px; bottom: -7px;
@@ -581,10 +593,29 @@ nav {
   display: flex; align-items: center; gap: 10px;
   font-size: 13px; color: var(--text-secondary);
   padding: 6px 10px; border-radius: 10px;
-  transition: background 0.2s;
+  transition: background 0.2s, opacity 0.2s;
 }
 .future-item:hover { background: var(--rose-pale); }
-.future-icon { font-size: 15px; }
+.future-item.done {
+  background: rgba(232,116,138,0.12);
+  color: var(--text-primary);
+}
+.future-check {
+  width: 18px; height: 18px; border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.22);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0; color: transparent;
+  transition: all 0.2s ease;
+}
+.future-item.done .future-check {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(232,116,138,0.18);
+}
+.future-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.future-text { flex: 1; }
+.future-item.done .future-text { text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.25); }
 
 /* PHOTO THUMBS */
 .thumb-row { display: flex; gap: 8px; }
@@ -744,8 +775,8 @@ nav {
   position: absolute; top: 38px; left: 0; right: 0; height: 2px;
   background: linear-gradient(90deg, transparent 0%, var(--rose) 20%, var(--gold) 50%, var(--rose) 80%, transparent 100%);
 }
-.htimeline-items { display: flex; gap: 0; position: relative; z-index: 1; }
-.htimeline-item { flex: 1; text-align: center; padding: 0 10px; cursor: pointer; }
+.htimeline-items { display: inline-flex; gap: 20px; position: relative; z-index: 1; min-width: max-content; padding: 0 24px 8px; }
+.htimeline-item { flex: 0 0 220px; text-align: center; padding: 0 10px; cursor: pointer; scroll-snap-align: center; }
 .htimeline-dot {
   width: 13px; height: 13px; border-radius: 50%;
   background: var(--rose); margin: 0 auto 12px;
@@ -2281,7 +2312,7 @@ nav {
         </div>
         <div class="glass-card">
           <div class="card-title"><span class="card-title-icon">❤️</span> 甜蜜时刻</div>
-          <div class="timeline">
+          <div class="timeline timeline-scroll">
             <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-content"><div class="timeline-name">第一次见面</div><div class="timeline-date">2022.05.20</div></div></div>
             <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-content"><div class="timeline-name">确认关系</div><div class="timeline-date">2022.06.18</div></div></div>
             <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-content"><div class="timeline-name">第一次旅行</div><div class="timeline-date">2022.10.03</div></div></div>
@@ -2295,10 +2326,10 @@ nav {
         <div class="glass-card">
           <div class="card-title"><span class="card-title-icon">🔗</span> 未来约定</div>
           <div class="future-list">
-            <div class="future-item"><span class="future-icon">🌍</span> 一起去看遍世界的美景</div>
-            <div class="future-item"><span class="future-icon">🐱</span> 一起养一只可爱的猫咪</div>
-            <div class="future-item"><span class="future-icon">✅</span> 一起实现彼此的梦想</div>
-            <div class="future-item"><span class="future-icon">⭐</span> 一起慢慢变老，直到永远</div>
+            <div class="future-item"><span class="future-check"></span><span class="future-icon">🌍</span><span class="future-text">一起去看遍世界的美景</span></div>
+            <div class="future-item"><span class="future-check"></span><span class="future-icon">🐱</span><span class="future-text">一起养一只可爱的猫咪</span></div>
+            <div class="future-item done"><span class="future-check">✓</span><span class="future-icon">⭐</span><span class="future-text">一起实现彼此的梦想</span></div>
+            <div class="future-item"><span class="future-check"></span><span class="future-icon">⭐</span><span class="future-text">一起慢慢变老，直到永远</span></div>
           </div>
         </div>
         <div class="glass-card">
@@ -3547,6 +3578,21 @@ function normalizeSettings(settings = {}) {
       ...(settings.heartGarden || {}),
       projects: Array.isArray(settings.heartGarden?.projects) ? settings.heartGarden.projects : defaults.heartGarden.projects,
     },
+    moments: Array.isArray(settings.moments)
+      ? settings.moments.map((item, index) => ({
+        id: item.id || `moment-${index}`,
+        title: String(item.title || '').trim(),
+        date: String(item.date || '').slice(0, 10),
+      })).filter((item) => item.title && item.date)
+      : [],
+    promises: Array.isArray(settings.promises)
+      ? settings.promises.map((item, index) => ({
+        id: item.id || `promise-${index}`,
+        icon: item.icon || '❤️',
+        text: String(item.text || '').trim(),
+        done: item.done === true,
+      })).filter((item) => item.text)
+      : [],
   };
 }
 
@@ -4724,7 +4770,12 @@ function renderLetters(items = []) {
 function renderAnniversaries(items = [], nextAnniversary) {
   const timeline = document.querySelector('.htimeline-items');
   if (timeline && items.length) {
-    timeline.innerHTML = items.map(item => `
+    const sorted = [...items].sort((a, b) => {
+      const aDate = parseLocalDate(a.eventDate);
+      const bDate = parseLocalDate(b.eventDate);
+      return (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
+    });
+    timeline.innerHTML = sorted.map(item => `
       <div class="htimeline-item">
         <div class="htimeline-dot"></div>
         <div class="htimeline-name">${item.title}</div>
@@ -5292,7 +5343,8 @@ function goToPageFromBackend(pageId, navIndex) {
 }
 
 function renderHomeSettings(settings = {}, data = {}) {
-  const heart = settings.heartIndex || {};
+  const normalized = normalizeSettings(settings);
+  const heart = normalized.heartIndex || {};
   if (Number.isFinite(Number(heart.value))) setText('.chart-badge', `${Number(heart.value)}%`);
   if (heart.quote) setText('.chart-quote', heart.quote);
   const labels = Array.isArray(heart.labels) ? heart.labels : [];
@@ -5318,9 +5370,14 @@ function renderHomeSettings(settings = {}, data = {}) {
   }
 
   const timeline = document.querySelector('#page-home .timeline');
-  const moments = Array.isArray(settings.moments) ? settings.moments : [];
+  const moments = Array.isArray(normalized.moments) ? normalized.moments : [];
   if (timeline) {
-    const source = moments.length ? moments : (data.anniversaries || []).slice(0, 5).map(item => ({ title: item.title, date: item.eventDate }));
+    const source = (moments.length ? moments : (data.anniversaries || []).slice(0, 5).map(item => ({ title: item.title, date: item.eventDate })))
+      .sort((a, b) => {
+        const aDate = parseLocalDate(a.date);
+        const bDate = parseLocalDate(b.date);
+        return (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
+      });
     timeline.innerHTML = source.map((item, index) => `
       <div class="timeline-item">
         <div class="timeline-dot" ${index === source.length - 1 ? 'style="background:var(--gold)"' : ''}></div>
@@ -5330,15 +5387,21 @@ function renderHomeSettings(settings = {}, data = {}) {
   }
 
   const futureList = document.querySelector('#page-home .future-list');
-  const promises = Array.isArray(settings.promises) ? settings.promises : [];
+  const promises = Array.isArray(normalized.promises) ? normalized.promises : [];
   if (futureList) {
-    futureList.innerHTML = promises.map(item => `<div class="future-item"><span class="future-icon">${escapeHtml(item.icon || '*')}</span> ${escapeHtml(item.text || '')}</div>`).join('');
+    futureList.innerHTML = promises.map(item => `
+      <div class="future-item ${item.done ? 'done' : ''}">
+        <span class="future-check">${item.done ? '✓' : ''}</span>
+        <span class="future-icon">${escapeHtml(item.icon || '❤️')}</span>
+        <span class="future-text">${escapeHtml(item.text || '')}</span>
+      </div>
+    `).join('');
   }
 
-  if (settings.mailbox) {
-    setText('#page-home .mail-quote', settings.mailbox.text || '');
+  if (normalized.mailbox) {
+    setText('#page-home .mail-quote', normalized.mailbox.text || '');
     const author = document.querySelector('#page-home .mail-author');
-    if (author) author.innerHTML = `- ${escapeHtml(settings.mailbox.author || '')} <span style="color:var(--rose)">love</span>`;
+    if (author) author.innerHTML = `- ${escapeHtml(normalized.mailbox.author || '')} <span style="color:var(--rose)">love</span>`;
   }
 }
 

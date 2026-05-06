@@ -111,14 +111,17 @@
               <el-divider />
               <div class="card-header">
                 <strong>甜蜜时刻</strong>
-                <el-button type="primary" @click="addMoment">新增</el-button>
+                <div class="inline-actions">
+                  <el-button type="primary" @click="addMoment">新增</el-button>
+                  <el-button type="success" :loading="homeSaving" :disabled="homeSaving" @click="saveHome">保存甜蜜时刻</el-button>
+                </div>
               </div>
               <el-table :data="dashboard.site.settings.moments" row-key="id">
                 <el-table-column label="标题" min-width="180">
                   <template #default="{ row }"><el-input v-model="row.title" /></template>
                 </el-table-column>
                 <el-table-column label="日期" width="190">
-                  <template #default="{ row }"><el-date-picker v-model="row.date" type="datetime" value-format="YYYY-MM-DDTHH:mm" format="YYYY-MM-DD HH:mm" /></template>
+                  <template #default="{ row }"><el-date-picker v-model="row.date" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" /></template>
                 </el-table-column>
                 <el-table-column label="操作" width="90">
                   <template #default="{ $index }"><el-button link type="danger" @click="removeMoment($index)">删除</el-button></template>
@@ -127,7 +130,10 @@
               <el-divider />
               <div class="card-header">
                 <strong>未来约定</strong>
-                <el-button type="primary" @click="addPromise">新增</el-button>
+                <div class="inline-actions">
+                  <el-button type="primary" @click="addPromise">新增</el-button>
+                  <el-button type="success" :loading="homeSaving" :disabled="homeSaving" @click="saveHome">保存未来约定</el-button>
+                </div>
               </div>
               <el-table :data="dashboard.site.settings.promises" row-key="id">
                 <el-table-column label="图标" width="100">
@@ -135,6 +141,9 @@
                 </el-table-column>
                 <el-table-column label="内容" min-width="260">
                   <template #default="{ row }"><el-input v-model="row.text" /></template>
+                </el-table-column>
+                <el-table-column label="完成" width="100">
+                  <template #default="{ row }"><el-switch v-model="row.done" inline-prompt active-text="是" inactive-text="否" /></template>
                 </el-table-column>
                 <el-table-column label="操作" width="90">
                   <template #default="{ $index }"><el-button link type="danger" @click="removePromise($index)">删除</el-button></template>
@@ -789,6 +798,7 @@ const active = ref('dashboard');
 const loading = ref(false);
 const loginLoading = ref(false);
 const profileSaving = ref(false);
+const homeSaving = ref(false);
 const anniversaryPageSaving = ref(false);
 type RowBusyBucket = 'album' | 'letter' | 'anniversary' | 'song' | 'playlist' | 'heartGarden';
 const rowBusyState = reactive<Record<RowBusyBucket, Record<string, boolean>>>({
@@ -1036,6 +1046,7 @@ async function load() {
     dashboard.value.profiles ||= [];
     ensurePageHeaders();
     ensureProfileCardSettings();
+    ensureHomeSettings();
     ensureMusicSettings();
     ensurePrivacyReminderSettings();
     ensureCoupleEntranceSettings();
@@ -1146,10 +1157,61 @@ function ensureProfileCardSettings() {
   }
 }
 
-async function saveHome() {
+function ensureHomeSettings() {
   if (!dashboard.value) return;
-  await saveSite(dashboard.value.site);
-  ElMessage.success('首页内容已保存，前台会自动同步');
+  if (!Array.isArray(dashboard.value.site.settings.moments)) {
+    dashboard.value.site.settings.moments = [];
+  }
+  if (!Array.isArray(dashboard.value.site.settings.promises)) {
+    dashboard.value.site.settings.promises = [];
+  }
+  dashboard.value.site.settings.moments = dashboard.value.site.settings.moments.map((item, index) => ({
+    id: item.id || `moment-${Date.now()}-${index}`,
+    title: item.title || '新的甜蜜时刻',
+    date: String(item.date || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
+  }));
+  dashboard.value.site.settings.promises = dashboard.value.site.settings.promises.map((item, index) => ({
+    id: item.id || `promise-${Date.now()}-${index}`,
+    icon: item.icon || '❤️',
+    text: item.text || '新的未来约定',
+    done: item.done === true,
+  }));
+}
+
+async function saveHome() {
+  if (!dashboard.value || homeSaving.value) return;
+  homeSaving.value = true;
+  const savingMessage = ElMessage({
+    message: '正在保存首页内容...',
+    type: 'info',
+    duration: 0,
+  });
+  try {
+    ensureHomeSettings();
+    dashboard.value.site.settings.moments = dashboard.value.site.settings.moments
+      .map((item) => ({
+        ...item,
+        title: String(item.title || '').trim(),
+        date: String(item.date || '').slice(0, 10),
+      }))
+      .filter((item) => item.title && item.date);
+    dashboard.value.site.settings.promises = dashboard.value.site.settings.promises
+      .map((item) => ({
+        ...item,
+        icon: String(item.icon || '').trim() || '❤️',
+        text: String(item.text || '').trim(),
+        done: item.done === true,
+      }))
+      .filter((item) => item.text);
+    await saveSite(dashboard.value.site);
+    ElMessage.success('首页内容已保存，前台会自动同步');
+    await load();
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '首页内容保存失败'));
+  } finally {
+    savingMessage.close();
+    homeSaving.value = false;
+  }
 }
 
 async function saveProfileAndSite() {
@@ -1224,7 +1286,7 @@ function removeMoment(index: number) {
 }
 
 function addPromise() {
-  dashboard.value?.site.settings.promises.push({ id: `promise-${Date.now()}`, icon: '❤️', text: '新的未来约定' });
+  dashboard.value?.site.settings.promises.push({ id: `promise-${Date.now()}`, icon: '❤️', text: '新的未来约定', done: false });
 }
 
 function removePromise(index: number) {

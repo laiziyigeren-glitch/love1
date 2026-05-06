@@ -64,7 +64,7 @@ export type Dashboard = {
       aboutImageUrl: string;
       aboutImageVisible: boolean;
       moments: Array<{ id: string; title: string; date: string }>;
-      promises: Array<{ id: string; icon: string; text: string }>;
+      promises: Array<{ id: string; icon: string; text: string; done?: boolean }>;
       mailbox: { text: string; author: string };
       music: {
         bgmSongId: string;
