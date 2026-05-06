@@ -277,8 +277,8 @@
                   <span>{{ item.album }} / {{ item.location || '未填写地点' }} / {{ item.takenAt || '未选时间' }}</span>
                   <span v-if="item.tags.length">{{ item.tags.join('、') }}</span>
                   <span>{{ item.visibility === 'PRIVATE' ? '私密' : '公开' }} / {{ item.favorite ? '已收藏' : '未收藏' }}</span>
-                  <el-button link type="primary" @click="openAlbumEditor(item)">编辑</el-button>
-                  <el-button link type="danger" @click="removeAlbumItem(item.id)">删除</el-button>
+                  <el-button link type="primary" :disabled="isRowBusy('album', item)" @click="openAlbumEditor(item)">编辑</el-button>
+                  <el-button link type="danger" :loading="isRowBusy('album', item)" :disabled="isRowBusy('album', item)" @click="removeAlbumItem(item)">删除</el-button>
                 </div>
               </article>
             </div>
@@ -303,8 +303,8 @@
               <el-form-item label="收藏"><el-switch v-model="albumEditor.form.favorite" /></el-form-item>
             </el-form>
             <template #footer>
-              <el-button @click="albumEditor.visible = false">取消</el-button>
-              <el-button type="primary" @click="saveAlbumEditor">保存</el-button>
+              <el-button :disabled="albumEditor.saving" @click="albumEditor.visible = false">取消</el-button>
+              <el-button type="primary" :loading="albumEditor.saving" :disabled="albumEditor.saving" @click="saveAlbumEditor">保存</el-button>
             </template>
           </el-dialog>
         </section>
@@ -390,7 +390,7 @@
                   <div class="song-upload-actions">
                     <el-input v-model="row.coverUrl" />
                     <el-upload :show-file-list="false" accept="image/*" :http-request="(options: UploadRequestOptions) => uploadMoodPlaylistCover(options, row)">
-                      <el-button size="small">上传</el-button>
+                      <el-button size="small" :loading="isRowBusy('playlist', row)" :disabled="isRowBusy('playlist', row)">上传</el-button>
                     </el-upload>
                   </div>
                 </template>
@@ -402,7 +402,7 @@
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="140"><template #default="{ $index }"><el-button link type="primary" @click="saveMusicSettings">保存</el-button><el-button link type="danger" @click="removeMoodPlaylist($index)">删除</el-button></template></el-table-column>
+              <el-table-column label="操作" width="140"><template #default="{ row, $index }"><el-button link type="primary" :loading="isRowBusy('playlist', row)" :disabled="isRowBusy('playlist', row)" @click="saveMoodPlaylist(row)">保存</el-button><el-button link type="danger" :loading="isRowBusy('playlist', row)" :disabled="isRowBusy('playlist', row)" @click="removeMoodPlaylist(row, $index)">删除</el-button></template></el-table-column>
             </el-table>
           </el-card>
         </section>
@@ -470,13 +470,13 @@
                     <el-input v-model="row.url" placeholder="/heart-garden/xxx/index.html 或外部地址" />
                     <div class="inline-actions compact">
                       <el-upload :show-file-list="false" accept=".html,.htm,text/html" :http-request="(options: UploadRequestOptions) => uploadHeartGardenHtml(options, row)">
-                        <el-button size="small">上传HTML</el-button>
+                        <el-button size="small" :loading="isRowBusy('heartGarden', row)" :disabled="isRowBusy('heartGarden', row)">上传HTML</el-button>
                       </el-upload>
                       <el-upload :show-file-list="false" accept="image/*" :http-request="(options: UploadRequestOptions) => uploadHeartGardenCover(options, row)">
-                        <el-button size="small">封面</el-button>
+                        <el-button size="small" :loading="isRowBusy('heartGarden', row)" :disabled="isRowBusy('heartGarden', row)">封面</el-button>
                       </el-upload>
-                      <el-button size="small" type="primary" plain @click="openHeartGardenAssetPicker(row)">站内素材</el-button>
-                      <el-button size="small" type="success" plain @click="openHeartGardenCodeEditor(row)">代码编辑</el-button>
+                      <el-button size="small" type="primary" plain :disabled="isRowBusy('heartGarden', row)" @click="openHeartGardenAssetPicker(row)">站内素材</el-button>
+                      <el-button size="small" type="success" plain :disabled="isRowBusy('heartGarden', row)" @click="openHeartGardenCodeEditor(row)">代码编辑</el-button>
                       <el-tag v-if="row.content" type="success">已上传HTML</el-tag>
                     </div>
                     <div v-if="row.linkedAssets?.length" class="linked-assets">
@@ -489,9 +489,10 @@
               </el-table-column>
               <el-table-column label="操作" width="190" fixed="right">
                 <template #default="{ row, $index }">
-                  <el-button link type="primary" @click="moveHeartGardenProject($index, -1)">上移</el-button>
-                  <el-button link type="primary" @click="moveHeartGardenProject($index, 1)">下移</el-button>
-                  <el-button link type="danger" @click="removeHeartGardenProject(row, $index)">删除</el-button>
+                  <el-button link type="primary" :disabled="isRowBusy('heartGarden', row)" @click="moveHeartGardenProject($index, -1)">上移</el-button>
+                  <el-button link type="primary" :disabled="isRowBusy('heartGarden', row)" @click="moveHeartGardenProject($index, 1)">下移</el-button>
+                  <el-button link type="primary" :loading="isRowBusy('heartGarden', row)" :disabled="isRowBusy('heartGarden', row)" @click="saveHeartGardenProject(row)">保存</el-button>
+                  <el-button link type="danger" :loading="isRowBusy('heartGarden', row)" :disabled="isRowBusy('heartGarden', row)" @click="removeHeartGardenProject(row, $index)">删除</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -792,10 +793,14 @@ const loading = ref(false);
 const loginLoading = ref(false);
 const profileSaving = ref(false);
 const anniversaryPageSaving = ref(false);
-const rowBusyState = reactive<Record<'letter' | 'anniversary' | 'song', Record<string, boolean>>>({
+type RowBusyBucket = 'album' | 'letter' | 'anniversary' | 'song' | 'playlist' | 'heartGarden';
+const rowBusyState = reactive<Record<RowBusyBucket, Record<string, boolean>>>({
+  album: {},
   letter: {},
   anniversary: {},
   song: {},
+  playlist: {},
+  heartGarden: {},
 });
 const isAuthenticated = ref(Boolean(getAdminToken()));
 const loginForm = reactive({
@@ -830,7 +835,7 @@ type HeartGardenAsset = {
 };
 type HeartGardenFile = NonNullable<HeartGardenProject['files']>[number];
 
-function getRowBusyKey(bucket: 'letter' | 'anniversary' | 'song', item: unknown) {
+function getRowBusyKey(bucket: RowBusyBucket, item: unknown) {
   const target = item as { id?: string; __rowBusyKey?: string };
   if (!target.__rowBusyKey) {
     target.__rowBusyKey = `${bucket}-${target.id || 'draft'}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -838,11 +843,11 @@ function getRowBusyKey(bucket: 'letter' | 'anniversary' | 'song', item: unknown)
   return target.__rowBusyKey;
 }
 
-function isRowBusy(bucket: 'letter' | 'anniversary' | 'song', item: unknown) {
+function isRowBusy(bucket: RowBusyBucket, item: unknown) {
   return Boolean(rowBusyState[bucket][getRowBusyKey(bucket, item)]);
 }
 
-async function withRowBusy<T>(bucket: 'letter' | 'anniversary' | 'song', item: unknown, task: () => Promise<T>) {
+async function withRowBusy<T>(bucket: RowBusyBucket, item: unknown, task: () => Promise<T>) {
   const key = getRowBusyKey(bucket, item);
   if (rowBusyState[bucket][key]) return undefined;
   rowBusyState[bucket][key] = true;
@@ -884,6 +889,7 @@ const uploadMeta = reactive({
 const albumEditor = reactive({
   visible: false,
   id: '',
+  saving: false,
   form: {
     title: '',
     albumTitle: '',
@@ -1534,11 +1540,18 @@ async function uploadMedia(options: UploadRequestOptions) {
   }
 }
 
-async function removeAlbumItem(id: string) {
-  await confirmDelete('确认删除这张照片？');
-  await deleteAlbumItem(id);
-  ElMessage.success('照片已删除');
-  await load();
+async function removeAlbumItem(item: Dashboard['albumItems'][number]) {
+  await withRowBusy('album', item, async () => {
+    try {
+      await confirmDelete('确认删除这张照片？');
+      await deleteAlbumItem(item.id);
+      ElMessage.success('照片已删除');
+      await load();
+    } catch (error) {
+      if (isConfirmCancel(error)) return;
+      ElMessage.error(getErrorMessage(error, '照片删除失败'));
+    }
+  });
 }
 
 function openAlbumEditor(item: Dashboard['albumItems'][number]) {
@@ -1557,18 +1570,26 @@ function openAlbumEditor(item: Dashboard['albumItems'][number]) {
 
 async function saveAlbumEditor() {
   if (!albumEditor.id) return;
-  await updateAlbumItem(albumEditor.id, {
-    title: albumEditor.form.title,
-    albumTitle: albumEditor.form.albumTitle,
-    location: albumEditor.form.location,
-    takenAt: albumEditor.form.takenAt,
-    tags: albumEditor.form.tagsText.split(',').map((item) => item.trim()).filter(Boolean),
-    favorite: albumEditor.form.favorite,
-    visibility: albumEditor.form.visibility,
-  });
-  albumEditor.visible = false;
-  ElMessage.success('媒体信息已保存，前台会自动同步');
-  await load();
+  if (albumEditor.saving) return;
+  albumEditor.saving = true;
+  try {
+    await updateAlbumItem(albumEditor.id, {
+      title: albumEditor.form.title,
+      albumTitle: albumEditor.form.albumTitle,
+      location: albumEditor.form.location,
+      takenAt: albumEditor.form.takenAt,
+      tags: albumEditor.form.tagsText.split(',').map((item) => item.trim()).filter(Boolean),
+      favorite: albumEditor.form.favorite,
+      visibility: albumEditor.form.visibility,
+    });
+    albumEditor.visible = false;
+    ElMessage.success('媒体信息已保存，前台会自动同步');
+    await load();
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '媒体信息保存失败'));
+  } finally {
+    albumEditor.saving = false;
+  }
 }
 
 function addLetter() {
@@ -1890,48 +1911,66 @@ function moveHeartGardenProject(index: number, direction: -1 | 1) {
 }
 
 async function removeHeartGardenProject(_item: HeartGardenProject, index: number) {
-  await confirmDelete('确认删除这个心动花园项目？');
-  dashboard.value?.site.settings.heartGarden.projects.splice(index, 1);
+  await withRowBusy('heartGarden', _item, async () => {
+    try {
+      await confirmDelete('确认删除这个心动花园项目？');
+      dashboard.value?.site.settings.heartGarden.projects.splice(index, 1);
+      if (dashboard.value) {
+        ensureHeartGardenSettings();
+        await saveSite(dashboard.value.site);
+      }
+      ElMessage.success('心动花园项目已删除');
+      await load();
+    } catch (error) {
+      if (isConfirmCancel(error)) return;
+      ElMessage.error(getErrorMessage(error, '心动花园项目删除失败'));
+    }
+  });
 }
 
 async function uploadHeartGardenCover(options: UploadRequestOptions, item: HeartGardenProject) {
-  try {
-    const file = await compressImageFile(options.file, { maxSize: 1200, quality: 0.86 });
-    const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'heart-garden-cover', folder: item.tag || item.title, group: item.group || item.tag });
-    item.cover = publicUrl;
-    options.onSuccess?.({});
-  } catch (error) {
-    ElMessage.error('封面上传失败');
-    options.onError?.(error as never);
-  }
+  await withRowBusy('heartGarden', item, async () => {
+    try {
+      const file = await compressImageFile(options.file, { maxSize: 1200, quality: 0.86 });
+      const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'heart-garden-cover', folder: item.tag || item.title, group: item.group || item.tag });
+      item.cover = publicUrl;
+      options.onSuccess?.({});
+      ElMessage.success('封面已上传');
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error, '封面上传失败'));
+      options.onError?.(error as never);
+    }
+  });
 }
 
 async function uploadHeartGardenHtml(options: UploadRequestOptions, item: HeartGardenProject) {
-  try {
-    const file = options.file;
-    if (!file.name.toLowerCase().endsWith('.html') && !file.name.toLowerCase().endsWith('.htm')) {
-      ElMessage.error('请上传 .html 或 .htm 文件');
-      options.onError?.(new Error('Only HTML is supported') as never);
-      return;
+  await withRowBusy('heartGarden', item, async () => {
+    try {
+      const file = options.file;
+      if (!file.name.toLowerCase().endsWith('.html') && !file.name.toLowerCase().endsWith('.htm')) {
+        ElMessage.error('请上传 .html 或 .htm 文件');
+        options.onError?.(new Error('Only HTML is supported') as never);
+        return;
+      }
+      if (file.size > 1024 * 1024) {
+        ElMessage.error('单文件 HTML 请控制在 1MB 以内；整套项目建议放进爱心代码合集后填写地址');
+        options.onError?.(new Error('HTML is too large') as never);
+        return;
+      }
+      const uploaded = await uploadFileToObjectStorage(file, { purpose: 'heart-garden-html', folder: item.tag || item.title, group: item.group || item.tag });
+      item.content = '';
+      item.url = uploaded.publicUrl;
+      item.type = 'html';
+      item.group ||= 'custom';
+      item.status = 'ready';
+      if (!item.title || item.title === '新的心动项目') item.title = file.name.replace(/\.[^.]+$/, '');
+      options.onSuccess?.({});
+      ElMessage.success('HTML 已上传到心动花园分类文件夹，保存后前台可预览');
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error, 'HTML 上传失败'));
+      options.onError?.(error as never);
     }
-    if (file.size > 1024 * 1024) {
-      ElMessage.error('单文件 HTML 请控制在 1MB 以内；整套项目建议放进爱心代码合集后填写地址');
-      options.onError?.(new Error('HTML is too large') as never);
-      return;
-    }
-    const uploaded = await uploadFileToObjectStorage(file, { purpose: 'heart-garden-html', folder: item.tag || item.title, group: item.group || item.tag });
-    item.content = '';
-    item.url = uploaded.publicUrl;
-    item.type = 'html';
-    item.group ||= 'custom';
-    item.status = 'ready';
-    if (!item.title || item.title === '新的心动项目') item.title = file.name.replace(/\.[^.]+$/, '');
-    options.onSuccess?.({});
-    ElMessage.success('HTML 已上传到心动花园分类文件夹，保存后前台可预览');
-  } catch (error) {
-    ElMessage.error('HTML 上传失败');
-    options.onError?.(error as never);
-  }
+  });
 }
 
 async function saveHeartGarden() {
@@ -1939,6 +1978,20 @@ async function saveHeartGarden() {
   ensureHeartGardenSettings();
   await saveSite(dashboard.value.site);
   ElMessage.success('心动花园已保存，前台会自动同步');
+}
+
+async function saveHeartGardenProject(item: HeartGardenProject) {
+  await withRowBusy('heartGarden', item, async () => {
+    try {
+      if (!dashboard.value) return;
+      ensureHeartGardenSettings();
+      await saveSite(dashboard.value.site);
+      ElMessage.success(`《${item.title || '未命名项目'}》已保存`);
+      await load();
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error, '心动花园项目保存失败'));
+    }
+  });
 }
 
 function openHeartGardenAssetPicker(project: HeartGardenProject) {
@@ -2278,31 +2331,59 @@ function addMoodPlaylist() {
   });
 }
 
-function removeMoodPlaylist(index: number) {
-  dashboard.value?.site.settings.music.moodPlaylists.splice(index, 1);
+async function saveMoodPlaylist(item: Dashboard['site']['settings']['music']['moodPlaylists'][number]) {
+  await withRowBusy('playlist', item, async () => {
+    try {
+      await saveMusicSettings({ silent: true });
+      ElMessage.success(`歌单「${item.title || '未命名歌单'}」已保存`);
+      await load();
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error, '歌单保存失败'));
+    }
+  });
+}
+
+async function removeMoodPlaylist(item: Dashboard['site']['settings']['music']['moodPlaylists'][number], index: number) {
+  await withRowBusy('playlist', item, async () => {
+    try {
+      await confirmDelete('确认删除这个心情歌单？');
+      dashboard.value?.site.settings.music.moodPlaylists.splice(index, 1);
+      await saveMusicSettings({ silent: true });
+      ElMessage.success('心情歌单已删除');
+      await load();
+    } catch (error) {
+      if (isConfirmCancel(error)) return;
+      ElMessage.error(getErrorMessage(error, '心情歌单删除失败'));
+    }
+  });
 }
 
 async function uploadMoodPlaylistCover(
   options: UploadRequestOptions,
   item: Dashboard['site']['settings']['music']['moodPlaylists'][number],
 ) {
-  try {
-    const file = await compressImageFile(options.file, { maxSize: 1000, quality: 0.86 });
-    const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'music-playlist-cover', folder: item.title || '心情歌单' });
-    item.coverUrl = publicUrl;
-    await saveMusicSettings();
-    options.onSuccess?.({});
-  } catch (error) {
-    ElMessage.error('歌单封面上传失败');
-    options.onError?.(error as never);
-  }
+  await withRowBusy('playlist', item, async () => {
+    try {
+      const file = await compressImageFile(options.file, { maxSize: 1000, quality: 0.86 });
+      const { publicUrl } = await uploadFileToObjectStorage(file, { purpose: 'music-playlist-cover', folder: item.title || '心情歌单' });
+      item.coverUrl = publicUrl;
+      await saveMusicSettings({ silent: true });
+      options.onSuccess?.({});
+      ElMessage.success('歌单封面已上传并保存');
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error, '歌单封面上传失败'));
+      options.onError?.(error as never);
+    }
+  });
 }
 
-async function saveMusicSettings() {
+async function saveMusicSettings(options: { silent?: boolean } = {}) {
   if (!dashboard.value) return;
   ensureMusicSettings();
   await saveSite(dashboard.value.site);
-  ElMessage.success('音乐设置已保存，前台会自动同步');
+  if (!options.silent) {
+    ElMessage.success('音乐设置已保存，前台会自动同步');
+  }
 }
 
 async function savePrivacyAndReminders() {
