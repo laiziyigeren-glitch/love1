@@ -3001,6 +3001,8 @@ const musicState = {
   recommendationIndex: 0,
   playRequestId: 0,
   autoplayAttemptedKey: '',
+  autoplayUnlockBound: false,
+  pendingAutoplay: false,
   lyricMode: 'empty',
   lyricLines: [],
   lyricActiveIndex: -1,
@@ -3083,6 +3085,19 @@ function setMusicSongById(songId, shouldPlay = true) {
 function playSingleSongById(songId, shouldPlay = true) {
   musicState.queueSongIds = null;
   setMusicSongById(songId, shouldPlay);
+}
+
+function bindAutoplayUnlock(settings = {}) {
+  if (musicState.autoplayUnlockBound) return;
+  musicState.autoplayUnlockBound = true;
+  const unlock = () => {
+    if (!musicState.pendingAutoplay) return;
+    musicState.pendingAutoplay = false;
+    maybeAutoplayBgm(settings, true);
+  };
+  ['pointerdown', 'touchstart', 'keydown'].forEach((eventName) => {
+    document.addEventListener(eventName, unlock, { once: true, passive: true });
+  });
 }
 
 function getActiveQueueSongIds() {
@@ -5470,6 +5485,8 @@ function maybeAutoplayBgm(settings = {}, force = false) {
   const key = `${normalized.music.bgmSongId || 'first'}:${normalized.music.volume}`;
   if (!force && musicState.autoplayAttemptedKey === key) return;
   musicState.autoplayAttemptedKey = key;
+  musicState.pendingAutoplay = false;
+  musicState.queueSongIds = null;
   const index = musicState.songs.findIndex(song => song.id === normalized.music.bgmSongId);
   if (index >= 0) setMusicSong(index, false);
   setSettingsMusicVolume(normalized.music.volume ?? 70);
@@ -5483,7 +5500,14 @@ function maybeAutoplayBgm(settings = {}, force = false) {
   audio.play().then(() => {
     rememberRecentSong(song);
     updatePlayerButtons();
-  }).catch(() => updatePlayerButtons());
+  }).catch((error) => {
+    updatePlayerButtons();
+    const blockedByPolicy = error?.name === 'NotAllowedError' || /user gesture|interaction|allowed/i.test(String(error?.message || ''));
+    if (blockedByPolicy) {
+      musicState.pendingAutoplay = true;
+      bindAutoplayUnlock(normalized);
+    }
+  });
 }
 
 function ensurePrivacyGate() {
