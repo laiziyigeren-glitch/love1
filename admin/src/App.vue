@@ -116,7 +116,7 @@
                   <el-button type="success" :loading="homeSaving" :disabled="homeSaving" @click="saveHome">保存甜蜜时刻</el-button>
                 </div>
               </div>
-              <el-table :data="dashboard.site.settings.moments" row-key="id">
+              <el-table class="desktop-editor-table" :data="dashboard.site.settings.moments" row-key="id">
                 <el-table-column label="标题" min-width="180">
                   <template #default="{ row }"><el-input v-model="row.title" /></template>
                 </el-table-column>
@@ -127,6 +127,14 @@
                   <template #default="{ $index }"><el-button link type="danger" @click="removeMoment($index)">删除</el-button></template>
                 </el-table-column>
               </el-table>
+              <div class="mobile-card-list">
+                <article v-for="(moment, index) in dashboard.site.settings.moments" :key="moment.id || index" class="mobile-edit-card">
+                  <div class="mobile-edit-card__title">甜蜜时刻 {{ index + 1 }}</div>
+                  <label>标题<el-input v-model="moment.title" /></label>
+                  <label>日期<el-date-picker v-model="moment.date" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" /></label>
+                  <el-button type="danger" plain @click="removeMoment(index)">删除</el-button>
+                </article>
+              </div>
               <el-divider />
               <div class="card-header">
                 <strong>未来约定</strong>
@@ -135,7 +143,7 @@
                   <el-button type="success" :loading="homeSaving" :disabled="homeSaving" @click="saveHome">保存未来约定</el-button>
                 </div>
               </div>
-              <el-table :data="dashboard.site.settings.promises" row-key="id">
+              <el-table class="desktop-editor-table" :data="dashboard.site.settings.promises" row-key="id">
                 <el-table-column label="图标" width="100">
                   <template #default="{ row }"><el-input v-model="row.icon" /></template>
                 </el-table-column>
@@ -149,6 +157,15 @@
                   <template #default="{ $index }"><el-button link type="danger" @click="removePromise($index)">删除</el-button></template>
                 </el-table-column>
               </el-table>
+              <div class="mobile-card-list">
+                <article v-for="(promise, index) in dashboard.site.settings.promises" :key="promise.id || index" class="mobile-edit-card">
+                  <div class="mobile-edit-card__title">未来约定 {{ index + 1 }}</div>
+                  <label>图标<el-input v-model="promise.icon" /></label>
+                  <label>内容<el-input v-model="promise.text" /></label>
+                  <div class="mobile-switch-row"><span>完成</span><el-switch v-model="promise.done" inline-prompt active-text="是" inactive-text="否" /></div>
+                  <el-button type="danger" plain @click="removePromise(index)">删除</el-button>
+                </article>
+              </div>
               <el-divider />
               <el-form-item label="爱的信箱">
                 <el-input v-model="dashboard.site.settings.mailbox.text" type="textarea" :rows="4" />
@@ -229,7 +246,7 @@
                 <strong>重要时刻</strong>
                 <el-button type="primary" @click="addImportantMoment">新增时刻</el-button>
               </div>
-              <el-table :data="dashboard.site.settings.anniversaryPage.importantMoments" row-key="id">
+              <el-table class="desktop-editor-table" :data="dashboard.site.settings.anniversaryPage.importantMoments" row-key="id">
                 <el-table-column label="标题" min-width="180">
                   <template #default="{ row }"><el-input v-model="row.title" /></template>
                 </el-table-column>
@@ -243,11 +260,20 @@
                   <template #default="{ $index }"><el-button link type="danger" @click="removeImportantMoment($index)">删除</el-button></template>
                 </el-table-column>
               </el-table>
+              <div class="mobile-card-list">
+                <article v-for="(moment, index) in dashboard.site.settings.anniversaryPage.importantMoments" :key="moment.id || index" class="mobile-edit-card">
+                  <div class="mobile-edit-card__title">重要时刻 {{ index + 1 }}</div>
+                  <label>标题<el-input v-model="moment.title" /></label>
+                  <label>日期<el-date-picker v-model="moment.date" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" /></label>
+                  <label>说明<el-input v-model="moment.description" /></label>
+                  <el-button type="danger" plain @click="removeImportantMoment(index)">删除</el-button>
+                </article>
+              </div>
               <div class="card-header">
                 <strong>今日小语</strong>
                 <el-button type="primary" @click="addDailyQuote">新增小语</el-button>
               </div>
-              <el-table :data="dashboard.site.settings.anniversaryPage.dailyQuotes" row-key="id">
+              <el-table class="desktop-editor-table" :data="dashboard.site.settings.anniversaryPage.dailyQuotes" row-key="id">
                 <el-table-column label="小语内容" min-width="280">
                   <template #default="{ row }"><el-input v-model="row.text" /></template>
                 </el-table-column>
@@ -258,12 +284,20 @@
                   <template #default="{ $index }"><el-button link type="danger" @click="removeDailyQuote($index)">删除</el-button></template>
                 </el-table-column>
               </el-table>
+              <div class="mobile-card-list">
+                <article v-for="(quote, index) in dashboard.site.settings.anniversaryPage.dailyQuotes" :key="quote.id || index" class="mobile-edit-card">
+                  <div class="mobile-edit-card__title">今日小语 {{ index + 1 }}</div>
+                  <label>内容<el-input v-model="quote.text" /></label>
+                  <label>署名<el-input v-model="quote.author" /></label>
+                  <el-button type="danger" plain @click="removeDailyQuote(index)">删除</el-button>
+                </article>
+              </div>
               <el-button type="primary" class="save-row" :loading="anniversaryPageSaving" :disabled="anniversaryPageSaving" @click="saveAnniversaryPage">保存页面配置</el-button>
             </el-form>
           </el-card>
           <el-card shadow="never">
             <template #header><div class="card-header"><span>纪念日管理</span><el-button type="primary" @click="addAnniversary">新增纪念日</el-button></div></template>
-            <el-table :data="dashboard.anniversaries" row-key="id">
+            <el-table class="desktop-editor-table" :data="dashboard.anniversaries" row-key="id">
               <el-table-column label="标题" min-width="150"><template #default="{ row }"><el-input v-model="row.title" /></template></el-table-column>
               <el-table-column label="日期" width="180"><template #default="{ row }"><el-date-picker v-model="row.eventDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" /></template></el-table-column>
               <el-table-column label="每年重复" width="110"><template #default="{ row }"><el-switch v-model="row.repeatYearly" /></template></el-table-column>
@@ -271,6 +305,20 @@
               <el-table-column label="说明" min-width="220"><template #default="{ row }"><el-input v-model="row.description" /></template></el-table-column>
               <el-table-column label="操作" width="150" fixed="right"><template #default="{ row, $index }"><el-button link type="primary" :loading="isRowBusy('anniversary', row)" :disabled="isRowBusy('anniversary', row)" @click="saveOneAnniversary(row)">保存</el-button><el-button link type="danger" :loading="isRowBusy('anniversary', row)" :disabled="isRowBusy('anniversary', row)" @click="removeAnniversary(row, $index)">删除</el-button></template></el-table-column>
             </el-table>
+            <div class="mobile-card-list">
+              <article v-for="(anniversary, index) in dashboard.anniversaries" :key="anniversary.id || index" class="mobile-edit-card">
+                <div class="mobile-edit-card__title">{{ anniversary.title || `纪念日 ${index + 1}` }}</div>
+                <label>标题<el-input v-model="anniversary.title" /></label>
+                <label>日期<el-date-picker v-model="anniversary.eventDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" /></label>
+                <div class="mobile-switch-row"><span>每年重复</span><el-switch v-model="anniversary.repeatYearly" /></div>
+                <div class="mobile-switch-row"><span>倒计时</span><el-switch v-model="anniversary.showCountdown" /></div>
+                <label>说明<el-input v-model="anniversary.description" /></label>
+                <div class="mobile-card-actions">
+                  <el-button type="primary" :loading="isRowBusy('anniversary', anniversary)" :disabled="isRowBusy('anniversary', anniversary)" @click="saveOneAnniversary(anniversary)">保存</el-button>
+                  <el-button type="danger" plain :loading="isRowBusy('anniversary', anniversary)" :disabled="isRowBusy('anniversary', anniversary)" @click="removeAnniversary(anniversary, index)">删除</el-button>
+                </div>
+              </article>
+            </div>
           </el-card>
         </section>
 
@@ -2983,6 +3031,37 @@ onMounted(() => {
 .album-card span { color: #806f6a; font-size: 13px; margin: 6px 0; }
 .theme-form { max-width: 760px; }
 .form-hint { margin-left: 10px; color: #8a8f98; font-size: 12px; }
+.mobile-card-list { display: none; }
+.mobile-edit-card {
+  border: 1px solid #eadfda;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fffaf7;
+}
+.mobile-edit-card__title {
+  color: #3d2f2a;
+  font-size: 14px;
+  font-weight: 700;
+}
+.mobile-edit-card label {
+  display: grid;
+  gap: 6px;
+  color: #806f6a;
+  font-size: 12px;
+}
+.mobile-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #806f6a;
+  font-size: 13px;
+}
+.mobile-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
 @media (max-width: 980px) {
   .panel-grid { grid-template-columns: 1fr 1fr; }
   .wide { grid-column: span 2; }
@@ -3161,6 +3240,24 @@ onMounted(() => {
   :deep(.el-table .el-select),
   :deep(.el-table .el-date-editor) {
     min-width: 140px;
+  }
+
+  .desktop-editor-table {
+    display: none;
+  }
+
+  .mobile-card-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .mobile-edit-card {
+    display: grid;
+    gap: 12px;
+  }
+
+  .mobile-card-actions {
+    grid-template-columns: 1fr;
   }
 
   .album-grid,
