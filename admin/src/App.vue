@@ -669,6 +669,8 @@
                 <el-upload :show-file-list="false" :http-request="uploadHeartGardenProjectAsset">
                   <el-button class="code-upload-button" size="small">上传项目素材</el-button>
                 </el-upload>
+                <input ref="heartGardenFolderInputRef" class="visually-hidden-file" type="file" multiple webkitdirectory @change="uploadHeartGardenFolder" />
+                <el-button class="code-upload-button" size="small" type="success" plain @click="triggerHeartGardenFolderPicker">上传文件夹</el-button>
               </aside>
               <main class="code-file-editor">
                 <template v-if="codeEditorCurrentFile">
@@ -1000,6 +1002,7 @@ const codeEditor = reactive({
   entryFile: 'index.html',
   newFilePath: '',
 });
+const heartGardenFolderInputRef = ref<HTMLInputElement | null>(null);
 
 const pageTitle = computed(() => ({
   dashboard: '仪表盘',
@@ -2350,6 +2353,19 @@ function normalizeHeartGardenFileType(path: string, fallback?: HeartGardenFile['
   return fallback || 'other';
 }
 
+function isHeartGardenTextFile(file: HeartGardenFile | { type: HeartGardenFile['type']; path: string }) {
+  return ['html', 'css', 'js'].includes(file.type);
+}
+
+function readFileAsText(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('File read failed'));
+    reader.readAsText(file);
+  });
+}
+
 function heartGardenAssetPath(file: File) {
   const type = normalizeHeartGardenFileType(file.name);
   if (type === 'image') return `images/${file.name}`;
@@ -2438,6 +2454,78 @@ async function uploadHeartGardenProjectAsset(options: UploadRequestOptions) {
   } catch (error) {
     ElMessage.error('项目素材上传失败，请确认 R2 已配置');
     options.onError?.(error as never);
+  }
+}
+
+function triggerHeartGardenFolderPicker() {
+  heartGardenFolderInputRef.value?.click();
+}
+
+function relativeHeartGardenFolderPath(file: File, rootFolder = '') {
+  const rawPath = normalizeHeartGardenFilePath((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name);
+  if (!rootFolder) return rawPath;
+  return rawPath.startsWith(`${rootFolder}/`) ? rawPath.slice(rootFolder.length + 1) : rawPath;
+}
+
+function detectHeartGardenFolderRoot(files: File[]) {
+  const firstPath = normalizeHeartGardenFilePath((files[0] as File & { webkitRelativePath?: string } | undefined)?.webkitRelativePath || '');
+  if (!firstPath.includes('/')) return '';
+  const root = firstPath.split('/')[0];
+  return files.every((file) => normalizeHeartGardenFilePath((file as File & { webkitRelativePath?: string }).webkitRelativePath || '').startsWith(`${root}/`))
+    ? root
+    : '';
+}
+
+async function uploadHeartGardenFolder(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const nativeFiles = Array.from(input.files || []);
+  input.value = '';
+  if (!codeEditor.project || !nativeFiles.length) return;
+  const project = codeEditor.project;
+  const rootFolder = detectHeartGardenFolderRoot(nativeFiles);
+  project.files = [];
+  let uploadedAssets = 0;
+  try {
+    for (const nativeFile of nativeFiles) {
+      const path = relativeHeartGardenFolderPath(nativeFile, rootFolder);
+      if (!path || path.endsWith('/')) continue;
+      const type = normalizeHeartGardenFileType(path);
+      const baseFile = {
+        id: `file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        path,
+        type,
+        size: nativeFile.size,
+      };
+      if (isHeartGardenTextFile(baseFile)) {
+        project.files.push({
+          ...baseFile,
+          content: await readFileAsText(nativeFile),
+        });
+      } else {
+        const uploaded = await uploadFileToObjectStorage(nativeFile, {
+          purpose: 'heart-garden-asset',
+          folder: project.title,
+          group: rootFolder || project.title || project.group || project.tag,
+        });
+        project.files.push({
+          ...baseFile,
+          url: uploaded.publicUrl,
+          objectKey: uploaded.objectKey,
+        });
+        uploadedAssets += 1;
+      }
+    }
+    const entry = project.files.find((file) => file.path.toLowerCase() === 'index.html' && file.type === 'html')
+      || project.files.find((file) => file.type === 'html');
+    project.entryFile = entry?.path || 'index.html';
+    codeEditor.entryFile = project.entryFile;
+    codeEditor.activeFileId = entry?.id || project.files[0]?.id || '';
+    project.content = compileHeartGardenProject(project, project.entryFile);
+    project.status = project.content || project.url ? 'ready' : 'pending';
+    if ((!project.title || project.title === '新的心动项目') && rootFolder) project.title = rootFolder;
+    ElMessage.success(`文件夹已导入：${project.files.length} 个文件，${uploadedAssets} 个素材已上传`);
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '文件夹上传失败，请检查文件大小或 R2 配置'));
   }
 }
 
@@ -2993,6 +3081,13 @@ onMounted(() => {
 .code-upload-button {
   width: 100%;
   margin-top: 8px;
+}
+.visually-hidden-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 .asset-file-detail {
   display: grid;
