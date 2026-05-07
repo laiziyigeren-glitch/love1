@@ -2842,7 +2842,7 @@ nav {
             <button class="settings-inline-save anniversary-save-btn" type="button">确定</button>
           </div>
           <div class="setting-row"><div class="setting-label">在一起日期</div><div class="date-input-row"><div class="date-val">2025-05-20</div><span class="date-icon">📅</span></div></div>
-          <div class="setting-row"><div class="setting-label">第一次见面</div><div class="date-input-row"><div class="date-val">2024-08-14</div><span class="date-icon">📅</span></div></div>
+          <div class="setting-row"><div class="setting-label">第一次见面</div><div class="date-input-row"><div class="date-val"></div><span class="date-icon">📅</span></div></div>
           <div class="setting-row"><div class="setting-label">倒计时显示</div><div style="display:flex;align-items:center;gap:8px"><span class="setting-value">在首页显示倒计时</span><div class="toggle"></div></div></div>
         </div>
         <div class="glass-card settings-section" data-settings-section="music">
@@ -3552,7 +3552,7 @@ function defaultSettingsState() {
       submitText: '进入我们的世界',
     },
     reminders: { anniversaryEnabled: true, anniversaryDays: 1, surpriseEnabled: true, dailyQuoteEnabled: true, dailyQuoteTime: '20:00' },
-    anniversaryPage: { startDate: '2022-05-20T00:00', startTitle: '我们的开始', firstMeetDate: '2024-08-14T00:00', showCountdown: true, dailyQuotes: [], note: '' },
+    anniversaryPage: { startDate: '2022-05-20T00:00', startTitle: '我们的开始', firstMeetDate: '', showCountdown: true, dailyQuotes: [], note: '' },
     heartGarden: { projects: [] },
     themeCustomBackgroundUrl: '',
   };
@@ -3562,6 +3562,7 @@ function normalizeSettings(settings = {}) {
   const defaults = defaultSettingsState();
   const rawPageHeaders = settings.pageHeaders || {};
   const romanceHeader = rawPageHeaders.romance || rawPageHeaders.heartGarden;
+  const promiseIds = new Set();
   return {
     ...settings,
     pageHeaders: {
@@ -3580,7 +3581,13 @@ function normalizeSettings(settings = {}) {
     },
     coupleEntrance: { ...defaults.coupleEntrance, ...(settings.coupleEntrance || {}) },
     reminders: { ...defaults.reminders, ...(settings.reminders || {}) },
-    anniversaryPage: { ...defaults.anniversaryPage, ...(settings.anniversaryPage || {}) },
+    anniversaryPage: {
+      ...defaults.anniversaryPage,
+      ...(settings.anniversaryPage || {}),
+      firstMeetDate: isLegacyDefaultFirstMeetDate(settings.anniversaryPage?.firstMeetDate)
+        ? ''
+        : (settings.anniversaryPage?.firstMeetDate || defaults.anniversaryPage.firstMeetDate),
+    },
     heartGarden: {
       ...defaults.heartGarden,
       ...(settings.heartGarden || {}),
@@ -3595,13 +3602,29 @@ function normalizeSettings(settings = {}) {
       : [],
     promises: Array.isArray(settings.promises)
       ? settings.promises.map((item, index) => ({
-        id: item.id || `promise-${index}`,
+        id: uniqueSettingsId(item.id, `promise-${index}`, promiseIds),
         icon: (item.icon || '❤️') === '✅' ? '✨' : (item.icon || '❤️'),
         text: String(item.text || '').trim(),
         done: item.done === true,
       })).filter((item) => item.text)
       : [],
   };
+}
+
+function uniqueSettingsId(rawId, fallbackId, usedIds) {
+  const base = String(rawId || fallbackId || 'item').trim() || 'item';
+  let id = base;
+  let suffix = 2;
+  while (usedIds.has(id)) {
+    id = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  usedIds.add(id);
+  return id;
+}
+
+function isLegacyDefaultFirstMeetDate(value) {
+  return String(value || '').slice(0, 10) === '2024-08-14';
 }
 
 function renderCoupleEntrance(settings = {}) {
@@ -3801,7 +3824,7 @@ function getDraftSettingsFromPage() {
   const settings = normalizeSettings(spaceData?.site?.settings || {});
   const bgmSelect = document.querySelector('#page-settings .music-select');
   settings.anniversaryPage.startDate = findSettingRow('在一起日期')?.querySelector('.settings-date-input')?.value || settings.anniversaryPage.startDate;
-  settings.anniversaryPage.firstMeetDate = findSettingRow('第一次见面')?.querySelector('.settings-date-input')?.value || settings.anniversaryPage.firstMeetDate;
+  settings.anniversaryPage.firstMeetDate = findSettingRow('第一次见面')?.querySelector('.settings-date-input')?.value || '';
   settings.anniversaryPage.showCountdown = isToggleOn(findSettingRow('倒计时显示')?.querySelector('.toggle'));
   settings.music.bgmSongId = bgmSelect?.value || settings.music.bgmSongId || '';
   settings.music.volume = getSliderValue(findSettingRow('音量大小'), settings.music.volume);
@@ -4995,7 +5018,9 @@ function eventsForDate(date, items = []) {
 function getSettingsAnniversaryEvents(settings = {}) {
   const normalized = normalizeSettings(settings);
   const startDate = parseLocalDate(normalized.anniversaryPage.startDate);
-  const firstMeetDate = parseLocalDate(normalized.anniversaryPage.firstMeetDate);
+  const firstMeetDate = isLegacyDefaultFirstMeetDate(normalized.anniversaryPage.firstMeetDate)
+    ? null
+    : parseLocalDate(normalized.anniversaryPage.firstMeetDate);
   return [
     startDate && {
       title: normalized.anniversaryPage.startTitle || '我们的开始',
@@ -5784,7 +5809,7 @@ async function saveSettingsToBackend() {
   const activeSwatch = document.querySelector('#page-settings .swatch.active');
   const selectedColor = activeSwatch ? colorToHex(activeSwatch.style.backgroundColor || activeSwatch.style.background) : spaceData.theme.primaryColor;
   settings.anniversaryPage.startDate = findSettingRow('在一起日期')?.querySelector('.settings-date-input')?.value || settings.anniversaryPage.startDate;
-  settings.anniversaryPage.firstMeetDate = findSettingRow('第一次见面')?.querySelector('.settings-date-input')?.value || settings.anniversaryPage.firstMeetDate;
+  settings.anniversaryPage.firstMeetDate = findSettingRow('第一次见面')?.querySelector('.settings-date-input')?.value || '';
   settings.anniversaryPage.showCountdown = isToggleOn(findSettingRow('倒计时显示')?.querySelector('.toggle'));
   settings.music.bgmSongId = bgmSelect?.value || '';
   settings.music.volume = getSliderValue(findSettingRow('音量大小'), settings.music.volume);

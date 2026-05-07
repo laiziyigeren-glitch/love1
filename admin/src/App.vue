@@ -1051,7 +1051,9 @@ async function load() {
     ensurePrivacyReminderSettings();
     ensureCoupleEntranceSettings();
     ensureHeartGardenSettings();
-    dashboard.value.site.settings.anniversaryPage.firstMeetDate ||= '2024-08-14T00:00';
+    if (isLegacyDefaultFirstMeetDate(dashboard.value.site.settings.anniversaryPage.firstMeetDate) && !findSyncedAnniversary('meet')) {
+      dashboard.value.site.settings.anniversaryPage.firstMeetDate = '';
+    }
     dashboard.value.site.settings.anniversaryPage.showCountdown ??= true;
   } catch (error) {
     if ((error as { response?: { status?: number } }).response?.status === 401) {
@@ -1170,12 +1172,29 @@ function ensureHomeSettings() {
     title: item.title || '新的甜蜜时刻',
     date: String(item.date || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
   }));
+  const promiseIds = new Set<string>();
   dashboard.value.site.settings.promises = dashboard.value.site.settings.promises.map((item, index) => ({
-    id: item.id || `promise-${Date.now()}-${index}`,
+    id: uniqueSettingsId(item.id, `promise-${Date.now()}-${index}`, promiseIds),
     icon: item.icon || '❤️',
     text: item.text || '新的未来约定',
     done: item.done === true,
   }));
+}
+
+function uniqueSettingsId(rawId: unknown, fallbackId: string, usedIds: Set<string>) {
+  const base = String(rawId || fallbackId || 'item').trim() || 'item';
+  let id = base;
+  let suffix = 2;
+  while (usedIds.has(id)) {
+    id = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  usedIds.add(id);
+  return id;
+}
+
+function isLegacyDefaultFirstMeetDate(value: unknown) {
+  return String(value || '').slice(0, 10) === '2024-08-14';
 }
 
 async function saveHome() {
@@ -1286,7 +1305,14 @@ function removeMoment(index: number) {
 }
 
 function addPromise() {
-  dashboard.value?.site.settings.promises.push({ id: `promise-${Date.now()}`, icon: '❤️', text: '新的未来约定', done: false });
+  if (!dashboard.value) return;
+  const usedIds = new Set(dashboard.value.site.settings.promises.map((item) => String(item.id || '').trim()).filter(Boolean));
+  dashboard.value.site.settings.promises.push({
+    id: uniqueSettingsId('', `promise-${Date.now()}`, usedIds),
+    icon: '❤️',
+    text: '新的未来约定',
+    done: false,
+  });
 }
 
 function removePromise(index: number) {
@@ -1386,7 +1412,7 @@ function buildAnniversaryFromPageSettings(kind: 'start' | 'meet') {
       description: current?.description || page.note || '',
     };
   }
-  const eventDate = toAnniversaryInputValue(page.firstMeetDate, current?.eventDate);
+  const eventDate = toAnniversaryInputValue(page.firstMeetDate);
   if (!eventDate) return null;
   return {
     id: current?.id || '',
@@ -1461,6 +1487,7 @@ async function saveAnniversaryPage() {
     duration: 0,
   });
   try {
+    const shouldClearMeetAnniversary = !toAnniversaryInputValue(dashboard.value.site.settings.anniversaryPage.firstMeetDate);
     const anniversaryItems = [
       buildAnniversaryFromPageSettings('start'),
       buildAnniversaryFromPageSettings('meet'),
@@ -1471,6 +1498,12 @@ async function saveAnniversaryPage() {
     ]);
     savedAnniversaries.forEach((item) => mergeSavedAnniversary(item));
     await pruneDuplicateSyncedAnniversaries(savedAnniversaries);
+    if (shouldClearMeetAnniversary) {
+      for (const item of findSyncedAnniversaries('meet')) {
+        if (!item.id) continue;
+        await deleteAnniversary(item.id);
+      }
+    }
     ElMessage.success('纪念日页面配置已保存，前台会自动同步');
     await load();
   } catch (error) {

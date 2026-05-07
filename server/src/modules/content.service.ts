@@ -967,7 +967,7 @@ export class ContentService {
       anniversaryPage: {
         startDate: '2022-05-20T00:00',
         startTitle: '我们的开始',
-        firstMeetDate: '2024-08-14T00:00',
+        firstMeetDate: '',
         showCountdown: true,
         dailyQuotes: [
           {
@@ -999,6 +999,7 @@ export class ContentService {
     const source = value as Partial<HomeSettings>;
     const rawPageHeaders = (source.pageHeaders ?? {}) as Record<string, HomeSettings['pageHeaders'][keyof HomeSettings['pageHeaders']]>;
     const romanceHeader = rawPageHeaders.romance ?? rawPageHeaders.heartGarden;
+    const promiseIds = new Set<string>();
     return {
       ...defaults,
       ...source,
@@ -1023,7 +1024,7 @@ export class ContentService {
       promises: Array.isArray(source.promises)
         ? source.promises
             .map((item, index) => ({
-              id: String(item?.id || `promise-${index + 1}`),
+              id: this.uniqueSettingsId(item?.id, `promise-${index + 1}`, promiseIds),
               icon: String(item?.icon || '❤️') === '✅' ? '✨' : String(item?.icon || '❤️'),
               text: String(item?.text || '').trim(),
               done: item?.done === true,
@@ -1062,6 +1063,9 @@ export class ContentService {
       anniversaryPage: {
         ...defaults.anniversaryPage,
         ...(source.anniversaryPage ?? {}),
+        firstMeetDate: this.isLegacyDefaultFirstMeetDate(source.anniversaryPage?.firstMeetDate)
+          ? ''
+          : String(source.anniversaryPage?.firstMeetDate || defaults.anniversaryPage.firstMeetDate),
         dailyQuotes: Array.isArray(source.anniversaryPage?.dailyQuotes)
           ? source.anniversaryPage.dailyQuotes
           : defaults.anniversaryPage.dailyQuotes,
@@ -1081,6 +1085,22 @@ export class ContentService {
           : defaults.heartGarden.projects,
       },
     };
+  }
+
+  private uniqueSettingsId(rawId: unknown, fallbackId: string, usedIds: Set<string>) {
+    const base = String(rawId || fallbackId || 'item').trim() || 'item';
+    let id = base;
+    let suffix = 2;
+    while (usedIds.has(id)) {
+      id = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    usedIds.add(id);
+    return id;
+  }
+
+  private isLegacyDefaultFirstMeetDate(value: unknown) {
+    return String(value || '').slice(0, 10) === '2024-08-14';
   }
 
   async updatePrimaryProfile(slug: string, profile: Partial<Profile>) {
