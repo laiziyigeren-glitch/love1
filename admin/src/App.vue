@@ -36,25 +36,25 @@
           <span>后台管理</span>
         </div>
       </div>
-      <el-menu :default-active="active" class="menu" @select="active = $event">
-        <el-menu-item index="dashboard">仪表盘</el-menu-item>
-        <el-menu-item index="home">首页</el-menu-item>
-        <el-menu-item index="profile">资料</el-menu-item>
-        <el-menu-item index="anniversary">纪念日</el-menu-item>
-        <el-menu-item index="album">相册</el-menu-item>
-        <el-menu-item index="letter">情书</el-menu-item>
-        <el-menu-item index="music">音乐</el-menu-item>
-        <el-menu-item index="romance">心动花园</el-menu-item>
-        <el-menu-item index="theme">主题</el-menu-item>
-        <el-menu-item index="privacy">隐私提醒</el-menu-item>
+      <el-menu :default-active="active" class="menu" @select="selectAdminPage">
+        <el-menu-item v-for="item in adminNavItems" :key="item.index" :index="item.index">{{ item.label }}</el-menu-item>
       </el-menu>
     </el-aside>
 
+    <el-drawer v-model="mobileMenuOpen" title="后台菜单" direction="ltr" size="280px" class="mobile-menu-drawer">
+      <el-menu :default-active="active" class="mobile-menu" @select="selectAdminPage">
+        <el-menu-item v-for="item in adminNavItems" :key="item.index" :index="item.index">{{ item.label }}</el-menu-item>
+      </el-menu>
+    </el-drawer>
+
     <el-container>
       <el-header class="topbar">
-        <div>
-          <h1>{{ pageTitle }}</h1>
-          <p>这里保存的数据会被前台页面读取。保存后前台会自动同步，也可以手动刷新。</p>
+        <div class="topbar-title">
+          <el-button class="mobile-menu-button" plain @click="mobileMenuOpen = true">菜单</el-button>
+          <div>
+            <h1>{{ pageTitle }}</h1>
+            <p>这里保存的数据会被前台页面读取。保存后前台会自动同步，也可以手动刷新。</p>
+          </div>
         </div>
         <div class="topbar-actions">
           <el-button :loading="loading" @click="load">刷新数据</el-button>
@@ -813,6 +813,7 @@ import {
 } from './api';
 
 const active = ref('dashboard');
+const mobileMenuOpen = ref(false);
 const loading = ref(false);
 const loginLoading = ref(false);
 const profileSaving = ref(false);
@@ -838,6 +839,18 @@ const coupleAccessForm = reactive({
   passwordSet: false,
 });
 const dashboard = ref<Dashboard | null>(null);
+const adminNavItems = [
+  { index: 'dashboard', label: '仪表盘' },
+  { index: 'home', label: '首页' },
+  { index: 'profile', label: '资料' },
+  { index: 'anniversary', label: '纪念日' },
+  { index: 'album', label: '相册' },
+  { index: 'letter', label: '情书' },
+  { index: 'music', label: '音乐' },
+  { index: 'romance', label: '心动花园' },
+  { index: 'theme', label: '主题' },
+  { index: 'privacy', label: '隐私提醒' },
+];
 const pageHeaderKeys = [
   { key: 'home', label: '首页' },
   { key: 'anniversary', label: '纪念日' },
@@ -964,6 +977,11 @@ const statCards = computed(() => {
 });
 
 const daysUntilNext = computed(() => Math.ceil((dashboard.value?.nextAnniversary?.secondsUntil ?? 0) / 86400));
+
+function selectAdminPage(index: string) {
+  active.value = index;
+  mobileMenuOpen.value = false;
+}
 
 const albumCategories = computed(() => {
   const values = new Set(['默认相册', '旅行', '日常', '约会', '夜晚']);
@@ -2774,6 +2792,8 @@ onMounted(() => {
 .menu :deep(.el-menu-item) { color: #f7eeee; border-radius: 8px; }
 .menu :deep(.el-menu-item.is-active), .menu :deep(.el-menu-item:hover) { background: #3b1d20; color: #fff; }
 .topbar { height: 88px; background: #fff; border-bottom: 1px solid #e8dfda; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+.topbar-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mobile-menu-button { display: none; }
 .topbar h1 { margin: 0 0 6px; font-size: 24px; }
 .topbar p { margin: 0; color: #806f6a; font-size: 13px; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
@@ -2969,6 +2989,221 @@ onMounted(() => {
   .profile-row { grid-template-columns: 1fr; }
   .profile-row .el-form-item:last-child { grid-column: auto; }
   .page-header-config { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  :global(body) {
+    overflow-x: hidden;
+  }
+
+  .login-shell {
+    padding: 16px;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .login-button {
+    min-height: 42px;
+  }
+
+  .shell {
+    display: block;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .mobile-menu-button {
+    display: inline-flex;
+    min-height: 40px;
+    flex: 0 0 auto;
+  }
+
+  .topbar {
+    height: auto;
+    min-height: 64px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .topbar-title {
+    align-items: flex-start;
+  }
+
+  .topbar h1 {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .topbar p {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .topbar-actions .el-button {
+    min-height: 40px;
+  }
+
+  .main {
+    padding: 12px;
+  }
+
+  .panel-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .wide {
+    grid-column: span 1;
+  }
+
+  .metric strong {
+    font-size: 24px;
+  }
+
+  .card-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-header .inline-actions {
+    width: 100%;
+  }
+
+  .upload-actions,
+  .inline-actions,
+  .song-upload-actions {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    width: 100%;
+  }
+
+  .inline-actions.compact .el-input,
+  .inline-actions .el-input,
+  .upload-actions .el-input,
+  .upload-actions .el-select,
+  .upload-actions .el-date-editor {
+    width: 100%;
+  }
+
+  .page-header-config .inline-actions {
+    flex-wrap: wrap;
+  }
+
+  .tiny-preview,
+  .entrance-preview {
+    flex: 0 0 auto;
+  }
+
+  .el-form-item {
+    display: block;
+  }
+
+  :deep(.el-form-item__label) {
+    display: block;
+    width: auto !important;
+    height: auto;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    text-align: left;
+  }
+
+  :deep(.el-form-item__content) {
+    display: block;
+    margin-left: 0 !important;
+  }
+
+  :deep(.el-input),
+  :deep(.el-select),
+  :deep(.el-date-editor),
+  :deep(.el-input-number),
+  :deep(.el-textarea) {
+    width: 100% !important;
+  }
+
+  :deep(.el-button) {
+    min-height: 40px;
+    white-space: normal;
+  }
+
+  :deep(.el-card) {
+    border-radius: 8px;
+  }
+
+  :deep(.el-card__body),
+  :deep(.el-card__header) {
+    padding: 14px;
+  }
+
+  :deep(.el-table) {
+    width: 100%;
+  }
+
+  :deep(.el-table__body-wrapper),
+  :deep(.el-table__header-wrapper) {
+    overflow-x: auto;
+  }
+
+  :deep(.el-table .el-input),
+  :deep(.el-table .el-select),
+  :deep(.el-table .el-date-editor) {
+    min-width: 140px;
+  }
+
+  .album-grid,
+  .asset-picker-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .code-editor-layout {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .code-file-list {
+    max-height: 180px;
+  }
+
+  .asset-file-detail .asset-placeholder {
+    width: 100%;
+  }
+}
+
+:global(.mobile-menu-drawer .el-drawer__body) {
+  padding: 0 14px 16px;
+}
+
+:global(.mobile-menu) {
+  border-right: 0;
+}
+
+:global(.mobile-menu .el-menu-item) {
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  :global(.el-dialog) {
+    width: calc(100vw - 24px) !important;
+    margin: 12px auto !important;
+  }
+
+  :global(.el-dialog__body) {
+    max-height: calc(100vh - 170px);
+    overflow-y: auto;
+  }
 }
 </style>
 
