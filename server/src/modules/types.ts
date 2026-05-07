@@ -144,6 +144,7 @@ export type LoveLetter = {
   signature: string;
   letterDate: string;
   status: 'DRAFT' | 'PUBLISHED' | 'HIDDEN';
+  visibleAt: string;
 };
 
 export type Song = {

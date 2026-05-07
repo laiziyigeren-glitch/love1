@@ -400,6 +400,14 @@
                       <el-option label="草稿" value="DRAFT" />
                       <el-option label="隐藏" value="HIDDEN" />
                     </el-select>
+                    <el-date-picker
+                      v-if="letter.status === 'HIDDEN'"
+                      v-model="letter.visibleAt"
+                      type="datetime"
+                      value-format="YYYY-MM-DDTHH:mm"
+                      format="YYYY-MM-DD HH:mm"
+                      placeholder="到这个时间自动公开"
+                    />
                     <el-button type="primary" :loading="isRowBusy('letter', letter)" :disabled="isRowBusy('letter', letter)" @click="saveOneLetter(letter)">保存</el-button>
                     <el-button type="danger" :loading="isRowBusy('letter', letter)" :disabled="isRowBusy('letter', letter)" @click="removeLetter(letter, index)">删除</el-button>
                   </div>
@@ -1844,6 +1852,7 @@ function addLetter() {
     signature: '',
     letterDate: new Date().toISOString().slice(0, 10),
     status: 'PUBLISHED',
+    visibleAt: '',
   });
 }
 

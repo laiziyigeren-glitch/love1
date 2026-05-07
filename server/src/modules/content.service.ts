@@ -55,6 +55,7 @@ export class ContentService {
         signature: item.signature ?? '',
         letterDate: item.letterDate ? this.formatDate(item.letterDate) : '',
         status: item.status,
+        visibleAt: item.visibleAt ? this.formatDateTime(item.visibleAt) : '',
       })),
       songs: space.songs.map((item) => ({
         id: item.id,
@@ -562,17 +563,20 @@ export class ContentService {
       signature: item.signature ?? '',
       letterDate: item.letterDate ? this.formatDate(item.letterDate) : '',
       status: item.status,
+      visibleAt: item.visibleAt ? this.formatDateTime(item.visibleAt) : '',
     }));
   }
 
   async upsertLetter(slug: string, item: Partial<LoveLetter> & Pick<LoveLetter, 'title' | 'body'>) {
     const space = await this.getSpaceRef(slug);
+    const status = (item.status ?? 'PUBLISHED') as PublishStatus;
     const data = {
       title: item.title,
       body: item.body,
       signature: item.signature ?? '',
       letterDate: item.letterDate ? this.parseDate(item.letterDate) : null,
-      status: (item.status ?? 'PUBLISHED') as PublishStatus,
+      status,
+      visibleAt: status === PublishStatus.HIDDEN && item.visibleAt ? this.parseDate(item.visibleAt) : null,
     };
     const saved = item.id
       ? await this.updateOwnedLetter(space.id, item.id, data)
@@ -590,6 +594,7 @@ export class ContentService {
       signature: saved.signature ?? '',
       letterDate: saved.letterDate ? this.formatDate(saved.letterDate) : '',
       status: saved.status,
+      visibleAt: saved.visibleAt ? this.formatDateTime(saved.visibleAt) : '',
     };
   }
 
@@ -700,6 +705,7 @@ export class ContentService {
   }
 
   private async getSpace(slug: string) {
+    const now = new Date();
     const space = await this.prisma.coupleSpace.findUnique({
       where: { slug },
       include: {
@@ -708,7 +714,12 @@ export class ContentService {
         themeConfig: true,
         anniversaries: { orderBy: [{ sortOrder: 'asc' }, { eventDate: 'asc' }] },
         loveLetters: {
-          where: { status: { not: PublishStatus.HIDDEN } },
+          where: {
+            OR: [
+              { status: PublishStatus.PUBLISHED },
+              { status: PublishStatus.HIDDEN, visibleAt: { lte: now } },
+            ],
+          },
           orderBy: { sortOrder: 'asc' },
         },
         songs: { orderBy: [{ favorite: 'desc' }, { title: 'asc' }] },
@@ -751,6 +762,7 @@ export class ContentService {
       signature: string;
       letterDate: Date | null;
       status: PublishStatus;
+      visibleAt: Date | null;
     },
   ) {
     const item = await this.prisma.loveLetter.findFirst({
@@ -848,6 +860,12 @@ export class ContentService {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private formatDateTime(date: Date) {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${this.formatDate(date)}T${hours}:${minutes}`;
   }
 
   private getMediaType(mimeType: string) {

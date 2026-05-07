@@ -185,6 +185,7 @@ model LoveLetter {
   signature String?
   letterDate DateTime?
   status    PublishStatus @default(PUBLISHED)
+  visibleAt DateTime?
   sortOrder Int           @default(0)
   space     CoupleSpace   @relation(fields: [spaceId], references: [id])
 }

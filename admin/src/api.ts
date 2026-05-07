@@ -190,6 +190,7 @@ export type Dashboard = {
     signature: string;
     letterDate: string;
     status: string;
+    visibleAt: string;
   }>;
   songs: Array<{
     id: string;
