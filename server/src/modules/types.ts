@@ -100,6 +100,12 @@ export type HomeSettings = {
       text: string;
       author: string;
     }>;
+    importantMoments: Array<{
+      id: string;
+      title: string;
+      date: string;
+      description: string;
+    }>;
     note: string;
   };
   heartGarden: {

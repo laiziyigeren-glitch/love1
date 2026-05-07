@@ -112,6 +112,7 @@ export type Dashboard = {
         firstMeetDate: string;
         showCountdown: boolean;
         dailyQuotes: Array<{ id: string; text: string; author: string }>;
+        importantMoments: Array<{ id: string; title: string; date: string; description: string }>;
         note: string;
       };
       heartGarden: {

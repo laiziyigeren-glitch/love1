@@ -226,6 +226,24 @@
                 <el-input v-model="dashboard.site.settings.anniversaryPage.note" type="textarea" :rows="4" />
               </el-form-item>
               <div class="card-header">
+                <strong>重要时刻</strong>
+                <el-button type="primary" @click="addImportantMoment">新增时刻</el-button>
+              </div>
+              <el-table :data="dashboard.site.settings.anniversaryPage.importantMoments" row-key="id">
+                <el-table-column label="标题" min-width="180">
+                  <template #default="{ row }"><el-input v-model="row.title" /></template>
+                </el-table-column>
+                <el-table-column label="日期" width="180">
+                  <template #default="{ row }"><el-date-picker v-model="row.date" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" /></template>
+                </el-table-column>
+                <el-table-column label="说明" min-width="260">
+                  <template #default="{ row }"><el-input v-model="row.description" /></template>
+                </el-table-column>
+                <el-table-column label="操作" width="90">
+                  <template #default="{ $index }"><el-button link type="danger" @click="removeImportantMoment($index)">删除</el-button></template>
+                </el-table-column>
+              </el-table>
+              <div class="card-header">
                 <strong>今日小语</strong>
                 <el-button type="primary" @click="addDailyQuote">新增小语</el-button>
               </div>
@@ -1051,10 +1069,10 @@ async function load() {
     ensurePrivacyReminderSettings();
     ensureCoupleEntranceSettings();
     ensureHeartGardenSettings();
+    ensureAnniversaryPageSettings();
     if (isLegacyDefaultFirstMeetDate(dashboard.value.site.settings.anniversaryPage.firstMeetDate) && !findSyncedAnniversary('meet')) {
       dashboard.value.site.settings.anniversaryPage.firstMeetDate = '';
     }
-    dashboard.value.site.settings.anniversaryPage.showCountdown ??= true;
   } catch (error) {
     if ((error as { response?: { status?: number } }).response?.status === 401) {
       clearAdminToken();
@@ -1197,6 +1215,19 @@ function isLegacyDefaultFirstMeetDate(value: unknown) {
   return String(value || '').slice(0, 10) === '2024-08-14';
 }
 
+function ensureAnniversaryPageSettings() {
+  if (!dashboard.value) return;
+  const page = dashboard.value.site.settings.anniversaryPage;
+  page.showCountdown ??= true;
+  page.dailyQuotes = Array.isArray(page.dailyQuotes) ? page.dailyQuotes : [];
+  page.importantMoments = Array.isArray(page.importantMoments) ? page.importantMoments.map((item, index) => ({
+    id: item.id || `important-${Date.now()}-${index}`,
+    title: item.title || '新的重要时刻',
+    date: String(item.date || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
+    description: item.description || '',
+  })) : [];
+}
+
 async function saveHome() {
   if (!dashboard.value || homeSaving.value) return;
   homeSaving.value = true;
@@ -1329,6 +1360,19 @@ function addDailyQuote() {
 
 function removeDailyQuote(index: number) {
   dashboard.value?.site.settings.anniversaryPage.dailyQuotes.splice(index, 1);
+}
+
+function addImportantMoment() {
+  dashboard.value?.site.settings.anniversaryPage.importantMoments.push({
+    id: `important-${Date.now()}`,
+    title: '新的重要时刻',
+    date: new Date().toISOString().slice(0, 10),
+    description: '',
+  });
+}
+
+function removeImportantMoment(index: number) {
+  dashboard.value?.site.settings.anniversaryPage.importantMoments.splice(index, 1);
 }
 
 function toAnniversaryInputValue(value: string, fallback = '') {
@@ -1487,6 +1531,15 @@ async function saveAnniversaryPage() {
     duration: 0,
   });
   try {
+    const page = dashboard.value.site.settings.anniversaryPage;
+    page.importantMoments = (page.importantMoments || [])
+      .map((item, index) => ({
+        id: item.id || `important-${Date.now()}-${index}`,
+        title: String(item.title || '').trim(),
+        date: String(item.date || '').slice(0, 10),
+        description: String(item.description || '').trim(),
+      }))
+      .filter((item) => item.title && item.date);
     const shouldClearMeetAnniversary = !toAnniversaryInputValue(dashboard.value.site.settings.anniversaryPage.firstMeetDate);
     const anniversaryItems = [
       buildAnniversaryFromPageSettings('start'),

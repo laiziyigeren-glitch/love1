@@ -594,9 +594,8 @@ nav {
   font-size: 13px; color: var(--text-secondary);
   padding: 6px 10px; border-radius: 10px;
   transition: background 0.2s, opacity 0.2s;
-  cursor: pointer;
+  cursor: default;
 }
-.future-item:hover { background: var(--rose-pale); }
 .future-item.done {
   background: rgba(232,116,138,0.12);
   color: var(--text-primary);
@@ -778,7 +777,7 @@ nav {
   background: linear-gradient(90deg, transparent 0%, var(--rose) 20%, var(--gold) 50%, var(--rose) 80%, transparent 100%);
 }
 .htimeline-items { display: inline-flex; gap: 20px; position: relative; z-index: 1; min-width: max-content; padding: 0 24px 8px; }
-.htimeline-item { flex: 0 0 220px; text-align: center; padding: 0 10px; cursor: pointer; scroll-snap-align: center; }
+.htimeline-item { flex: 0 0 220px; text-align: center; padding: 0 10px; cursor: default; scroll-snap-align: center; }
 .htimeline-dot {
   width: 13px; height: 13px; border-radius: 50%;
   background: var(--rose); margin: 0 auto 12px;
@@ -3552,7 +3551,7 @@ function defaultSettingsState() {
       submitText: '进入我们的世界',
     },
     reminders: { anniversaryEnabled: true, anniversaryDays: 1, surpriseEnabled: true, dailyQuoteEnabled: true, dailyQuoteTime: '20:00' },
-    anniversaryPage: { startDate: '2022-05-20T00:00', startTitle: '我们的开始', firstMeetDate: '', showCountdown: true, dailyQuotes: [], note: '' },
+    anniversaryPage: { startDate: '2022-05-20T00:00', startTitle: '我们的开始', firstMeetDate: '', showCountdown: true, dailyQuotes: [], importantMoments: [], note: '' },
     heartGarden: { projects: [] },
     themeCustomBackgroundUrl: '',
   };
@@ -3587,6 +3586,14 @@ function normalizeSettings(settings = {}) {
       firstMeetDate: isLegacyDefaultFirstMeetDate(settings.anniversaryPage?.firstMeetDate)
         ? ''
         : (settings.anniversaryPage?.firstMeetDate || defaults.anniversaryPage.firstMeetDate),
+      importantMoments: Array.isArray(settings.anniversaryPage?.importantMoments)
+        ? settings.anniversaryPage.importantMoments.map((item, index) => ({
+          id: item.id || `important-${index}`,
+          title: String(item.title || '').trim(),
+          date: String(item.date || item.eventDate || '').slice(0, 10),
+          description: String(item.description || '').trim(),
+        })).filter((item) => item.title && item.date)
+        : [],
     },
     heartGarden: {
       ...defaults.heartGarden,
@@ -4812,18 +4819,18 @@ function renderLetters(items = []) {
 
 function renderAnniversaries(items = [], nextAnniversary) {
   const timeline = document.querySelector('.htimeline-items');
-  if (timeline && items.length) {
+  if (timeline) {
     const sorted = [...items].sort((a, b) => {
-      const aDate = parseLocalDate(a.eventDate);
-      const bDate = parseLocalDate(b.eventDate);
+      const aDate = parseLocalDate(a.date || a.eventDate);
+      const bDate = parseLocalDate(b.date || b.eventDate);
       return (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
     });
     timeline.innerHTML = sorted.map(item => `
       <div class="htimeline-item">
         <div class="htimeline-dot"></div>
-        <div class="htimeline-name">${item.title}</div>
-        <div class="htimeline-date">${item.eventDate}</div>
-        <div class="htimeline-desc">${item.description || ''}</div>
+        <div class="htimeline-name">${escapeHtml(item.title || '')}</div>
+        <div class="htimeline-date">${escapeHtml(formatDisplayDate(item.date || item.eventDate || ''))}</div>
+        <div class="htimeline-desc">${escapeHtml(item.description || '')}</div>
       </div>
     `).join('');
   }
@@ -5177,7 +5184,7 @@ function renderAnniversaryPage(data) {
   selectedAnniversaryDate = startDate;
   renderTogetherDuration();
   const nextEvent = getNextEvent(events);
-  renderAnniversaries(events, null);
+  renderAnniversaries(normalizeSettings(data.site.settings || {}).anniversaryPage.importantMoments || [], null);
   if (nextEvent) {
     countdownTarget = nextEvent.nextDate;
     setText('#page-anniversary .countdown-next', `${formatChineseDate(nextEvent.nextDate)} · ${nextEvent.title}`);
@@ -5435,82 +5442,18 @@ function renderHomeSettings(settings = {}, data = {}) {
   const promises = Array.isArray(normalized.promises) ? normalized.promises : [];
   if (futureList) {
     futureList.innerHTML = promises.map(item => `
-      <div class="future-item ${item.done ? 'done' : ''}" data-promise-id="${escapeHtml(item.id)}">
+      <div class="future-item ${item.done ? 'done' : ''}">
         <span class="future-check">${item.done ? '✓' : ''}</span>
         <span class="future-icon">${escapeHtml(item.icon || '❤️')}</span>
         <span class="future-text">${escapeHtml(item.text || '')}</span>
       </div>
     `).join('');
-    futureList.querySelectorAll('.future-item').forEach((item) => {
-      item.addEventListener('click', () => {
-        const promiseId = item.dataset.promiseId || '';
-        if (promiseId) toggleFuturePromise(promiseId, item);
-      });
-    });
   }
 
   if (normalized.mailbox) {
     setText('#page-home .mail-quote', normalized.mailbox.text || '');
     const author = document.querySelector('#page-home .mail-author');
     if (author) author.innerHTML = `- ${escapeHtml(normalized.mailbox.author || '')} <span style="color:var(--rose)">love</span>`;
-  }
-}
-
-async function persistFuturePromises(settings) {
-  if (!spaceData) throw new Error('空间数据还没加载好');
-  const profile = spaceData.profiles?.[0] || {
-    name: spaceData.name,
-    nickname: '',
-    bio: spaceData.subtitle || '',
-    avatarUrl: '',
-  };
-  const requestSave = (timeoutMs) => coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/settings`, {
-    method: 'PATCH',
-    timeoutMs,
-    body: JSON.stringify({ profile, settings, theme: spaceData.theme }),
-  });
-  let saved;
-  try {
-    saved = await requestSave(35000);
-  } catch (error) {
-    if (!isRetryableNetworkError(error)) throw error;
-    await delay(800);
-    saved = await requestSave(55000);
-  }
-  spaceData.site.settings = normalizeSettings(saved.settings || settings);
-  writeSpaceCache(spaceData);
-}
-
-const futurePromiseSaving = new Set();
-
-async function toggleFuturePromise(promiseId, itemEl) {
-  if (!spaceData) return;
-  if (!getCoupleToken()) {
-    alert('请先登录情侣入口，再勾选未来约定。');
-    showCoupleLogin();
-    return;
-  }
-  if (futurePromiseSaving.has(promiseId)) return;
-  const currentSettings = normalizeSettings(spaceData.site.settings || {});
-  const nextSettings = normalizeSettings(currentSettings);
-  const promises = Array.isArray(nextSettings.promises) ? nextSettings.promises : [];
-  const target = promises.find((item) => item.id === promiseId);
-  if (!target) return;
-  futurePromiseSaving.add(promiseId);
-  if (itemEl) itemEl.classList.add('saving');
-  try {
-    target.done = !target.done;
-    await persistFuturePromises(nextSettings);
-    renderHomeSettings(spaceData.site.settings, spaceData);
-  } catch (error) {
-    console.error(error);
-    const fallbackMessage = isRetryableNetworkError(error)
-      ? '网络连接超时，可能是后端刚刚冷启动，稍等再试一下。'
-      : (error?.message || '请稍后再试。');
-    alert(`勾选保存失败：${fallbackMessage}`);
-  } finally {
-    futurePromiseSaving.delete(promiseId);
-    if (itemEl) itemEl.classList.remove('saving');
   }
 }
 
@@ -5768,7 +5711,7 @@ function renderSpace(data) {
   bindRomanceFilters();
   if (currentPageId !== 'settings' || !settingsDirty) renderSettingsPage(data);
   renderLetters(data.letters);
-  renderAnniversaries(data.anniversaries, data.nextAnniversary);
+  renderAnniversaries(normalizeSettings(data.site.settings || {}).anniversaryPage.importantMoments || [], data.nextAnniversary);
   renderAnniversaryPage(data);
   updateProfileDerivedStats(data);
   maybeAutoplayBgm(data.site.settings);

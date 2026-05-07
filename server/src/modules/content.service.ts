@@ -242,6 +242,9 @@ export class ContentService {
         dailyQuotes: Array.isArray(anniversaryPage.dailyQuotes)
           ? anniversaryPage.dailyQuotes
           : currentSettings.anniversaryPage.dailyQuotes,
+        importantMoments: Array.isArray(anniversaryPage.importantMoments)
+          ? anniversaryPage.importantMoments
+          : currentSettings.anniversaryPage.importantMoments,
       },
     };
 
@@ -986,6 +989,7 @@ export class ContentService {
             author: 'You & Me',
           },
         ],
+        importantMoments: [],
         note: '谢谢你出现在我的生命里，让平凡的日子变得闪闪发光。\n未来的每一个纪念日，我都想和你一起走过。',
       },
       heartGarden: {
@@ -1069,6 +1073,16 @@ export class ContentService {
         dailyQuotes: Array.isArray(source.anniversaryPage?.dailyQuotes)
           ? source.anniversaryPage.dailyQuotes
           : defaults.anniversaryPage.dailyQuotes,
+        importantMoments: Array.isArray(source.anniversaryPage?.importantMoments)
+          ? source.anniversaryPage.importantMoments
+              .map((item, index) => ({
+                id: String(item?.id || `important-${index + 1}`),
+                title: String(item?.title || '').trim(),
+                date: String(item?.date || '').slice(0, 10),
+                description: String(item?.description || '').trim(),
+              }))
+              .filter((item) => item.title && item.date)
+          : defaults.anniversaryPage.importantMoments,
       },
       heartGarden: {
         ...defaults.heartGarden,
