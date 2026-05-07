@@ -2599,6 +2599,16 @@ function rewriteCssAssetUrls(css: string, basePath: string, resolveAssetUrl: (va
   });
 }
 
+function rewriteScriptAssetUrls(script: string, basePath: string, resolveAssetUrl: (value: string, basePath?: string) => string) {
+  const assetPattern = /\.(?:png|jpe?g|gif|webp|svg|mp3|wav|ogg|m4a|flac|mp4|webm|mov|m4v)(?:[?#][^"'`]*)?$/i;
+  return String(script || '').replace(/(["'`])([^"'`\n\r]+)\1/g, (match, quote, rawValue) => {
+    const value = String(rawValue || '').trim();
+    if (!assetPattern.test(value)) return match;
+    const resolved = resolveAssetUrl(value, basePath);
+    return resolved === value ? match : `${quote}${resolved.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
+  });
+}
+
 function rewriteHtmlAssetUrls(html: string, basePath: string, resolveAssetUrl: (value: string, basePath?: string) => string) {
   let result = String(html || '').replace(/\b(src|href|poster)=("([^"]*)"|'([^']*)')/gi, (match, attr, wrapped, doubleValue, singleValue) => {
     const rawValue = doubleValue ?? singleValue ?? '';
@@ -2619,7 +2629,11 @@ function rewriteHtmlAssetUrls(html: string, basePath: string, resolveAssetUrl: (
     const quote = wrapped.startsWith("'") ? "'" : '"';
     return `srcset=${quote}${escapeHtmlAttribute(rewritten)}${quote}`;
   });
-  return rewriteCssAssetUrls(result, basePath, resolveAssetUrl);
+  result = rewriteCssAssetUrls(result, basePath, resolveAssetUrl);
+  return result.replace(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi, (match, content) => {
+    const rewritten = rewriteScriptAssetUrls(content, basePath, resolveAssetUrl);
+    return rewritten === content ? match : match.replace(content, rewritten);
+  });
 }
 
 function findHeartGardenFileByReference(
@@ -2651,7 +2665,8 @@ function inlineHeartGardenLinkedFiles(
   result = result.replace(new RegExp(`<script\\b[^>]*\\bsrc=(["'])([^"']+)\\1[^>]*>\\s*${scriptEndTag}`, 'gi'), (match, _quote, src) => {
     const file = findHeartGardenFileByReference(files, src, entryPath, ['js']);
     if (!file?.content) return match;
-    const content = String(file.content).replace(new RegExp(scriptEndTag, 'gi'), '<\\/script');
+    const rewritten = rewriteScriptAssetUrls(file.content, file.path, resolveAssetUrl);
+    const content = rewritten.replace(new RegExp(scriptEndTag, 'gi'), '<\\/script');
     const closeTag = '<' + '/script>';
     return `<script data-file="${escapeHtmlAttribute(file.path)}">\n${content}\n${closeTag}`;
   });
