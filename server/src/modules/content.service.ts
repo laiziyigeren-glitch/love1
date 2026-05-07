@@ -666,6 +666,32 @@ export class ContentService {
     await this.prisma.playlistItem.deleteMany({
       where: { songId: id },
     });
+    const siteConfig = await this.prisma.siteConfig.findUnique({
+      where: { spaceId: space.id },
+      select: { id: true, settings: true },
+    });
+    if (siteConfig) {
+      const settings = this.asHomeSettings(siteConfig.settings);
+      let changed = false;
+      if (settings.music.bgmSongId === id) {
+        settings.music.bgmSongId = '';
+        changed = true;
+      }
+      settings.music.moodPlaylists = settings.music.moodPlaylists.map((playlist) => {
+        if (!Array.isArray(playlist.songIds) || !playlist.songIds.includes(id)) return playlist;
+        changed = true;
+        return {
+          ...playlist,
+          songIds: playlist.songIds.filter((songId) => songId !== id),
+        };
+      });
+      if (changed) {
+        await this.prisma.siteConfig.update({
+          where: { id: siteConfig.id },
+          data: { settings },
+        });
+      }
+    }
     await this.prisma.song.delete({ where: { id } });
     return { success: true };
   }
@@ -888,10 +914,10 @@ export class ContentService {
         { id: 'moment-sunrise', title: '一起看日出', date: '2023-01-01' },
       ],
       promises: [
-        { id: 'promise-travel', icon: '🌍', text: '一起去看遍世界的美景' },
-        { id: 'promise-pet', icon: '🐱', text: '一起养一只可爱的猫咪' },
-        { id: 'promise-dream', icon: '✅', text: '一起实现彼此的梦想' },
-        { id: 'promise-forever', icon: '⭐', text: '一起慢慢变老，直到永远' },
+        { id: 'promise-travel', icon: '🌍', text: '一起去看遍世界的美景', done: false },
+        { id: 'promise-pet', icon: '🐱', text: '一起养一只可爱的猫咪', done: false },
+        { id: 'promise-dream', icon: '✨', text: '一起实现彼此的梦想', done: true },
+        { id: 'promise-forever', icon: '⭐', text: '一起慢慢变老，直到永远', done: false },
       ],
       mailbox: {
         text: '谢谢你出现在我的生命里，你让我的世界变得完整而美好。每一个和你在一起的日子，都是我最珍贵的收藏。',
@@ -985,8 +1011,25 @@ export class ContentService {
         },
       },
       heartIndex: { ...defaults.heartIndex, ...(source.heartIndex ?? {}) },
-      moments: Array.isArray(source.moments) ? source.moments : defaults.moments,
-      promises: Array.isArray(source.promises) ? source.promises : defaults.promises,
+      moments: Array.isArray(source.moments)
+        ? source.moments
+            .map((item, index) => ({
+              id: String(item?.id || `moment-${index + 1}`),
+              title: String(item?.title || '').trim(),
+              date: String(item?.date || '').slice(0, 10),
+            }))
+            .filter((item) => item.title && item.date)
+        : defaults.moments,
+      promises: Array.isArray(source.promises)
+        ? source.promises
+            .map((item, index) => ({
+              id: String(item?.id || `promise-${index + 1}`),
+              icon: String(item?.icon || '❤️') === '✅' ? '✨' : String(item?.icon || '❤️'),
+              text: String(item?.text || '').trim(),
+              done: item?.done === true,
+            }))
+            .filter((item) => item.text)
+        : defaults.promises,
       mailbox: { ...defaults.mailbox, ...(source.mailbox ?? {}) },
       music: {
         ...defaults.music,

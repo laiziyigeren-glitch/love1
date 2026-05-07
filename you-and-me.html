@@ -2330,7 +2330,7 @@ nav {
           <div class="future-list">
             <div class="future-item"><span class="future-check"></span><span class="future-icon">🌍</span><span class="future-text">一起去看遍世界的美景</span></div>
             <div class="future-item"><span class="future-check"></span><span class="future-icon">🐱</span><span class="future-text">一起养一只可爱的猫咪</span></div>
-            <div class="future-item done"><span class="future-check">✓</span><span class="future-icon">⭐</span><span class="future-text">一起实现彼此的梦想</span></div>
+            <div class="future-item done"><span class="future-check">✓</span><span class="future-icon">✨</span><span class="future-text">一起实现彼此的梦想</span></div>
             <div class="future-item"><span class="future-check"></span><span class="future-icon">⭐</span><span class="future-text">一起慢慢变老，直到永远</span></div>
           </div>
         </div>
@@ -3428,17 +3428,26 @@ function renderMoodPlaylists(settings = {}) {
   const card = document.querySelector('.mood-playlist-card');
   if (!card) return;
   const playlists = Array.isArray(settings.music?.moodPlaylists) ? settings.music.moodPlaylists : [];
-  if (!playlists.length) {
-    card.innerHTML = '<div class="card-title"><span>❤️</span> 心情歌单</div><div class="card-footer">后台还没有配置心情歌单。</div>';
-    return;
-  }
-  const rows = playlists.map((playlist, index) => {
+  const playlistModels = playlists.map((playlist, index) => {
     const songs = (playlist.songIds || [])
       .map(id => musicState.songs.find(song => song.id === id))
       .filter(Boolean)
       .map(song => normalizeSongDisplay(song));
-    const firstSong = songs[0];
-    const hiddenClass = index > 0 ? 'mood-extra' : '';
+    return {
+      raw: playlist,
+      index,
+      songs,
+      firstSong: songs[0] || null,
+    };
+  });
+  if (!playlistModels.length) {
+    card.innerHTML = '<div class="card-title"><span>❤️</span> 心情歌单</div><div class="card-footer">后台还没有配置心情歌单。</div>';
+    return;
+  }
+  const featured = playlistModels.find((item) => item.songs.length) || playlistModels[0];
+  const rows = playlistModels.map((item) => {
+    const { raw: playlist, songs, firstSong, index } = item;
+    const hiddenClass = index !== featured.index ? 'mood-extra' : '';
     return `
       <div class="mood-playlist-row ${hiddenClass}">
         <div>
@@ -3449,12 +3458,9 @@ function renderMoodPlaylists(settings = {}) {
       </div>
     `;
   }).join('');
-  const first = playlists[0];
-  const firstSongs = (first.songIds || [])
-    .map(id => musicState.songs.find(song => song.id === id))
-    .filter(Boolean)
-    .map(song => normalizeSongDisplay(song));
-  const firstSong = firstSongs[0];
+  const first = featured.raw;
+  const firstSongs = featured.songs;
+  const firstSong = featured.firstSong;
   card.innerHTML = `
     <div class="card-title"><span>❤️</span> 心情歌单 <span class="mood-show-all" style="margin-left:auto;font-size:11px;color:var(--rose-light);cursor:pointer">查看全部</span></div>
     <div class="mood-cover">${first.coverUrl ? `<img src="${escapeHtml(first.coverUrl)}" alt="">` : '☁️'}</div>
@@ -3465,7 +3471,7 @@ function renderMoodPlaylists(settings = {}) {
       </div>
       <div class="mood-playlist-first">第一首：<strong>${escapeHtml(firstSong?.title || '还没有配置歌曲')}</strong></div>
       <div class="mood-playlist-actions">
-        <button class="mood-playlist-primary" data-playlist-index="0" ${firstSongs.length ? '' : 'disabled'}>▶ 一键播放整张歌单</button>
+        <button class="mood-playlist-primary" data-playlist-index="${featured.index}" ${firstSongs.length ? '' : 'disabled'}>▶ 一键播放整张歌单</button>
       </div>
     </div>
     <div class="mood-playlist-items">
@@ -3474,7 +3480,7 @@ function renderMoodPlaylists(settings = {}) {
   `;
   const showAll = card.querySelector('.mood-show-all');
   if (showAll) {
-    showAll.style.display = playlists.length > 1 ? '' : 'none';
+    showAll.style.display = playlistModels.length > 1 ? '' : 'none';
     showAll.addEventListener('click', () => {
       card.classList.toggle('show-all');
       showAll.textContent = card.classList.contains('show-all') ? '收起' : '查看全部';
@@ -3590,7 +3596,7 @@ function normalizeSettings(settings = {}) {
     promises: Array.isArray(settings.promises)
       ? settings.promises.map((item, index) => ({
         id: item.id || `promise-${index}`,
-        icon: item.icon || '❤️',
+        icon: (item.icon || '❤️') === '✅' ? '✨' : (item.icon || '❤️'),
         text: String(item.text || '').trim(),
         done: item.done === true,
       })).filter((item) => item.text)
@@ -4336,6 +4342,18 @@ async function apiFetch(path, options = {}) {
     throw new Error(`API ${res.status}${detail ? `: ${detail.slice(0, 180)}` : ''}`);
   }
   return res.json();
+}
+
+function isRetryableNetworkError(error) {
+  const message = String(error?.message || '');
+  return error?.name === 'AbortError'
+    || message.includes('Failed to fetch')
+    || message.includes('NetworkError')
+    || message.includes('Load failed');
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function getCoupleToken() {
@@ -5421,13 +5439,24 @@ async function persistFuturePromises(settings) {
     bio: spaceData.subtitle || '',
     avatarUrl: '',
   };
-  const saved = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/settings`, {
+  const requestSave = (timeoutMs) => coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/settings`, {
     method: 'PATCH',
+    timeoutMs,
     body: JSON.stringify({ profile, settings, theme: spaceData.theme }),
   });
+  let saved;
+  try {
+    saved = await requestSave(35000);
+  } catch (error) {
+    if (!isRetryableNetworkError(error)) throw error;
+    await delay(800);
+    saved = await requestSave(55000);
+  }
   spaceData.site.settings = normalizeSettings(saved.settings || settings);
   writeSpaceCache(spaceData);
 }
+
+const futurePromiseSaving = new Set();
 
 async function toggleFuturePromise(promiseId, itemEl) {
   if (!spaceData) return;
@@ -5436,25 +5465,26 @@ async function toggleFuturePromise(promiseId, itemEl) {
     showCoupleLogin();
     return;
   }
-  const settings = normalizeSettings(spaceData.site.settings || {});
-  const promises = Array.isArray(settings.promises) ? settings.promises : [];
+  if (futurePromiseSaving.has(promiseId)) return;
+  const currentSettings = normalizeSettings(spaceData.site.settings || {});
+  const nextSettings = normalizeSettings(currentSettings);
+  const promises = Array.isArray(nextSettings.promises) ? nextSettings.promises : [];
   const target = promises.find((item) => item.id === promiseId);
   if (!target) return;
-  target.done = !target.done;
-  spaceData.site.settings = settings;
-  renderHomeSettings(spaceData.site.settings, spaceData);
-  writeSpaceCache(spaceData);
+  futurePromiseSaving.add(promiseId);
   if (itemEl) itemEl.classList.add('saving');
   try {
-    await persistFuturePromises(settings);
-  } catch (error) {
     target.done = !target.done;
-    spaceData.site.settings = settings;
+    await persistFuturePromises(nextSettings);
     renderHomeSettings(spaceData.site.settings, spaceData);
-    writeSpaceCache(spaceData);
+  } catch (error) {
     console.error(error);
-    alert(`勾选保存失败：${error?.message || '请稍后再试。'}`);
+    const fallbackMessage = isRetryableNetworkError(error)
+      ? '网络连接超时，可能是后端刚刚冷启动，稍等再试一下。'
+      : (error?.message || '请稍后再试。');
+    alert(`勾选保存失败：${fallbackMessage}`);
   } finally {
+    futurePromiseSaving.delete(promiseId);
     if (itemEl) itemEl.classList.remove('saving');
   }
 }

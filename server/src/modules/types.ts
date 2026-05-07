@@ -45,6 +45,7 @@ export type HomeSettings = {
     id: string;
     icon: string;
     text: string;
+    done?: boolean;
   }>;
   mailbox: {
     text: string;
