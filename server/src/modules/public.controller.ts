@@ -1,9 +1,13 @@
 import { Controller, Get, Header, Param } from '@nestjs/common';
 import { ContentService } from './content.service';
+import { AiAssistantService } from './ai-assistant.service';
 
 @Controller('public/spaces/:slug')
 export class PublicController {
-  constructor(private readonly content: ContentService) {}
+  constructor(
+    private readonly content: ContentService,
+    private readonly ai: AiAssistantService,
+  ) {}
 
   @Get('bootstrap')
   @Header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
@@ -31,5 +35,10 @@ export class PublicController {
   @Get('music/songs')
   getSongs(@Param('slug') slug: string) {
     return this.content.listSongs(slug);
+  }
+
+  @Get('ai/config')
+  getAiConfig(@Param('slug') slug: string) {
+    return this.ai.getPublicConfig(slug);
   }
 }

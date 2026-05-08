@@ -63,6 +63,10 @@ model CoupleSpace {
   songs          Song[]
   playlists      Playlist[]
   shareLinks     ShareLink[]
+  aiProviderConfig AiProviderConfig?
+  aiConversations AiConversation[]
+  aiMemories     AiMemory[]
+  aiKnowledgeSnapshot AiKnowledgeSnapshot?
 }
 
 model SpaceMember {
@@ -235,6 +239,72 @@ model ShareLink {
   allowPrivate Boolean    @default(false)
   enabled     Boolean     @default(true)
   space       CoupleSpace @relation(fields: [spaceId], references: [id])
+}
+
+model AiProviderConfig {
+  id                 String      @id @default(cuid())
+  spaceId            String      @unique
+  enabled            Boolean     @default(false)
+  provider           String      @default("deepseek")
+  baseUrl            String      @default("https://api.deepseek.com")
+  model              String      @default("deepseek-v4-flash")
+  apiKeyEncrypted    String?     @db.LongText
+  apiKeyLast4        String?
+  assistantName      String      @default("心语")
+  openingMessage     String      @db.LongText
+  personality        String      @default("gentle")
+  memoryEnabled      Boolean     @default(true)
+  actionEnabled      Boolean     @default(false)
+  dailyMessageLimit  Int         @default(80)
+  systemPromptOverride String?   @db.LongText
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  space              CoupleSpace @relation(fields: [spaceId], references: [id])
+}
+
+model AiConversation {
+  id        String      @id @default(cuid())
+  spaceId   String
+  title     String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  space     CoupleSpace @relation(fields: [spaceId], references: [id])
+  messages  AiMessage[]
+}
+
+model AiMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  role           String
+  content        String         @db.LongText
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  conversation   AiConversation @relation(fields: [conversationId], references: [id])
+}
+
+model AiMemory {
+  id              String      @id @default(cuid())
+  spaceId         String
+  type            String      @default("note")
+  content         String      @db.LongText
+  confidence      Float       @default(0.6)
+  sourceMessageId String?
+  archived        Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  space           CoupleSpace @relation(fields: [spaceId], references: [id])
+}
+
+model AiKnowledgeSnapshot {
+  id            String      @id @default(cuid())
+  spaceId       String      @unique
+  sourceVersion String
+  summary       String      @db.LongText
+  sectionsJson  Json
+  contentHash   String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  space         CoupleSpace @relation(fields: [spaceId], references: [id])
 }
 
 model AuditLog {

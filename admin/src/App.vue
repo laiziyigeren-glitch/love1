@@ -832,6 +832,77 @@
             </el-form>
           </el-card>
         </section>
+
+        <section v-show="active === 'ai'">
+          <el-card shadow="never">
+            <template #header>AI 小助手</template>
+            <el-form label-width="130px" class="theme-form">
+              <el-alert
+                show-icon
+                :closable="false"
+                type="info"
+                title="第一阶段：后台配置模型，前台提供心语聊天；AI 可以了解网站内容和聊天记忆，但不会直接修改网站数据。"
+              />
+              <el-divider content-position="left">基础开关</el-divider>
+              <el-form-item label="启用助手">
+                <el-switch v-model="aiConfig.enabled" active-text="开启" inactive-text="关闭" />
+              </el-form-item>
+              <el-form-item label="助手名称">
+                <el-input v-model="aiConfig.assistantName" placeholder="心语" />
+              </el-form-item>
+              <el-form-item label="开场白">
+                <el-input v-model="aiConfig.openingMessage" type="textarea" :rows="3" />
+              </el-form-item>
+
+              <el-divider content-position="left">模型服务</el-divider>
+              <el-form-item label="服务商">
+                <el-select v-model="aiConfig.provider">
+                  <el-option label="DeepSeek" value="deepseek" />
+                  <el-option label="通义千问 / 百炼" value="qwen" />
+                  <el-option label="OpenAI 兼容" value="openai-compatible" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="Base URL">
+                <el-input v-model="aiConfig.baseUrl" placeholder="https://api.deepseek.com" />
+              </el-form-item>
+              <el-form-item label="模型名称">
+                <el-input v-model="aiConfig.model" placeholder="deepseek-v4-flash" />
+              </el-form-item>
+              <el-form-item label="API Key">
+                <el-input v-model="aiApiKeyDraft" type="password" show-password placeholder="留空则不修改已保存的 Key" autocomplete="new-password" />
+                <span class="form-hint">{{ aiConfig.apiKeySet ? `当前已保存：****${aiConfig.apiKeyLast4}` : '还没有保存 API Key' }}</span>
+              </el-form-item>
+
+              <el-divider content-position="left">性格与记忆</el-divider>
+              <el-form-item label="性格">
+                <el-radio-group v-model="aiConfig.personality">
+                  <el-radio-button label="gentle">温柔</el-radio-button>
+                  <el-radio-button label="lively">活泼</el-radio-button>
+                  <el-radio-button label="quiet">安静</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item label="长期记忆">
+                <el-switch v-model="aiConfig.memoryEnabled" />
+              </el-form-item>
+              <el-form-item label="待确认操作">
+                <el-switch v-model="aiConfig.actionEnabled" disabled />
+                <span class="form-hint">第一阶段暂不开放真实写入。</span>
+              </el-form-item>
+              <el-form-item label="每日消息上限">
+                <el-input-number v-model="aiConfig.dailyMessageLimit" :min="1" :max="500" />
+              </el-form-item>
+              <el-form-item label="补充提示词">
+                <el-input v-model="aiConfig.systemPromptOverride" type="textarea" :rows="4" placeholder="可补充你希望心语遵守的说话习惯" />
+              </el-form-item>
+
+              <div class="inline-actions">
+                <el-button type="primary" :loading="aiSaving" @click="saveAiSettings">保存 AI 设置</el-button>
+                <el-button :loading="aiTesting" @click="testAiSettings">测试连接</el-button>
+                <el-button :loading="aiRebuilding" @click="rebuildAiKnowledgeNow">重新学习网站内容</el-button>
+              </div>
+            </el-form>
+          </el-card>
+        </section>
       </el-main>
 
       <el-main v-else class="main">
@@ -849,6 +920,7 @@ import { ElMessage, ElMessageBox, type UploadRequestOptions } from 'element-plus
 import {
   type Dashboard,
   type UploadPathOptions,
+  type AiConfig,
   clearAdminToken,
   completeMediaUpload,
   createUploadUrl,
@@ -856,17 +928,21 @@ import {
   deleteAnniversary,
   deleteLetter,
   deleteSong,
+  fetchAiConfig,
   fetchCoupleAccess,
   fetchDashboard,
   getAdminToken,
   loginAdmin,
   saveAnniversary,
+  saveAiConfig,
   saveCoupleAccess,
   saveLetter,
   saveProfiles,
   saveSite,
   saveSong,
   saveTheme,
+  testAiConfig,
+  rebuildAiKnowledge,
   updateAlbumItem,
 } from './api';
 
@@ -906,6 +982,7 @@ const adminNavItems = [
   { index: 'letter', label: '情书' },
   { index: 'music', label: '音乐' },
   { index: 'romance', label: '心动花园' },
+  { index: 'ai', label: 'AI 小助手' },
   { index: 'theme', label: '主题' },
   { index: 'privacy', label: '隐私提醒' },
 ];
@@ -1011,6 +1088,25 @@ const codeEditor = reactive({
   newFilePath: '',
 });
 const heartGardenFolderInputRef = ref<HTMLInputElement | null>(null);
+const aiConfig = reactive<AiConfig>({
+  enabled: false,
+  provider: 'deepseek',
+  baseUrl: 'https://api.deepseek.com',
+  model: 'deepseek-v4-flash',
+  apiKeySet: false,
+  apiKeyLast4: '',
+  assistantName: '心语',
+  openingMessage: '我在这里，陪你们聊聊天，也帮你们把重要的小事认真记住。',
+  personality: 'gentle',
+  memoryEnabled: true,
+  actionEnabled: false,
+  dailyMessageLimit: 80,
+  systemPromptOverride: '',
+});
+const aiApiKeyDraft = ref('');
+const aiSaving = ref(false);
+const aiTesting = ref(false);
+const aiRebuilding = ref(false);
 
 const pageTitle = computed(() => ({
   dashboard: '仪表盘',
@@ -1021,6 +1117,7 @@ const pageTitle = computed(() => ({
   letter: '情书管理',
   music: '音乐管理',
   romance: '心动花园',
+  ai: 'AI 小助手',
   theme: '主题配置',
   privacy: '隐私与提醒',
 }[active.value] ?? '后台管理'));
@@ -1126,11 +1223,14 @@ const heartValuesText = computed({
 async function load() {
   loading.value = true;
   try {
-    const [nextDashboard, coupleAccess] = await Promise.all([
+    const [nextDashboard, coupleAccess, nextAiConfig] = await Promise.all([
       fetchDashboard(),
       fetchCoupleAccess(),
+      fetchAiConfig(),
     ]);
     dashboard.value = nextDashboard;
+    Object.assign(aiConfig, nextAiConfig);
+    aiApiKeyDraft.value = '';
     coupleAccessForm.name = coupleAccess.name || 'love';
     coupleAccessForm.password = '';
     coupleAccessForm.passwordSet = coupleAccess.passwordSet;
@@ -2773,6 +2873,48 @@ async function savePrivacyAndReminders() {
   ensureCoupleEntranceSettings();
   await saveSite(dashboard.value.site);
   ElMessage.success('隐私与提醒已保存，前台会自动同步');
+}
+
+async function saveAiSettings() {
+  aiSaving.value = true;
+  try {
+    const saved = await saveAiConfig({
+      ...aiConfig,
+      apiKey: aiApiKeyDraft.value.trim() || undefined,
+    });
+    Object.assign(aiConfig, saved);
+    aiApiKeyDraft.value = '';
+    ElMessage.success('AI 设置已保存');
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, 'AI 设置保存失败'));
+  } finally {
+    aiSaving.value = false;
+  }
+}
+
+async function testAiSettings() {
+  aiTesting.value = true;
+  try {
+    await saveAiSettings();
+    const result = await testAiConfig();
+    ElMessage.success(result.message || 'AI 连接成功');
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, 'AI 连接测试失败'));
+  } finally {
+    aiTesting.value = false;
+  }
+}
+
+async function rebuildAiKnowledgeNow() {
+  aiRebuilding.value = true;
+  try {
+    await rebuildAiKnowledge();
+    ElMessage.success('心语已重新学习当前网站内容');
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '重新学习失败'));
+  } finally {
+    aiRebuilding.value = false;
+  }
 }
 
 async function saveCoupleAccessSettings() {

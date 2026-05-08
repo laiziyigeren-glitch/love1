@@ -5,6 +5,7 @@ import { AdminAuthController } from './modules/admin-auth.controller';
 import { AdminAuthGuard } from './modules/admin-auth.guard';
 import { AuthService } from './modules/auth.service';
 import { AdminController } from './modules/admin.controller';
+import { AiAssistantService } from './modules/ai-assistant.service';
 import { CoupleAuthController } from './modules/couple-auth.controller';
 import { CoupleAuthGuard } from './modules/couple-auth.guard';
 import { CoupleController } from './modules/couple.controller';
@@ -23,6 +24,6 @@ import { StorageService } from './modules/storage.service';
     JwtModule.register({}),
   ],
   controllers: [HealthController, PublicController, AdminAuthController, AdminController, CoupleAuthController, CoupleController],
-  providers: [AdminAuthGuard, CoupleAuthGuard, AuthService, ContentService, PrismaService, StorageService],
+  providers: [AdminAuthGuard, CoupleAuthGuard, AuthService, AiAssistantService, ContentService, PrismaService, StorageService],
 })
 export class AppModule {}

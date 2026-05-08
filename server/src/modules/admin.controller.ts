@@ -3,6 +3,7 @@ import { ContentService } from './content.service';
 import { StorageService, type UploadPathOptions } from './storage.service';
 import { AdminAuthGuard } from './admin-auth.guard';
 import { AuthService } from './auth.service';
+import { AiAssistantService } from './ai-assistant.service';
 import { Anniversary, LoveLetter, Profile, Song, SpaceData, ThemeConfig } from './types';
 
 @Controller('admin/spaces/:slug')
@@ -12,6 +13,7 @@ export class AdminController {
     private readonly content: ContentService,
     private readonly storage: StorageService,
     private readonly auth: AuthService,
+    private readonly ai: AiAssistantService,
   ) {}
 
   @Get('dashboard')
@@ -141,5 +143,38 @@ export class AdminController {
     },
   ) {
     return this.content.completeMediaUpload(slug, body);
+  }
+
+  @Get('ai/config')
+  getAiConfig(@Param('slug') slug: string) {
+    return this.ai.getAdminConfig(slug);
+  }
+
+  @Patch('ai/config')
+  saveAiConfig(@Param('slug') slug: string, @Body() body: {
+    enabled?: boolean;
+    provider?: string;
+    baseUrl?: string;
+    model?: string;
+    apiKey?: string;
+    assistantName?: string;
+    openingMessage?: string;
+    personality?: string;
+    memoryEnabled?: boolean;
+    actionEnabled?: boolean;
+    dailyMessageLimit?: number;
+    systemPromptOverride?: string;
+  }) {
+    return this.ai.saveAdminConfig(slug, body);
+  }
+
+  @Post('ai/test')
+  testAiConfig(@Param('slug') slug: string) {
+    return this.ai.testConfig(slug);
+  }
+
+  @Post('ai/rebuild-knowledge')
+  rebuildAiKnowledge(@Param('slug') slug: string) {
+    return this.ai.rebuildKnowledge(slug);
   }
 }

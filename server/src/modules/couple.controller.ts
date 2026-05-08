@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ContentService } from './content.service';
+import { AiAssistantService } from './ai-assistant.service';
 import { CoupleAuthGuard } from './couple-auth.guard';
 import { StorageService, type UploadPathOptions } from './storage.service';
 import { Profile, ThemeConfig, type HomeSettings } from './types';
@@ -10,6 +11,7 @@ export class CoupleController {
   constructor(
     private readonly content: ContentService,
     private readonly storage: StorageService,
+    private readonly ai: AiAssistantService,
   ) {}
 
   @Post('media/upload-url')
@@ -102,5 +104,18 @@ export class CoupleController {
     },
   ) {
     return this.content.saveCoupleSettings(slug, body);
+  }
+
+  @Post('ai/chat')
+  chatWithAi(
+    @Param('slug') slug: string,
+    @Body() body: { conversationId?: string; message: string },
+  ) {
+    return this.ai.chat(slug, body);
+  }
+
+  @Post('ai/rebuild-knowledge')
+  rebuildAiKnowledge(@Param('slug') slug: string) {
+    return this.ai.rebuildKnowledge(slug);
   }
 }

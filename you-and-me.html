@@ -1525,6 +1525,55 @@ nav {
 .reminder-toast-body { color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
 .settings-footer-btns { display: flex; gap: 12px; justify-content: center; margin-top: 0; }
 .settings-section-actions { justify-content: flex-end; }
+
+.ai-assistant-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 96px;
+  z-index: 2200;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(80, 35, 50, 0.76);
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.32), 0 0 24px rgba(232,116,138,0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+}
+.ai-assistant-fab.show { display: flex; }
+.ai-assistant-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 164px;
+  z-index: 2201;
+  width: min(420px, calc(100vw - 32px));
+  height: min(620px, calc(100vh - 190px));
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(48, 24, 32, 0.9);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.46);
+  backdrop-filter: blur(18px);
+}
+.ai-assistant-panel.open { display: flex; }
+.ai-assistant-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.ai-assistant-title { font-weight: 800; color: var(--rose-light); }
+.ai-assistant-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.ai-assistant-close { border: 0; background: transparent; color: var(--text-muted); font-size: 22px; cursor: pointer; }
+.ai-assistant-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.ai-message { max-width: 86%; padding: 10px 12px; border-radius: 14px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; }
+.ai-message.assistant { align-self: flex-start; background: rgba(255,255,255,0.08); color: var(--text-primary); border-top-left-radius: 4px; }
+.ai-message.user { align-self: flex-end; background: rgba(232,116,138,0.28); color: #fff; border-top-right-radius: 4px; }
+.ai-assistant-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+.ai-assistant-input { flex: 1; border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; background: rgba(255,255,255,0.08); color: #fff; padding: 10px 12px; outline: none; font-family: inherit; }
+.ai-assistant-send { border: 0; border-radius: 12px; padding: 0 14px; background: var(--rose); color: #fff; font-weight: 700; cursor: pointer; }
+.ai-assistant-send:disabled { opacity: 0.55; cursor: not-allowed; }
 .anniversary-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .anniversary-title-row .card-title { margin-bottom: 0; }
 .settings-inline-save {
@@ -2014,6 +2063,24 @@ nav {
   }
   body[data-page="album"] .album-mobile-upload {
     display: flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .ai-assistant-fab {
+    right: 16px;
+    bottom: 92px;
+    width: 48px;
+    height: 48px;
+    font-size: 12px;
+  }
+  .ai-assistant-panel {
+    left: 12px;
+    right: 12px;
+    bottom: 82px;
+    width: auto;
+    height: min(74vh, 620px);
+    border-radius: 18px 18px 14px 14px;
   }
 }
 @media (max-width: 520px) {
@@ -2891,6 +2958,22 @@ nav {
 <!-- SAVE TOAST -->
 <div id="toast" style="position:fixed;bottom:max(28px, env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(150px);opacity:0;background:linear-gradient(135deg,var(--rose),#c04060);color:white;padding:13px 28px;border-radius:30px;font-size:13px;font-family:inherit;box-shadow:0 8px 30px rgba(232,116,138,0.5);transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease;z-index:999;pointer-events:none">
   ❤️ 保存成功！每一个设置都是专属于你们的浪漫~
+</div>
+
+<button class="ai-assistant-fab" id="aiAssistantFab" type="button" title="心语助手" onclick="openAiAssistant()">心语</button>
+<div class="ai-assistant-panel" id="aiAssistantPanel" aria-hidden="true">
+  <div class="ai-assistant-head">
+    <div>
+      <div class="ai-assistant-title" id="aiAssistantTitle">心语助手</div>
+      <div class="ai-assistant-sub">已准备听你们说话</div>
+    </div>
+    <button class="ai-assistant-close" type="button" onclick="closeAiAssistant()">×</button>
+  </div>
+  <div class="ai-assistant-messages" id="aiAssistantMessages"></div>
+  <form class="ai-assistant-form" id="aiAssistantForm">
+    <input class="ai-assistant-input" id="aiAssistantInput" autocomplete="off" placeholder="和心语说点什么..." />
+    <button class="ai-assistant-send" id="aiAssistantSend" type="submit">发送</button>
+  </form>
 </div>
 
 <div class="media-lightbox" id="mediaLightbox">
@@ -4277,6 +4360,8 @@ let settingsDirty = false;
 let romanceFilter = 'all';
 let currentRomanceBlobUrl = '';
 let romancePreviewLoadTimer = null;
+let aiAssistantConfig = { enabled: false, assistantName: '心语', openingMessage: '' };
+let aiConversationId = '';
 
 const romanceProjects = [
   {
@@ -5741,6 +5826,82 @@ async function loadSpaceFromBackend({ force = false } = {}) {
   }
 }
 
+async function loadAiAssistantConfig() {
+  try {
+    aiAssistantConfig = await apiFetch(`/public/spaces/${SPACE_SLUG}/ai/config?t=${Date.now()}`, { timeoutMs: 7000 });
+    const fab = document.getElementById('aiAssistantFab');
+    const title = document.getElementById('aiAssistantTitle');
+    if (fab) {
+      fab.classList.toggle('show', !!aiAssistantConfig.enabled);
+      fab.textContent = aiAssistantConfig.assistantName || '心语';
+      fab.title = `${aiAssistantConfig.assistantName || '心语'}助手`;
+    }
+    if (title) title.textContent = `${aiAssistantConfig.assistantName || '心语'}助手`;
+  } catch (error) {
+    console.warn('Failed to load AI assistant config.', error);
+  }
+}
+
+function appendAiMessage(role, content) {
+  const box = document.getElementById('aiAssistantMessages');
+  if (!box) return;
+  const item = document.createElement('div');
+  item.className = `ai-message ${role}`;
+  item.textContent = content;
+  box.appendChild(item);
+  box.scrollTop = box.scrollHeight;
+}
+
+function openAiAssistant() {
+  if (!getCoupleToken()) {
+    showCoupleLogin('先进入情侣入口，再和心语聊天。');
+    return;
+  }
+  const panel = document.getElementById('aiAssistantPanel');
+  const box = document.getElementById('aiAssistantMessages');
+  if (panel) {
+    panel.classList.add('open');
+    panel.setAttribute('aria-hidden', 'false');
+  }
+  if (box && !box.children.length) {
+    appendAiMessage('assistant', aiAssistantConfig.openingMessage || '我在这里，陪你们聊聊天，也帮你们把重要的小事认真记住。');
+  }
+  document.getElementById('aiAssistantInput')?.focus();
+}
+
+function closeAiAssistant() {
+  const panel = document.getElementById('aiAssistantPanel');
+  if (panel) {
+    panel.classList.remove('open');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+}
+
+async function sendAiAssistantMessage(event) {
+  event.preventDefault();
+  const input = document.getElementById('aiAssistantInput');
+  const send = document.getElementById('aiAssistantSend');
+  const text = String(input?.value || '').trim();
+  if (!text) return;
+  if (input) input.value = '';
+  appendAiMessage('user', text);
+  if (send) send.disabled = true;
+  try {
+    const data = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/ai/chat`, {
+      method: 'POST',
+      body: JSON.stringify({ conversationId: aiConversationId || undefined, message: text }),
+      timeoutMs: 45000,
+    });
+    aiConversationId = data.conversationId || aiConversationId;
+    appendAiMessage('assistant', data.message?.content || '我在这里，只是刚刚没能组织好语言。');
+  } catch (error) {
+    console.error(error);
+    appendAiMessage('assistant', `这次没连上 AI：${error?.message || '请稍后再试，或者去后台检查 API Key。'}`);
+  } finally {
+    if (send) send.disabled = false;
+  }
+}
+
 async function saveSettingsToBackend() {
   if (!spaceData) {
     await loadSpaceFromBackend();
@@ -6157,6 +6318,8 @@ document.addEventListener('DOMContentLoaded', () => {
   bindBackendActions();
   bindSettingsPageControls();
   bindMobileSettingsSections();
+  document.getElementById('aiAssistantForm')?.addEventListener('submit', sendAiAssistantMessage);
+  loadAiAssistantConfig();
   renderRomanceProjects();
   bindRomanceFilters();
   if (cachedSpace) renderSpaceIfChanged(cachedSpace, true);

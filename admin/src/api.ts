@@ -355,3 +355,39 @@ export async function saveSong(item: Dashboard['songs'][number]) {
 export async function deleteSong(id: string) {
   await api.delete(`/api/admin/spaces/${spaceSlug}/music/songs/${id}`);
 }
+
+export type AiConfig = {
+  enabled: boolean;
+  provider: string;
+  baseUrl: string;
+  model: string;
+  apiKeySet: boolean;
+  apiKeyLast4: string;
+  assistantName: string;
+  openingMessage: string;
+  personality: string;
+  memoryEnabled: boolean;
+  actionEnabled: boolean;
+  dailyMessageLimit: number;
+  systemPromptOverride: string;
+};
+
+export async function fetchAiConfig() {
+  const response = await api.get<AiConfig>(`/api/admin/spaces/${spaceSlug}/ai/config`);
+  return response.data;
+}
+
+export async function saveAiConfig(payload: Partial<AiConfig> & { apiKey?: string }) {
+  const response = await api.patch<AiConfig>(`/api/admin/spaces/${spaceSlug}/ai/config`, payload);
+  return response.data;
+}
+
+export async function testAiConfig() {
+  const response = await api.post<{ success: boolean; message: string }>(`/api/admin/spaces/${spaceSlug}/ai/test`);
+  return response.data;
+}
+
+export async function rebuildAiKnowledge() {
+  const response = await api.post(`/api/admin/spaces/${spaceSlug}/ai/rebuild-knowledge`);
+  return response.data as { summary: string; updatedAt: string };
+}
