@@ -1543,8 +1543,33 @@ nav {
   justify-content: center;
   cursor: pointer;
   backdrop-filter: blur(14px);
+  animation: aiFloat 4.2s ease-in-out infinite;
+}
+.ai-assistant-fab::before,
+.ai-assistant-fab::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 156, 178, 0.32);
+  opacity: 0;
+  animation: aiPulse 3s ease-out infinite;
+  pointer-events: none;
+}
+.ai-assistant-fab::after { animation-delay: 1.5s; }
+.ai-assistant-fab:hover {
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: 0 18px 42px rgba(0,0,0,0.38), 0 0 32px rgba(232,116,138,0.5);
 }
 .ai-assistant-fab.show { display: flex; }
+@keyframes aiFloat {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -8px; }
+}
+@keyframes aiPulse {
+  0% { transform: scale(0.86); opacity: 0.65; }
+  70%, 100% { transform: scale(1.35); opacity: 0; }
+}
 .ai-assistant-panel {
   position: fixed;
   right: 24px;
@@ -1570,6 +1595,28 @@ nav {
 .ai-message { max-width: 86%; padding: 10px 12px; border-radius: 14px; font-size: 13px; line-height: 1.65; white-space: pre-wrap; }
 .ai-message.assistant { align-self: flex-start; background: rgba(255,255,255,0.08); color: var(--text-primary); border-top-left-radius: 4px; }
 .ai-message.user { align-self: flex-end; background: rgba(232,116,138,0.28); color: #fff; border-top-right-radius: 4px; }
+.ai-action-card {
+  align-self: flex-start;
+  width: min(100%, 340px);
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(232,116,138,0.36);
+  background: rgba(255,255,255,0.09);
+  color: var(--text-primary);
+}
+.ai-action-title { font-weight: 800; color: var(--rose-light); margin-bottom: 8px; }
+.ai-action-detail { font-size: 12px; line-height: 1.6; color: var(--text-secondary); white-space: pre-wrap; }
+.ai-action-buttons { display: flex; gap: 8px; margin-top: 10px; }
+.ai-action-btn {
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+  padding: 7px 12px;
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  cursor: pointer;
+}
+.ai-action-btn.primary { background: var(--rose); border-color: var(--rose); }
+.ai-action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .ai-assistant-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
 .ai-assistant-input { flex: 1; border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; background: rgba(255,255,255,0.08); color: #fff; padding: 10px 12px; outline: none; font-family: inherit; }
 .ai-assistant-send { border: 0; border-radius: 12px; padding: 0 14px; background: var(--rose); color: #fff; font-weight: 700; cursor: pointer; }
@@ -5852,6 +5899,62 @@ function appendAiMessage(role, content) {
   box.scrollTop = box.scrollHeight;
 }
 
+function formatAiActionDetail(action) {
+  const payload = action?.payload || {};
+  if (action?.type === 'create_anniversary') {
+    return [
+      `标题：${payload.title || action.title || '新的纪念日'}`,
+      `日期：${payload.date || payload.eventDate || '未识别'}`,
+      payload.description ? `说明：${payload.description}` : '',
+    ].filter(Boolean).join('\n');
+  }
+  if (action?.type === 'create_promise') {
+    return `内容：${payload.icon || '💗'} ${payload.text || action.title || '新的未来约定'}`;
+  }
+  if (action?.type === 'draft_letter') {
+    return [
+      `标题：${payload.title || action.title || '新的情书草稿'}`,
+      payload.body ? `内容：${String(payload.body).slice(0, 120)}` : '',
+    ].filter(Boolean).join('\n');
+  }
+  return action?.title || '待确认操作';
+}
+
+function appendAiActionCard(action) {
+  const box = document.getElementById('aiAssistantMessages');
+  if (!box || !action?.id) return;
+  const card = document.createElement('div');
+  card.className = 'ai-action-card';
+
+  const title = document.createElement('div');
+  title.className = 'ai-action-title';
+  title.textContent = action.label || action.title || '待确认操作';
+
+  const detail = document.createElement('div');
+  detail.className = 'ai-action-detail';
+  detail.textContent = formatAiActionDetail(action);
+
+  const buttons = document.createElement('div');
+  buttons.className = 'ai-action-buttons';
+
+  const confirm = document.createElement('button');
+  confirm.className = 'ai-action-btn primary';
+  confirm.type = 'button';
+  confirm.textContent = '确认写入';
+  confirm.addEventListener('click', () => confirmAiAction(action.id, card));
+
+  const reject = document.createElement('button');
+  reject.className = 'ai-action-btn';
+  reject.type = 'button';
+  reject.textContent = '先不要';
+  reject.addEventListener('click', () => rejectAiAction(action.id, card));
+
+  buttons.append(confirm, reject);
+  card.append(title, detail, buttons);
+  box.appendChild(card);
+  box.scrollTop = box.scrollHeight;
+}
+
 function openAiAssistant() {
   if (!getCoupleToken()) {
     showCoupleLogin('先进入情侣入口，再和心语聊天。');
@@ -5902,11 +6005,49 @@ async function sendAiAssistantMessage(event) {
     });
     aiConversationId = data.conversationId || aiConversationId;
     appendAiMessage('assistant', data.message?.content || '我在这里，只是刚刚没能组织好语言。');
+    if (data.actionSuggestion) appendAiActionCard(data.actionSuggestion);
   } catch (error) {
     console.error(error);
     appendAiMessage('assistant', `这次没连上 AI：${error?.message || '请稍后再试，或者去后台检查 API Key。'}`);
   } finally {
     if (send) send.disabled = false;
+  }
+}
+
+async function confirmAiAction(actionId, card) {
+  const buttons = card?.querySelectorAll('button') || [];
+  buttons.forEach(btn => { btn.disabled = true; });
+  try {
+    await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/ai/actions/${actionId}/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+      timeoutMs: 20000,
+    });
+    appendAiMessage('assistant', '已经写入网站了，我也会重新学习最新内容。');
+    card?.remove();
+    await loadSpaceFromBackend({ force: true });
+  } catch (error) {
+    console.error(error);
+    appendAiMessage('assistant', `写入失败：${error?.message || '请稍后再试。'}`);
+    buttons.forEach(btn => { btn.disabled = false; });
+  }
+}
+
+async function rejectAiAction(actionId, card) {
+  const buttons = card?.querySelectorAll('button') || [];
+  buttons.forEach(btn => { btn.disabled = true; });
+  try {
+    await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/ai/actions/${actionId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+      timeoutMs: 12000,
+    });
+    appendAiMessage('assistant', '好，那我先不写入。');
+    card?.remove();
+  } catch (error) {
+    console.error(error);
+    appendAiMessage('assistant', `这次没处理成功：${error?.message || '请稍后再试。'}`);
+    buttons.forEach(btn => { btn.disabled = false; });
   }
 }
 

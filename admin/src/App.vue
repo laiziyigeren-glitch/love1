@@ -841,7 +841,7 @@
                 show-icon
                 :closable="false"
                 type="info"
-                title="第一阶段：后台配置模型，前台提供心语聊天；AI 可以了解网站内容和聊天记忆，但不会直接修改网站数据。"
+                title="第二阶段：AI 可以生成待确认操作，只有你们在前台确认后，才会写入纪念日、未来约定或情书草稿。"
               />
               <el-divider content-position="left">基础开关</el-divider>
               <el-form-item label="启用助手">
@@ -885,8 +885,8 @@
                 <el-switch v-model="aiConfig.memoryEnabled" />
               </el-form-item>
               <el-form-item label="待确认操作">
-                <el-switch v-model="aiConfig.actionEnabled" disabled />
-                <span class="form-hint">第一阶段暂不开放真实写入。</span>
+                <el-switch v-model="aiConfig.actionEnabled" />
+                <span class="form-hint">开启后，前台会显示确认卡片；不确认就不会写入数据。</span>
               </el-form-item>
               <el-form-item label="每日消息上限">
                 <el-input-number v-model="aiConfig.dailyMessageLimit" :min="1" :max="500" />

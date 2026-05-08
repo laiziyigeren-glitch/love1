@@ -114,6 +114,16 @@ export class CoupleController {
     return this.ai.chat(slug, body);
   }
 
+  @Post('ai/actions/:id/confirm')
+  confirmAiAction(@Param('slug') slug: string, @Param('id') id: string) {
+    return this.ai.confirmAction(slug, id);
+  }
+
+  @Post('ai/actions/:id/reject')
+  rejectAiAction(@Param('slug') slug: string, @Param('id') id: string) {
+    return this.ai.rejectAction(slug, id);
+  }
+
   @Post('ai/rebuild-knowledge')
   rebuildAiKnowledge(@Param('slug') slug: string) {
     return this.ai.rebuildKnowledge(slug);
