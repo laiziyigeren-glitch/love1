@@ -4360,7 +4360,7 @@ let settingsDirty = false;
 let romanceFilter = 'all';
 let currentRomanceBlobUrl = '';
 let romancePreviewLoadTimer = null;
-let aiAssistantConfig = { enabled: false, assistantName: '心语', openingMessage: '' };
+let aiAssistantConfig = { enabled: false, apiKeySet: false, assistantName: '心语', openingMessage: '' };
 let aiConversationId = '';
 
 const romanceProjects = [
@@ -5864,7 +5864,11 @@ function openAiAssistant() {
     panel.setAttribute('aria-hidden', 'false');
   }
   if (box && !box.children.length) {
-    appendAiMessage('assistant', aiAssistantConfig.openingMessage || '我在这里，陪你们聊聊天，也帮你们把重要的小事认真记住。');
+    if (aiAssistantConfig.apiKeySet) {
+      appendAiMessage('assistant', aiAssistantConfig.openingMessage || '我在这里，陪你们聊聊天，也帮你们把重要的小事认真记住。');
+    } else {
+      appendAiMessage('assistant', '后台已经开启了我，但还没有保存 AI API Key。去后台 AI 小助手里填好 Key、保存并测试连接后，我就能正式聊天啦。');
+    }
   }
   document.getElementById('aiAssistantInput')?.focus();
 }
@@ -5883,6 +5887,10 @@ async function sendAiAssistantMessage(event) {
   const send = document.getElementById('aiAssistantSend');
   const text = String(input?.value || '').trim();
   if (!text) return;
+  if (!aiAssistantConfig.apiKeySet) {
+    appendAiMessage('assistant', '现在还不能聊天：后台还没有保存 AI API Key。');
+    return;
+  }
   if (input) input.value = '';
   appendAiMessage('user', text);
   if (send) send.disabled = true;

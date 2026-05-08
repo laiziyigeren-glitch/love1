@@ -31,7 +31,8 @@ export class AiAssistantService {
   async getPublicConfig(slug: string) {
     const config = await this.getConfigBySlug(slug);
     return {
-      enabled: config.enabled && Boolean(config.apiKeyEncrypted),
+      enabled: config.enabled,
+      apiKeySet: Boolean(config.apiKeyEncrypted),
       assistantName: config.assistantName,
       openingMessage: config.openingMessage,
     };
@@ -89,7 +90,7 @@ export class AiAssistantService {
     const space = await this.getSpace(slug);
     const config = await this.getConfigBySpaceId(space.id);
     if (!config.enabled) throw new BadRequestException('AI assistant is disabled');
-    if (!config.apiKeyEncrypted) throw new BadRequestException('AI API Key is not configured');
+    if (!config.apiKeyEncrypted) throw new BadRequestException('后台还没有配置 AI API Key');
 
     const conversation = body.conversationId
       ? await this.prisma.aiConversation.findFirst({ where: { id: body.conversationId, spaceId: space.id } })
