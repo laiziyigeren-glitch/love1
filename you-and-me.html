@@ -4362,8 +4362,10 @@ async function apiFetch(path, options = {}) {
   const { timeoutMs = 20000, headers = {}, ...fetchOptions } = options;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const method = String(fetchOptions.method || 'GET').toUpperCase();
   const res = await fetch(`${API_BASE}${path}`, {
     ...fetchOptions,
+    cache: method === 'GET' ? 'no-store' : fetchOptions.cache,
     headers: { 'Content-Type': 'application/json', ...headers },
     signal: controller.signal,
   }).finally(() => clearTimeout(timer));
@@ -5727,7 +5729,8 @@ async function loadSpaceFromBackend({ force = false } = {}) {
   backendRefreshInFlight = true;
   lastBackendRefreshAt = now;
   try {
-    const data = await apiFetch(`/public/spaces/${SPACE_SLUG}/bootstrap`, { timeoutMs: 7000 });
+    const cacheBust = force ? `?t=${Date.now()}` : '';
+    const data = await apiFetch(`/public/spaces/${SPACE_SLUG}/bootstrap${cacheBust}`, { timeoutMs: 7000 });
     if (settingsDirty) return;
     writeSpaceCache(data);
     renderSpaceIfChanged(data);

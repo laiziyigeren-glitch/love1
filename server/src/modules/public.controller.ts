@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Header, Param } from '@nestjs/common';
 import { ContentService } from './content.service';
 
 @Controller('public/spaces/:slug')
@@ -6,6 +6,9 @@ export class PublicController {
   constructor(private readonly content: ContentService) {}
 
   @Get('bootstrap')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   getBootstrap(@Param('slug') slug: string) {
     return this.content.getBootstrap(slug);
   }
