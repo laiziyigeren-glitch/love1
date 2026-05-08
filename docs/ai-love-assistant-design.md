@@ -153,7 +153,42 @@ AI 不能直接偷偷改数据。凡是新增、删除、修改真实数据，�
 
 ## 后端数据设计建议
 
-第一版建议新增三张表，别塞进 `SiteConfig.settings`，因为聊天记录会越来越多。
+第一版建议新增几张独立表，别把所有东西都塞进 `SiteConfig.settings`，因为聊天记录、长期记忆、AI 配置会越来越多。
+
+### AiProviderConfig
+
+保存后台“AI 小助手”导航里填写的模型服务配置。
+
+字段建议：
+
+```ts
+id
+spaceId
+enabled
+provider // openai | openai-compatible | other
+baseUrl
+model
+apiKeyEncrypted
+apiKeyLast4
+assistantName
+openingMessage
+personality // gentle | lively | quiet | balanced
+memoryEnabled
+actionEnabled
+dailyMessageLimit
+monthlyTokenLimit
+systemPromptOverride
+createdAt
+updatedAt
+```
+
+注意：
+
+- `apiKeyEncrypted` 只能保存在后端数据库，前台和后台页面都不能拿到明文。
+- 后台保存后只显示 `apiKeyLast4`，例如 `已保存：****abcd`。
+- 如果用户重新填写 API Key，才覆盖旧密钥。
+- 后端需要一个服务端加密密钥，例如 `AI_CONFIG_SECRET`，用于加密和解密数据库里的 API Key。
+- 如果没有配置 `AI_CONFIG_SECRET`，第一版可以先不允许后台保存 API Key，提示去 Render 环境变量里配置。
 
 ### AiConversation
 
@@ -202,6 +237,29 @@ updatedAt
 archived
 ```
 
+### AiKnowledgeSnapshot
+
+保存 AI 对当前网站内容的“知识快照”。它不是训练模型，而是把网站当前内容整理成可随时提供给模型的摘要。
+
+字段建议：
+
+```ts
+id
+spaceId
+sourceVersion
+summary
+sectionsJson
+contentHash
+createdAt
+updatedAt
+```
+
+用途：
+
+- 网站内容每次更新后，标记知识快照过期。
+- 下次聊天前如果发现过期，后端立刻重新生成摘要。
+- AI 每次聊天都拿最新摘要和长期记忆，所以能实时了解网站变化。
+
 ### AiAction
 
 可选，第二阶段再做。
@@ -218,6 +276,29 @@ createdAt
 ```
 
 ## API 设计建议
+
+### 后台 AI 管理 API
+
+后台新增一个“AI 小助手”一级导航，对应这些接口：
+
+```text
+GET    /api/admin/spaces/:slug/ai/config
+PATCH  /api/admin/spaces/:slug/ai/config
+POST   /api/admin/spaces/:slug/ai/test
+POST   /api/admin/spaces/:slug/ai/rebuild-knowledge
+GET    /api/admin/spaces/:slug/ai/memories
+PATCH  /api/admin/spaces/:slug/ai/memories/:id
+DELETE /api/admin/spaces/:slug/ai/memories/:id
+GET    /api/admin/spaces/:slug/ai/conversations
+DELETE /api/admin/spaces/:slug/ai/conversations/:id
+```
+
+说明：
+
+- `config` 用来保存 API Key、模型、开关、性格、限制等。
+- `test` 用来测试 API Key 和模型是否可用。
+- `rebuild-knowledge` 用来手动让 AI 重新学习当前网站内容。
+- 返回配置时不能返回 `apiKeyEncrypted` 或明文 API Key，只返回 `apiKeySet: true` 和 `apiKeyLast4`。
 
 ### 前台情侣入口下的 API
 
@@ -243,6 +324,31 @@ AI 不直接绕过业务逻辑，应该复用已有服务：
 - 调整纪念页重要时刻：更新 `settings.anniversaryPage.importantMoments`。
 
 所有写操作都需要用户确认。
+
+### 网站内容更新后的实时学习机制
+
+这里不要理解成“训练模型”。更安全、更省钱、更实时的方式是：每次聊天时从数据库拿最新内容，整理成摘要传给模型。
+
+推荐机制：
+
+1. 所有会改变网站内容的接口，在保存成功后调用 `markAiKnowledgeDirty(spaceId)`。
+2. `markAiKnowledgeDirty` 只更新一个版本号或时间戳，例如 `contentVersion`。
+3. 用户打开 AI 聊天时，后端检查 `AiKnowledgeSnapshot.contentHash` 是否和当前内容一致。
+4. 如果不一致，后端现场重新生成网站摘要，再开始聊天。
+5. 后台也提供“重新学习网站内容”按钮，用户可以手动触发。
+
+需要纳入实时摘要的数据：
+
+- 首页资料、说明文案、资料标签。
+- 纪念日、纪念页重要时刻、今日小语、纪念页 note。
+- 情书标题、状态、日期、摘要。
+- 未来约定文字和完成状态。
+- 音乐列表、心情歌单、默认 BGM。
+- 相册分类、照片/视频标题、时间、地点、标签，不默认传图片二进制。
+- 心动花园项目标题、描述、状态。
+- 设置页里的提醒、私密相册状态、主题偏好。
+
+这样网站刚改完，AI 下一次聊天就会知道，不需要重新部署，也不需要真的训练一个模型。
 
 ## AI 提示词设计
 
@@ -309,15 +415,20 @@ type, content, confidence
 
 ## 小助手能做的功能分期
 
-### 第一阶段：只聊天和了解网站
+### 第一阶段：后台配置 + 只聊天和了解网站
 
 目标：
 
+- 后台新增“AI 小助手”导航。
+- 后台可以填写模型服务 API Key、模型、开关、助手名字、开场白。
+- 后台可以测试 API Key 是否可用。
+- 前台只有在后台开启后才显示“心语助手”入口。
 - 前台出现“心语助手”入口。
 - 能读取网站上下文。
 - 能自然聊天。
 - 能给情书、纪念日、未来约定建议。
 - 保存对话记录和长期记忆。
+- 网站内容更新后，下一次聊天能拿到最新摘要。
 
 不做：
 
@@ -328,6 +439,8 @@ type, content, confidence
 
 - 刷新后聊天记录仍在。
 - AI 能说出在一起日期、重要时刻、未来约定。
+- 后台关闭 AI 后，前台入口消失。
+- 后台重新保存 API Key 后，测试接口能成功。
 - AI 不会暴露后台敏感信息。
 
 ### 第二阶段：确认后帮忙写入网站
@@ -380,6 +493,112 @@ type, content, confidence
 - 清空某次对话。
 - 查看 AI 建议的待确认操作。
 
+### 更新后的后台导航设计
+
+后台新增一个一级导航：“AI 小助手”。
+
+导航位置：
+
+- 放在“设置/情侣入口/隐私提醒”附近。
+- 不放进普通内容管理的小分组里，因为它是跨全站能力。
+- 图标可以用星星、消息气泡、爱心气泡。
+
+页面建议分成 5 个区域。
+
+#### 1. 基础开关
+
+配置项：
+
+- 启用 AI 小助手。
+- 前台显示入口。
+- 仅情侣入口登录后可用。
+- 助手名称，例如“心语”。
+- 开场白。
+- 前台悬浮按钮文案。
+
+#### 2. 模型服务
+
+配置项：
+
+- 服务商：OpenAI / OpenAI 兼容 / 其他。
+- Base URL：默认可留空，兼容第三方时填写。
+- API Key：密码输入框。
+- 已保存 Key 状态：`已保存：****abcd`。
+- 模型名称。
+- 温度/创造性：建议用“稳一点 / 自然 / 更浪漫”这种中文选项，不直接暴露复杂参数。
+- 测试连接按钮。
+
+重要规则：
+
+- API Key 只提交给后端。
+- 后端加密保存。
+- 后台刷新后不回显明文。
+- 测试失败要显示明确原因：Key 无效、余额不足、模型不存在、网络失败。
+
+#### 3. 性格和提示词
+
+配置项：
+
+- 性格强度：温柔、活泼、安静。
+- 回复长度：简短 / 正常 / 详细。
+- 情绪价值强度：克制 / 温柔 / 更会哄。
+- 是否允许轻微玩笑。
+- 自定义补充提示词。
+- 恢复默认提示词。
+
+默认建议：
+
+- 性格：温柔自然。
+- 回复长度：正常。
+- 情绪价值：温柔。
+- 玩笑：允许轻微。
+
+#### 4. 记忆和学习
+
+配置项：
+
+- 是否允许长期记忆。
+- 每次聊天后是否自动总结记忆。
+- 是否允许记住心情和偏好。
+- 是否允许记住计划和纪念日线索。
+- 是否自动学习网站最新内容。
+- 手动“重新学习网站内容”按钮。
+- 显示当前知识状态：已同步 / 有新内容待学习 / 上次学习时间。
+
+管理项：
+
+- 查看长期记忆。
+- 编辑某条记忆。
+- 删除某条记忆。
+- 一键清空记忆。
+- 查看 AI 当前知道的网站摘要。
+
+#### 5. 权限和用量限制
+
+配置项：
+
+- 是否允许 AI 生成待确认操作。
+- 是否允许确认后写入纪念日。
+- 是否允许确认后新增未来约定。
+- 是否允许确认后保存情书草稿。
+- 是否允许确认后修改提醒设置。
+- 每日最大消息数。
+- 每月最大 token 或费用预算。
+- 超限后的前台提示文案。
+
+管理项：
+
+- 查看待确认操作。
+- 查看最近对话。
+- 删除某次对话。
+- 导出/清空 AI 数据。
+
+页面底部提示：
+
+```text
+AI Key 只会保存在后端，前台不会得到密钥。AI 会根据网站内容和你们的聊天记忆进行回复；你可以随时关闭助手、删除记忆或清空对话。
+```
+
 ## 隐私和安全
 
 这是情侣网站，AI 会接触很私密的信息，所以要从第一版就做克制。
@@ -392,6 +611,15 @@ type, content, confidence
 - 长期记忆可查看、可删除。
 - 写入网站必须确认。
 - 后台可一键关闭 AI。
+
+API Key 存储建议：
+
+- 最安全：Render 环境变量保存 API Key，后台只选择模型和开关。
+- 满足后台填写：后端用 `AI_CONFIG_SECRET` 加密后存数据库。
+- 不推荐：明文存在 `SiteConfig.settings` 或直接返回给后台页面。
+- 后台填写的 API Key 必须加密保存，只显示掩码，不允许前台读取。
+- 如果数据库泄露，不能直接看到明文 API Key。
+- 如果更换模型服务商，只能由后台管理员操作，情侣前台不能修改。
 
 建议做：
 
@@ -410,6 +638,15 @@ type, content, confidence
 - 可能需要 Prisma schema 变更，Render 现有 `prisma:push` 会同步。
 - 前台 Cloudflare Pages 不应该放模型 API Key。
 - 后台 Cloudflare Pages 通常不需要新增 key，只调用自己的后端。
+
+补充说明：
+
+- 如果允许后台填写 API Key，Render 至少需要新增 `AI_CONFIG_SECRET`，用于加密数据库里的 API Key。
+- 如果选择只用 Render 环境变量保存 Key，则后台不显示 API Key 明文输入，只显示“已由服务器配置”。
+- 需要后端新增 AI 管理接口和情侣聊天接口。
+- 需要后台新增“AI 小助手”导航和配置页。
+- 需要前台新增“心语助手”悬浮入口。
+- 需要给会修改网站内容的保存接口补 `markAiKnowledgeDirty(spaceId)`，保证 AI 下一次聊天知道最新内容。
 
 ## 推荐最终形态
 
