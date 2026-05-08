@@ -372,6 +372,15 @@ export type AiConfig = {
   systemPromptOverride: string;
 };
 
+export type AiMemory = {
+  id: string;
+  type: string;
+  content: string;
+  confidence: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export async function fetchAiConfig() {
   const response = await api.get<AiConfig>(`/api/admin/spaces/${spaceSlug}/ai/config`);
   return response.data;
@@ -390,4 +399,27 @@ export async function testAiConfig() {
 export async function rebuildAiKnowledge() {
   const response = await api.post(`/api/admin/spaces/${spaceSlug}/ai/rebuild-knowledge`);
   return response.data as { summary: string; updatedAt: string };
+}
+
+export async function fetchAiKnowledge() {
+  const response = await api.get(`/api/admin/spaces/${spaceSlug}/ai/knowledge`);
+  return response.data as { summary: string; updatedAt: string };
+}
+
+export async function fetchAiMemories() {
+  const response = await api.get<AiMemory[]>(`/api/admin/spaces/${spaceSlug}/ai/memories`);
+  return response.data;
+}
+
+export async function updateAiMemory(id: string, payload: Partial<AiMemory>) {
+  const response = await api.patch<AiMemory>(`/api/admin/spaces/${spaceSlug}/ai/memories/${id}`, payload);
+  return response.data;
+}
+
+export async function deleteAiMemory(id: string) {
+  await api.delete(`/api/admin/spaces/${spaceSlug}/ai/memories/${id}`);
+}
+
+export async function clearAiMemories() {
+  await api.delete(`/api/admin/spaces/${spaceSlug}/ai/memories`);
 }

@@ -4409,6 +4409,7 @@ let currentRomanceBlobUrl = '';
 let romancePreviewLoadTimer = null;
 let aiAssistantConfig = { enabled: false, apiKeySet: false, assistantName: '心语', openingMessage: '' };
 let aiConversationId = '';
+let aiAssistantBriefLoaded = false;
 
 const romanceProjects = [
   {
@@ -5955,6 +5956,28 @@ function appendAiActionCard(action) {
   box.scrollTop = box.scrollHeight;
 }
 
+async function loadAiAssistantBrief() {
+  if (aiAssistantBriefLoaded || !aiAssistantConfig.apiKeySet) return;
+  aiAssistantBriefLoaded = true;
+  try {
+    const brief = await coupleApiFetch(`/couple/spaces/${SPACE_SLUG}/ai/brief`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+      timeoutMs: 12000,
+    });
+    const lines = Array.isArray(brief.lines) ? brief.lines.filter(Boolean) : [];
+    const memories = Array.isArray(brief.memories) ? brief.memories.filter(Boolean).slice(0, 2) : [];
+    if (!lines.length && !memories.length) return;
+    const message = [
+      lines.length ? `今天我先帮你们看了一眼网站：\n${lines.map(item => `· ${item}`).join('\n')}` : '',
+      memories.length ? `\n我还记得：\n${memories.map(item => `· ${item}`).join('\n')}` : '',
+    ].filter(Boolean).join('\n');
+    appendAiMessage('assistant', message);
+  } catch (error) {
+    console.warn('Failed to load AI assistant brief.', error);
+  }
+}
+
 function openAiAssistant() {
   if (!getCoupleToken()) {
     showCoupleLogin('先进入情侣入口，再和心语聊天。');
@@ -5973,6 +5996,7 @@ function openAiAssistant() {
       appendAiMessage('assistant', '后台已经开启了我，但还没有保存 AI API Key。去后台 AI 小助手里填好 Key、保存并测试连接后，我就能正式聊天啦。');
     }
   }
+  loadAiAssistantBrief();
   document.getElementById('aiAssistantInput')?.focus();
 }
 

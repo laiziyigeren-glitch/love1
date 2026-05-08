@@ -177,4 +177,33 @@ export class AdminController {
   rebuildAiKnowledge(@Param('slug') slug: string) {
     return this.ai.rebuildKnowledge(slug);
   }
+
+  @Get('ai/knowledge')
+  getAiKnowledge(@Param('slug') slug: string) {
+    return this.ai.getKnowledge(slug);
+  }
+
+  @Get('ai/memories')
+  listAiMemories(@Param('slug') slug: string) {
+    return this.ai.listMemories(slug);
+  }
+
+  @Patch('ai/memories/:id')
+  updateAiMemory(
+    @Param('slug') slug: string,
+    @Param('id') id: string,
+    @Body() body: { content?: string; type?: string; confidence?: number },
+  ) {
+    return this.ai.updateMemory(slug, id, body);
+  }
+
+  @Delete('ai/memories/:id')
+  deleteAiMemory(@Param('slug') slug: string, @Param('id') id: string) {
+    return this.ai.deleteMemory(slug, id);
+  }
+
+  @Delete('ai/memories')
+  clearAiMemories(@Param('slug') slug: string) {
+    return this.ai.clearMemories(slug);
+  }
 }

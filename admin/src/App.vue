@@ -900,6 +900,38 @@
                 <el-button :loading="aiTesting" @click="testAiSettings">测试连接</el-button>
                 <el-button :loading="aiRebuilding" @click="rebuildAiKnowledgeNow">重新学习网站内容</el-button>
               </div>
+
+              <el-divider content-position="left">记忆和学习</el-divider>
+              <el-form-item label="网站摘要">
+                <el-input
+                  :model-value="aiKnowledgeSummary || '还没有生成摘要，点击“重新学习网站内容”后会显示。'"
+                  type="textarea"
+                  :rows="4"
+                  readonly
+                />
+                <span class="form-hint">{{ aiKnowledgeUpdatedAt ? `最近学习：${aiKnowledgeUpdatedAt}` : 'AI 聊天前也会自动读取最新网站内容。' }}</span>
+              </el-form-item>
+              <div class="inline-actions">
+                <el-button :loading="aiMemoryLoading" @click="loadAiMemories">刷新记忆</el-button>
+                <el-button type="danger" plain :disabled="!aiMemories.length" @click="clearAiMemoryRows">清空记忆</el-button>
+              </div>
+              <el-table :data="aiMemories" v-loading="aiMemoryLoading" class="section-table" empty-text="还没有长期记忆">
+                <el-table-column label="类型" width="130">
+                  <template #default="{ row }"><el-input v-model="row.type" /></template>
+                </el-table-column>
+                <el-table-column label="记忆内容" min-width="360">
+                  <template #default="{ row }"><el-input v-model="row.content" type="textarea" :rows="2" /></template>
+                </el-table-column>
+                <el-table-column label="可信度" width="130">
+                  <template #default="{ row }"><el-input-number v-model="row.confidence" :min="0" :max="1" :step="0.05" /></template>
+                </el-table-column>
+                <el-table-column label="操作" width="150" fixed="right">
+                  <template #default="{ row }">
+                    <el-button link type="primary" @click="saveAiMemoryRow(row)">保存</el-button>
+                    <el-button link type="danger" @click="removeAiMemoryRow(row)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
             </el-form>
           </el-card>
         </section>
@@ -921,14 +953,19 @@ import {
   type Dashboard,
   type UploadPathOptions,
   type AiConfig,
+  type AiMemory,
   clearAdminToken,
+  clearAiMemories,
   completeMediaUpload,
   createUploadUrl,
   deleteAlbumItem,
   deleteAnniversary,
+  deleteAiMemory,
   deleteLetter,
   deleteSong,
   fetchAiConfig,
+  fetchAiKnowledge,
+  fetchAiMemories,
   fetchCoupleAccess,
   fetchDashboard,
   getAdminToken,
@@ -943,6 +980,7 @@ import {
   saveTheme,
   testAiConfig,
   rebuildAiKnowledge,
+  updateAiMemory,
   updateAlbumItem,
 } from './api';
 
@@ -1107,6 +1145,10 @@ const aiApiKeyDraft = ref('');
 const aiSaving = ref(false);
 const aiTesting = ref(false);
 const aiRebuilding = ref(false);
+const aiMemories = ref<AiMemory[]>([]);
+const aiMemoryLoading = ref(false);
+const aiKnowledgeSummary = ref('');
+const aiKnowledgeUpdatedAt = ref('');
 
 const pageTitle = computed(() => ({
   dashboard: '仪表盘',
@@ -1223,13 +1265,18 @@ const heartValuesText = computed({
 async function load() {
   loading.value = true;
   try {
-    const [nextDashboard, coupleAccess, nextAiConfig] = await Promise.all([
+    const [nextDashboard, coupleAccess, nextAiConfig, nextAiMemories, nextAiKnowledge] = await Promise.all([
       fetchDashboard(),
       fetchCoupleAccess(),
       fetchAiConfig(),
+      fetchAiMemories().catch(() => []),
+      fetchAiKnowledge().catch(() => ({ summary: '', updatedAt: '' })),
     ]);
     dashboard.value = nextDashboard;
     Object.assign(aiConfig, nextAiConfig);
+    aiMemories.value = nextAiMemories;
+    aiKnowledgeSummary.value = nextAiKnowledge.summary || '';
+    aiKnowledgeUpdatedAt.value = nextAiKnowledge.updatedAt || '';
     aiApiKeyDraft.value = '';
     coupleAccessForm.name = coupleAccess.name || 'love';
     coupleAccessForm.password = '';
@@ -2908,12 +2955,64 @@ async function testAiSettings() {
 async function rebuildAiKnowledgeNow() {
   aiRebuilding.value = true;
   try {
-    await rebuildAiKnowledge();
+    const snapshot = await rebuildAiKnowledge();
+    aiKnowledgeSummary.value = snapshot.summary || '';
+    aiKnowledgeUpdatedAt.value = snapshot.updatedAt || '';
     ElMessage.success('心语已重新学习当前网站内容');
   } catch (error) {
     ElMessage.error(getErrorMessage(error, '重新学习失败'));
   } finally {
     aiRebuilding.value = false;
+  }
+}
+
+async function loadAiMemories() {
+  aiMemoryLoading.value = true;
+  try {
+    aiMemories.value = await fetchAiMemories();
+    const snapshot = await fetchAiKnowledge().catch(() => null);
+    aiKnowledgeSummary.value = snapshot?.summary || aiKnowledgeSummary.value;
+    aiKnowledgeUpdatedAt.value = snapshot?.updatedAt || aiKnowledgeUpdatedAt.value;
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, 'AI 记忆加载失败'));
+  } finally {
+    aiMemoryLoading.value = false;
+  }
+}
+
+async function saveAiMemoryRow(memory: AiMemory) {
+  try {
+    const saved = await updateAiMemory(memory.id, {
+      type: memory.type,
+      content: memory.content,
+      confidence: memory.confidence,
+    });
+    Object.assign(memory, saved);
+    ElMessage.success('记忆已保存');
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '记忆保存失败'));
+  }
+}
+
+async function removeAiMemoryRow(memory: AiMemory) {
+  try {
+    await confirmDelete('确认删除这条 AI 记忆？');
+    await deleteAiMemory(memory.id);
+    aiMemories.value = aiMemories.value.filter((item) => item.id !== memory.id);
+    ElMessage.success('记忆已删除');
+  } catch (error) {
+    if (error !== 'cancel') ElMessage.error(getErrorMessage(error, '记忆删除失败'));
+  }
+}
+
+async function clearAiMemoryRows() {
+  try {
+    await confirmDelete('确认清空所有 AI 长期记忆？');
+    await clearAiMemories();
+    aiMemories.value = [];
+    ElMessage.success('AI 记忆已清空');
+  } catch (error) {
+    if (error !== 'cancel') ElMessage.error(getErrorMessage(error, 'AI 记忆清空失败'));
   }
 }
 

@@ -218,6 +218,91 @@ export class AiAssistantService {
     return this.prisma.aiMessage.findMany({ where: { conversationId }, orderBy: { createdAt: 'asc' } });
   }
 
+  async getBrief(slug: string) {
+    const space = await this.getSpace(slug);
+    const config = await this.getConfigBySpaceId(space.id);
+    if (!config.enabled) throw new BadRequestException('AI assistant is disabled');
+    const [data, memories] = await Promise.all([
+      this.content.getBootstrap(slug),
+      this.prisma.aiMemory.findMany({
+        where: { spaceId: space.id, archived: false },
+        orderBy: { updatedAt: 'desc' },
+        take: 3,
+      }),
+    ]);
+    const settings = data.site.settings;
+    const lines: string[] = [];
+    if (data.nextAnniversary) {
+      const days = Math.max(0, Math.ceil((data.nextAnniversary.secondsUntil || 0) / 86400));
+      lines.push(`${data.nextAnniversary.title}还有 ${days} 天，可以提前准备一点小惊喜。`);
+    }
+    const undonePromises = (settings.promises || []).filter((item: { done?: boolean }) => !item.done);
+    if (undonePromises.length) {
+      lines.push(`未来约定里还有 ${undonePromises.length} 件没完成，今天可以挑一件聊聊怎么实现。`);
+    }
+    const draftLetters = data.letters.filter((item) => item.status === 'DRAFT' || item.status === 'HIDDEN');
+    if (draftLetters.length) {
+      lines.push(`情书里有 ${draftLetters.length} 封草稿或隐藏内容，适合慢慢补成一个惊喜。`);
+    }
+    const favoriteSong = data.songs.find((item) => item.favorite) || data.songs[0];
+    if (favoriteSong) {
+      lines.push(`如果想放松一下，可以听《${favoriteSong.title}》。`);
+    }
+    return {
+      assistantName: config.assistantName,
+      lines: lines.slice(0, 4),
+      memories: memories.map((item) => item.content),
+    };
+  }
+
+  async listMemories(slug: string) {
+    const space = await this.getSpace(slug);
+    const items = await this.prisma.aiMemory.findMany({
+      where: { spaceId: space.id, archived: false },
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
+    });
+    return items.map((item) => this.toMemoryDto(item));
+  }
+
+  async updateMemory(slug: string, id: string, body: { content?: string; type?: string; confidence?: number }) {
+    const space = await this.getSpace(slug);
+    const memory = await this.prisma.aiMemory.findFirst({ where: { id, spaceId: space.id, archived: false } });
+    if (!memory) throw new NotFoundException('AI memory was not found');
+    const saved = await this.prisma.aiMemory.update({
+      where: { id },
+      data: {
+        content: this.clean(body.content || memory.content).slice(0, 500),
+        type: this.clean(body.type || memory.type || 'note').slice(0, 32),
+        confidence: Number.isFinite(body.confidence) ? Number(body.confidence) : memory.confidence,
+      },
+    });
+    return this.toMemoryDto(saved);
+  }
+
+  async deleteMemory(slug: string, id: string) {
+    const space = await this.getSpace(slug);
+    const memory = await this.prisma.aiMemory.findFirst({ where: { id, spaceId: space.id } });
+    if (!memory) throw new NotFoundException('AI memory was not found');
+    await this.prisma.aiMemory.update({ where: { id }, data: { archived: true } });
+    return { success: true };
+  }
+
+  async clearMemories(slug: string) {
+    const space = await this.getSpace(slug);
+    await this.prisma.aiMemory.updateMany({
+      where: { spaceId: space.id, archived: false },
+      data: { archived: true },
+    });
+    return { success: true };
+  }
+
+  async getKnowledge(slug: string) {
+    const space = await this.getSpace(slug);
+    const saved = await this.prisma.aiKnowledgeSnapshot.findUnique({ where: { spaceId: space.id } });
+    return saved || this.rebuildKnowledge(slug);
+  }
+
   async rebuildKnowledge(slug: string) {
     const space = await this.getSpace(slug);
     const data = await this.content.getBootstrap(slug);
@@ -369,6 +454,24 @@ export class AiAssistantService {
       payload: action.payload,
       status: action.status,
       createdAt: action.createdAt,
+    };
+  }
+
+  private toMemoryDto(memory: {
+    id: string;
+    type: string;
+    content: string;
+    confidence: number;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
+    return {
+      id: memory.id,
+      type: memory.type,
+      content: memory.content,
+      confidence: memory.confidence,
+      createdAt: memory.createdAt,
+      updatedAt: memory.updatedAt,
     };
   }
 
