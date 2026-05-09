@@ -206,4 +206,9 @@ export class AdminController {
   clearAiMemories(@Param('slug') slug: string) {
     return this.ai.clearMemories(slug);
   }
+
+  @Get('ai/actions')
+  listAiActions(@Param('slug') slug: string) {
+    return this.ai.listActions(slug);
+  }
 }

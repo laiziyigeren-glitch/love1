@@ -932,6 +932,32 @@
                   </template>
                 </el-table-column>
               </el-table>
+
+              <el-divider content-position="left">待确认操作记录</el-divider>
+              <div class="inline-actions">
+                <el-button :loading="aiActionLoading" @click="loadAiActions">刷新操作记录</el-button>
+              </div>
+              <el-table :data="aiActions" v-loading="aiActionLoading" class="section-table" empty-text="还没有 AI 操作记录">
+                <el-table-column label="状态" width="100">
+                  <template #default="{ row }">
+                    <el-tag :type="aiActionStatusType(row.status)">{{ aiActionStatusText(row.status) }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="类型" width="140">
+                  <template #default="{ row }">{{ row.label || row.type }}</template>
+                </el-table-column>
+                <el-table-column label="标题" min-width="180">
+                  <template #default="{ row }">{{ row.title }}</template>
+                </el-table-column>
+                <el-table-column label="内容" min-width="320">
+                  <template #default="{ row }">
+                    <pre class="ai-action-preview">{{ formatAiActionPayload(row) }}</pre>
+                  </template>
+                </el-table-column>
+                <el-table-column label="更新时间" width="180">
+                  <template #default="{ row }">{{ row.updatedAt }}</template>
+                </el-table-column>
+              </el-table>
             </el-form>
           </el-card>
         </section>
@@ -954,6 +980,7 @@ import {
   type UploadPathOptions,
   type AiConfig,
   type AiMemory,
+  type AiAction,
   clearAdminToken,
   clearAiMemories,
   completeMediaUpload,
@@ -963,6 +990,7 @@ import {
   deleteAiMemory,
   deleteLetter,
   deleteSong,
+  fetchAiActions,
   fetchAiConfig,
   fetchAiKnowledge,
   fetchAiMemories,
@@ -1147,6 +1175,8 @@ const aiTesting = ref(false);
 const aiRebuilding = ref(false);
 const aiMemories = ref<AiMemory[]>([]);
 const aiMemoryLoading = ref(false);
+const aiActions = ref<AiAction[]>([]);
+const aiActionLoading = ref(false);
 const aiKnowledgeSummary = ref('');
 const aiKnowledgeUpdatedAt = ref('');
 
@@ -1265,16 +1295,18 @@ const heartValuesText = computed({
 async function load() {
   loading.value = true;
   try {
-    const [nextDashboard, coupleAccess, nextAiConfig, nextAiMemories, nextAiKnowledge] = await Promise.all([
+    const [nextDashboard, coupleAccess, nextAiConfig, nextAiMemories, nextAiActions, nextAiKnowledge] = await Promise.all([
       fetchDashboard(),
       fetchCoupleAccess(),
       fetchAiConfig(),
       fetchAiMemories().catch(() => []),
+      fetchAiActions().catch(() => []),
       fetchAiKnowledge().catch(() => ({ summary: '', updatedAt: '' })),
     ]);
     dashboard.value = nextDashboard;
     Object.assign(aiConfig, nextAiConfig);
     aiMemories.value = nextAiMemories;
+    aiActions.value = nextAiActions;
     aiKnowledgeSummary.value = nextAiKnowledge.summary || '';
     aiKnowledgeUpdatedAt.value = nextAiKnowledge.updatedAt || '';
     aiApiKeyDraft.value = '';
@@ -2980,6 +3012,52 @@ async function loadAiMemories() {
   }
 }
 
+async function loadAiActions() {
+  aiActionLoading.value = true;
+  try {
+    aiActions.value = await fetchAiActions();
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, 'AI 操作记录加载失败'));
+  } finally {
+    aiActionLoading.value = false;
+  }
+}
+
+function aiActionStatusText(status: string) {
+  if (status === 'pending') return '待确认';
+  if (status === 'done') return '已写入';
+  if (status === 'rejected') return '已拒绝';
+  return status || '未知';
+}
+
+function aiActionStatusType(status: string) {
+  if (status === 'pending') return 'warning';
+  if (status === 'done') return 'success';
+  if (status === 'rejected') return 'info';
+  return '';
+}
+
+function formatAiActionPayload(action: AiAction) {
+  const payload = action.payload || {};
+  if (action.type === 'create_anniversary') {
+    return [
+      `标题：${String(payload.title || action.title || '')}`,
+      `日期：${String(payload.date || payload.eventDate || '')}`,
+      payload.description ? `说明：${String(payload.description)}` : '',
+    ].filter(Boolean).join('\n');
+  }
+  if (action.type === 'create_promise') {
+    return `${String(payload.icon || '💗')} ${String(payload.text || action.title || '')}`;
+  }
+  if (action.type === 'draft_letter') {
+    return [
+      `标题：${String(payload.title || action.title || '')}`,
+      payload.body ? `内容：${String(payload.body).slice(0, 120)}` : '',
+    ].filter(Boolean).join('\n');
+  }
+  return JSON.stringify(payload, null, 2);
+}
+
 async function saveAiMemoryRow(memory: AiMemory) {
   try {
     const saved = await updateAiMemory(memory.id, {
@@ -3397,6 +3475,13 @@ onMounted(() => {
 .album-card span { color: #806f6a; font-size: 13px; margin: 6px 0; }
 .theme-form { max-width: 760px; }
 .form-hint { margin-left: 10px; color: #8a8f98; font-size: 12px; }
+.ai-action-preview {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #5c4b45;
+  font: inherit;
+}
 .mobile-card-list { display: none; }
 .mobile-edit-card {
   border: 1px solid #eadfda;

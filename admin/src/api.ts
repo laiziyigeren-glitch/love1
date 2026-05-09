@@ -381,6 +381,19 @@ export type AiMemory = {
   updatedAt: string;
 };
 
+export type AiAction = {
+  id: string;
+  type: string;
+  label: string;
+  title: string;
+  payload: Record<string, unknown>;
+  status: 'pending' | 'done' | 'rejected' | string;
+  result: unknown;
+  sourceMessageId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export async function fetchAiConfig() {
   const response = await api.get<AiConfig>(`/api/admin/spaces/${spaceSlug}/ai/config`);
   return response.data;
@@ -422,4 +435,9 @@ export async function deleteAiMemory(id: string) {
 
 export async function clearAiMemories() {
   await api.delete(`/api/admin/spaces/${spaceSlug}/ai/memories`);
+}
+
+export async function fetchAiActions() {
+  const response = await api.get<AiAction[]>(`/api/admin/spaces/${spaceSlug}/ai/actions`);
+  return response.data;
 }

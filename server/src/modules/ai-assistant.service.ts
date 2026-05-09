@@ -143,7 +143,7 @@ export class AiAssistantService {
       ? await this.createActionSuggestion(space.id, userMessage.id, message, answer, config)
       : null;
     if (config.memoryEnabled) {
-      await this.maybeRemember(space.id, userMessage.id, message);
+      await this.maybeRemember(space.id, userMessage.id, message, answer, config);
     }
     return {
       conversationId: conversation.id,
@@ -335,6 +335,16 @@ export class AiAssistantService {
     return { success: true };
   }
 
+  async listActions(slug: string) {
+    const space = await this.getSpace(slug);
+    const actions = await this.prisma.aiAction.findMany({
+      where: { spaceId: space.id },
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
+    });
+    return actions.map((item) => this.toActionDto(item));
+  }
+
   async getKnowledge(slug: string) {
     const space = await this.getSpace(slug);
     const saved = await this.prisma.aiKnowledgeSnapshot.findUnique({ where: { spaceId: space.id } });
@@ -502,7 +512,29 @@ export class AiAssistantService {
     }
   }
 
-  private toActionDto(action: { id: string; type: string; title: string; payload: Prisma.JsonValue; status: string; createdAt: Date }) {
+  private parseJsonArray(raw: string) {
+    const text = this.clean(raw).replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+    try {
+      const parsed = JSON.parse(match[0]);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private toActionDto(action: {
+    id: string;
+    type: string;
+    title: string;
+    payload: Prisma.JsonValue;
+    status: string;
+    resultJson?: Prisma.JsonValue | null;
+    sourceMessageId?: string | null;
+    createdAt: Date;
+    updatedAt?: Date;
+  }) {
     return {
       id: action.id,
       type: action.type,
@@ -510,7 +542,10 @@ export class AiAssistantService {
       label: this.actionTypeLabel(action.type),
       payload: action.payload,
       status: action.status,
+      result: action.resultJson || null,
+      sourceMessageId: action.sourceMessageId || '',
       createdAt: action.createdAt,
+      updatedAt: action.updatedAt || action.createdAt,
     };
   }
 
@@ -581,17 +616,84 @@ export class AiAssistantService {
     ].filter(Boolean).join('\n\n');
   }
 
-  private async maybeRemember(spaceId: string, sourceMessageId: string, message: string) {
-    if (!/(记住|以后|下次|喜欢|不喜欢|计划|约定|纪念|生日|难过|开心)/.test(message)) return;
-    await this.prisma.aiMemory.create({
-      data: {
-        spaceId,
-        type: 'note',
-        content: message.slice(0, 500),
-        confidence: 0.55,
-        sourceMessageId,
+  private async maybeRemember(
+    spaceId: string,
+    sourceMessageId: string,
+    userMessage: string,
+    assistantAnswer: string,
+    config: AiProviderConfig,
+  ) {
+    const extracted = await this.extractMemories(userMessage, assistantAnswer, config).catch(() => []);
+    if (extracted.length) {
+      const existing = await this.prisma.aiMemory.findMany({
+        where: {
+          spaceId,
+          archived: false,
+          content: { in: extracted.map((item) => item.content) },
+        },
+        select: { content: true },
+      });
+      const seen = new Set(existing.map((item) => item.content));
+      for (const item of extracted) {
+        if (seen.has(item.content)) continue;
+        seen.add(item.content);
+        await this.prisma.aiMemory.create({
+          data: {
+            spaceId,
+            type: item.type,
+            content: item.content,
+            confidence: item.confidence,
+            sourceMessageId,
+          },
+        });
+      }
+      return;
+    }
+  }
+
+  private async extractMemories(
+    userMessage: string,
+    assistantAnswer: string,
+    config: AiProviderConfig,
+  ): Promise<Array<{ type: string; content: string; confidence: number }>> {
+    if (!/(记住|以后|下次|喜欢|不喜欢|计划|约定|纪念|生日|难过|开心|压力|想去|想要|希望|讨厌)/.test(userMessage)) {
+      return [];
+    }
+    const raw = await this.callModel(config, [
+      {
+        role: 'system',
+        content: [
+          '你只负责从情侣网站聊天里提炼长期记忆。',
+          '只返回 JSON 数组，不要解释，不要 Markdown。',
+          '只保存未来陪伴和网站使用真的有帮助的信息。',
+          '允许 type：preference、event、plan、emotion、website_hint。',
+          '不要保存密码、账号、token、API Key、一次性寒暄、过度私密且没必要的信息。',
+          '每条包含 type、content、confidence。content 用一句自然中文，不超过 80 字。',
+          '如果没有值得长期记住的信息，返回 []。',
+        ].join('\n'),
       },
-    });
+      {
+        role: 'user',
+        content: JSON.stringify({ userMessage, assistantAnswer }),
+      },
+    ]);
+    const parsed = this.parseJsonArray(raw);
+    const allowed = new Set(['preference', 'event', 'plan', 'emotion', 'website_hint']);
+    return parsed
+      .map((item) => {
+        const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+        return {
+          type: this.clean(record.type || 'note'),
+          content: this.clean(record.content).slice(0, 160),
+          confidence: Number(record.confidence),
+        };
+      })
+      .filter((item) => allowed.has(item.type) && item.content.length >= 4)
+      .map((item) => ({
+        ...item,
+        confidence: Number.isFinite(item.confidence) ? Math.max(0, Math.min(1, item.confidence)) : 0.65,
+      }))
+      .slice(0, 3);
   }
 
   private async getSpace(slug: string) {
