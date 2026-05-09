@@ -519,7 +519,7 @@ export class AiAssistantService {
       id: `ai-${Date.now().toString(36)}`,
       icon: this.clean(payload.icon || '💗').slice(0, 4) || '💗',
       text: this.clean(payload.text || payload.title || '新的未来约定'),
-      done: false,
+      done: payload.done === true,
     };
     promises.push(item);
     await this.content.saveCoupleSettings(slug, {
