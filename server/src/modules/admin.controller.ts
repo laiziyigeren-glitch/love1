@@ -163,6 +163,7 @@ export class AdminController {
     memoryEnabled?: boolean;
     actionEnabled?: boolean;
     allowCreateAnniversary?: boolean;
+    allowCreateImportantMoment?: boolean;
     allowCreatePromise?: boolean;
     allowDraftLetter?: boolean;
     allowUpdateReminders?: boolean;

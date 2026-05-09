@@ -6049,6 +6049,13 @@ function formatAiActionDetail(action) {
       payload.description ? `说明：${payload.description}` : '',
     ].filter(Boolean).join('\n');
   }
+  if (action?.type === 'create_important_moment') {
+    return [
+      `标题：${payload.title || action.title || '新的重要时刻'}`,
+      `日期：${payload.date || payload.eventDate || '未识别'}`,
+      payload.description ? `说明：${payload.description}` : '',
+    ].filter(Boolean).join('\n');
+  }
   if (action?.type === 'create_promise') {
     return `内容：${payload.icon || '💗'} ${payload.text || action.title || '新的未来约定'}`;
   }
@@ -6125,6 +6132,14 @@ function createAiActionEditor(action) {
       textField('description', '说明', payload.description || '', { textarea: true, wide: true }),
       boolField('repeatYearly', '每年重复', payload.repeatYearly !== false),
       boolField('showCountdown', '显示倒计时', payload.showCountdown === true),
+    );
+    return editor;
+  }
+  if (action?.type === 'create_important_moment') {
+    editor.append(
+      textField('title', '标题', payload.title || action.title || ''),
+      textField('date', '日期', payload.date || payload.eventDate || '', { type: 'date' }),
+      textField('description', '说明', payload.description || '', { textarea: true, wide: true }),
     );
     return editor;
   }

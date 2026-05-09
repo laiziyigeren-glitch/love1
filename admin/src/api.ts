@@ -369,6 +369,7 @@ export type AiConfig = {
   memoryEnabled: boolean;
   actionEnabled: boolean;
   allowCreateAnniversary: boolean;
+  allowCreateImportantMoment: boolean;
   allowCreatePromise: boolean;
   allowDraftLetter: boolean;
   allowUpdateReminders: boolean;

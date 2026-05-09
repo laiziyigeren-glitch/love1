@@ -257,6 +257,7 @@ model AiProviderConfig {
   memoryEnabled      Boolean     @default(true)
   actionEnabled      Boolean     @default(false)
   allowCreateAnniversary Boolean  @default(true)
+  allowCreateImportantMoment Boolean @default(true)
   allowCreatePromise Boolean      @default(true)
   allowDraftLetter   Boolean     @default(true)
   allowUpdateReminders Boolean   @default(true)

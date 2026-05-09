@@ -841,7 +841,7 @@
                 show-icon
                 :closable="false"
                 type="info"
-                title="第二阶段：AI 可以生成待确认操作，只有你们在前台确认后，才会写入纪念日、未来约定或情书草稿。"
+                title="第二阶段：AI 可以生成待确认操作，只有你们在前台确认后，才会写入纪念日、重要时刻、未来约定或情书草稿。"
               />
               <el-divider content-position="left">基础开关</el-divider>
               <el-form-item label="启用助手">
@@ -890,6 +890,9 @@
               </el-form-item>
               <el-form-item label="允许新增纪念日">
                 <el-switch v-model="aiConfig.allowCreateAnniversary" :disabled="!aiConfig.actionEnabled" />
+              </el-form-item>
+              <el-form-item label="允许重要时刻">
+                <el-switch v-model="aiConfig.allowCreateImportantMoment" :disabled="!aiConfig.actionEnabled" />
               </el-form-item>
               <el-form-item label="允许新增约定">
                 <el-switch v-model="aiConfig.allowCreatePromise" :disabled="!aiConfig.actionEnabled" />
@@ -1180,6 +1183,7 @@ const aiConfig = reactive<AiConfig>({
   memoryEnabled: true,
   actionEnabled: false,
   allowCreateAnniversary: true,
+  allowCreateImportantMoment: true,
   allowCreatePromise: true,
   allowDraftLetter: true,
   allowUpdateReminders: true,
@@ -3057,6 +3061,13 @@ function aiActionStatusType(status: string) {
 function formatAiActionPayload(action: AiAction) {
   const payload = action.payload || {};
   if (action.type === 'create_anniversary') {
+    return [
+      `标题：${String(payload.title || action.title || '')}`,
+      `日期：${String(payload.date || payload.eventDate || '')}`,
+      payload.description ? `说明：${String(payload.description)}` : '',
+    ].filter(Boolean).join('\n');
+  }
+  if (action.type === 'create_important_moment') {
     return [
       `标题：${String(payload.title || action.title || '')}`,
       `日期：${String(payload.date || payload.eventDate || '')}`,
