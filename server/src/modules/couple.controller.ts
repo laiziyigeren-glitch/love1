@@ -135,8 +135,8 @@ export class CoupleController {
   }
 
   @Post('ai/actions/:id/confirm')
-  confirmAiAction(@Param('slug') slug: string, @Param('id') id: string) {
-    return this.ai.confirmAction(slug, id);
+  confirmAiAction(@Param('slug') slug: string, @Param('id') id: string, @Body() body: { payload?: Record<string, unknown> }) {
+    return this.ai.confirmAction(slug, id, body);
   }
 
   @Post('ai/actions/:id/reject')

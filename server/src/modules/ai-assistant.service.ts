@@ -165,7 +165,7 @@ export class AiAssistantService {
     };
   }
 
-  async confirmAction(slug: string, actionId: string) {
+  async confirmAction(slug: string, actionId: string, input: { payload?: AiActionPayload } = {}) {
     const space = await this.getSpace(slug);
     const action = await this.prisma.aiAction.findFirst({
       where: { id: actionId, spaceId: space.id },
@@ -173,7 +173,13 @@ export class AiAssistantService {
     if (!action) throw new NotFoundException('AI action was not found');
     if (action.status !== 'pending') throw new BadRequestException('这个建议已经处理过了');
 
-    const payload = (action.payload || {}) as AiActionPayload;
+    const savedPayload = action.payload && typeof action.payload === 'object' && !Array.isArray(action.payload)
+      ? action.payload as AiActionPayload
+      : {};
+    const inputPayload = input.payload && typeof input.payload === 'object' && !Array.isArray(input.payload)
+      ? input.payload
+      : {};
+    const payload = { ...savedPayload, ...inputPayload };
     let result: unknown;
     if (action.type === 'create_anniversary') {
       const dateText = this.clean(payload.date || payload.eventDate);
@@ -206,7 +212,11 @@ export class AiAssistantService {
 
     const saved = await this.prisma.aiAction.update({
       where: { id: action.id },
-      data: { status: 'done', resultJson: result as Prisma.InputJsonValue },
+      data: {
+        status: 'done',
+        payload: payload as Prisma.InputJsonObject,
+        resultJson: result as Prisma.InputJsonValue,
+      },
     });
     await this.rebuildKnowledge(slug);
     return { success: true, action: this.toActionDto(saved), result };
