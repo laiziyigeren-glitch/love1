@@ -256,6 +256,10 @@ model AiProviderConfig {
   personality        String      @default("gentle")
   memoryEnabled      Boolean     @default(true)
   actionEnabled      Boolean     @default(false)
+  allowCreateAnniversary Boolean  @default(true)
+  allowCreatePromise Boolean      @default(true)
+  allowDraftLetter   Boolean     @default(true)
+  allowUpdateReminders Boolean   @default(true)
   dailyMessageLimit  Int         @default(80)
   systemPromptOverride String?   @db.LongText
   createdAt          DateTime    @default(now())

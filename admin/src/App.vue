@@ -888,6 +888,19 @@
                 <el-switch v-model="aiConfig.actionEnabled" />
                 <span class="form-hint">开启后，前台会显示确认卡片；不确认就不会写入数据。</span>
               </el-form-item>
+              <el-form-item label="允许新增纪念日">
+                <el-switch v-model="aiConfig.allowCreateAnniversary" :disabled="!aiConfig.actionEnabled" />
+              </el-form-item>
+              <el-form-item label="允许新增约定">
+                <el-switch v-model="aiConfig.allowCreatePromise" :disabled="!aiConfig.actionEnabled" />
+              </el-form-item>
+              <el-form-item label="允许情书草稿">
+                <el-switch v-model="aiConfig.allowDraftLetter" :disabled="!aiConfig.actionEnabled" />
+              </el-form-item>
+              <el-form-item label="允许修改提醒">
+                <el-switch v-model="aiConfig.allowUpdateReminders" :disabled="!aiConfig.actionEnabled" />
+                <span class="form-hint">例如：让 AI 帮你把纪念日提醒改成提前 3 天，前台确认后才会写入。</span>
+              </el-form-item>
               <el-form-item label="每日消息上限">
                 <el-input-number v-model="aiConfig.dailyMessageLimit" :min="1" :max="500" />
               </el-form-item>
@@ -1166,6 +1179,10 @@ const aiConfig = reactive<AiConfig>({
   personality: 'gentle',
   memoryEnabled: true,
   actionEnabled: false,
+  allowCreateAnniversary: true,
+  allowCreatePromise: true,
+  allowDraftLetter: true,
+  allowUpdateReminders: true,
   dailyMessageLimit: 80,
   systemPromptOverride: '',
 });
@@ -3053,6 +3070,15 @@ function formatAiActionPayload(action: AiAction) {
     return [
       `标题：${String(payload.title || action.title || '')}`,
       payload.body ? `内容：${String(payload.body).slice(0, 120)}` : '',
+    ].filter(Boolean).join('\n');
+  }
+  if (action.type === 'update_reminders') {
+    return [
+      payload.anniversaryEnabled !== undefined ? `纪念日提醒：${payload.anniversaryEnabled ? '开启' : '关闭'}` : '',
+      payload.anniversaryDays !== undefined ? `提前天数：${String(payload.anniversaryDays)} 天` : '',
+      payload.surpriseEnabled !== undefined ? `惊喜提醒：${payload.surpriseEnabled ? '开启' : '关闭'}` : '',
+      payload.dailyQuoteEnabled !== undefined ? `每日一句：${payload.dailyQuoteEnabled ? '开启' : '关闭'}` : '',
+      payload.dailyQuoteTime ? `每日一句时间：${String(payload.dailyQuoteTime)}` : '',
     ].filter(Boolean).join('\n');
   }
   return JSON.stringify(payload, null, 2);

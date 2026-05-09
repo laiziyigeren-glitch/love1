@@ -368,6 +368,10 @@ export type AiConfig = {
   personality: string;
   memoryEnabled: boolean;
   actionEnabled: boolean;
+  allowCreateAnniversary: boolean;
+  allowCreatePromise: boolean;
+  allowDraftLetter: boolean;
+  allowUpdateReminders: boolean;
   dailyMessageLimit: number;
   systemPromptOverride: string;
 };

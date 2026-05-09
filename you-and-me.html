@@ -3078,6 +3078,7 @@ nav {
     <button class="ai-quick-btn" type="button" data-ai-prompt="今天想聊聊我们的近况，帮我温柔整理一下。">今天想聊聊</button>
     <button class="ai-quick-btn" type="button" data-ai-prompt="帮我写一封情书草稿，语气温柔自然一点。">写情书</button>
     <button class="ai-quick-btn" type="button" data-ai-prompt="帮我们加一个纪念日，我来告诉你日期和说明。">加纪念日</button>
+    <button class="ai-quick-btn" type="button" data-ai-prompt="帮我把纪念日提醒改成提前 3 天。">改提醒</button>
     <button class="ai-quick-btn" type="button" data-ai-prompt="今天适合听什么歌？结合我们的网站内容推荐一下。">听什么歌</button>
   </div>
   <form class="ai-assistant-form" id="aiAssistantForm">
@@ -6028,6 +6029,15 @@ function formatAiActionDetail(action) {
     return [
       `标题：${payload.title || action.title || '新的情书草稿'}`,
       payload.body ? `内容：${String(payload.body).slice(0, 120)}` : '',
+    ].filter(Boolean).join('\n');
+  }
+  if (action?.type === 'update_reminders') {
+    return [
+      payload.anniversaryEnabled !== undefined ? `纪念日提醒：${payload.anniversaryEnabled ? '开启' : '关闭'}` : '',
+      payload.anniversaryDays !== undefined ? `提前天数：${payload.anniversaryDays} 天` : '',
+      payload.surpriseEnabled !== undefined ? `惊喜提醒：${payload.surpriseEnabled ? '开启' : '关闭'}` : '',
+      payload.dailyQuoteEnabled !== undefined ? `每日一句：${payload.dailyQuoteEnabled ? '开启' : '关闭'}` : '',
+      payload.dailyQuoteTime ? `每日一句时间：${payload.dailyQuoteTime}` : '',
     ].filter(Boolean).join('\n');
   }
   return action?.title || '待确认操作';
