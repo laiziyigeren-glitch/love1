@@ -99,6 +99,7 @@ export class AiAssistantService {
     const config = await this.getConfigBySpaceId(space.id);
     if (!config.enabled) throw new BadRequestException('AI assistant is disabled');
     if (!config.apiKeyEncrypted) throw new BadRequestException('后台还没有配置 AI API Key');
+    await this.assertDailyMessageLimit(space.id, config.dailyMessageLimit);
 
     const conversation = body.conversationId
       ? await this.prisma.aiConversation.findFirst({ where: { id: body.conversationId, spaceId: space.id } })
@@ -133,6 +134,10 @@ export class AiAssistantService {
     const answer = await this.callModel(config, messages);
     const assistantMessage = await this.prisma.aiMessage.create({
       data: { conversationId: conversation.id, role: 'assistant', content: answer },
+    });
+    await this.prisma.aiConversation.update({
+      where: { id: conversation.id },
+      data: { updatedAt: new Date() },
     });
     const actionSuggestion = config.actionEnabled
       ? await this.createActionSuggestion(space.id, userMessage.id, message, answer, config)
@@ -216,6 +221,39 @@ export class AiAssistantService {
     const conversation = await this.prisma.aiConversation.findFirst({ where: { id: conversationId, spaceId: space.id } });
     if (!conversation) throw new NotFoundException('Conversation was not found');
     return this.prisma.aiMessage.findMany({ where: { conversationId }, orderBy: { createdAt: 'asc' } });
+  }
+
+  async listConversations(slug: string) {
+    const space = await this.getSpace(slug);
+    const conversations = await this.prisma.aiConversation.findMany({
+      where: { spaceId: space.id },
+      orderBy: { updatedAt: 'desc' },
+      take: 30,
+      include: {
+        _count: { select: { messages: true } },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+    return conversations.map((item) => ({
+      id: item.id,
+      title: item.title,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      messageCount: item._count.messages,
+      lastMessage: item.messages[0]?.content || '',
+    }));
+  }
+
+  async deleteConversation(slug: string, conversationId: string) {
+    const space = await this.getSpace(slug);
+    const conversation = await this.prisma.aiConversation.findFirst({ where: { id: conversationId, spaceId: space.id } });
+    if (!conversation) throw new NotFoundException('Conversation was not found');
+    await this.prisma.aiMessage.deleteMany({ where: { conversationId } });
+    await this.prisma.aiConversation.delete({ where: { id: conversationId } });
+    return { success: true };
   }
 
   async getBrief(slug: string) {
@@ -372,6 +410,25 @@ export class AiAssistantService {
       },
     });
     return this.toActionDto(saved);
+  }
+
+  private async assertDailyMessageLimit(spaceId: string, limit: number) {
+    const max = Number.isFinite(limit) ? Math.max(1, Number(limit)) : 80;
+    const dayMs = 24 * 60 * 60 * 1000;
+    const chinaOffsetMs = 8 * 60 * 60 * 1000;
+    const chinaDayStartMs = Math.floor((Date.now() + chinaOffsetMs) / dayMs) * dayMs - chinaOffsetMs;
+    const dayStart = new Date(chinaDayStartMs);
+    const dayEnd = new Date(chinaDayStartMs + dayMs);
+    const used = await this.prisma.aiMessage.count({
+      where: {
+        role: 'user',
+        createdAt: { gte: dayStart, lt: dayEnd },
+        conversation: { spaceId },
+      },
+    });
+    if (used >= max) {
+      throw new BadRequestException(`今天的 AI 聊天次数已经达到上限 ${max} 次，明天再继续聊吧。`);
+    }
   }
 
   private async extractActionSuggestion(

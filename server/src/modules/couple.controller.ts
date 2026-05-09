@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ContentService } from './content.service';
 import { AiAssistantService } from './ai-assistant.service';
 import { CoupleAuthGuard } from './couple-auth.guard';
@@ -112,6 +112,21 @@ export class CoupleController {
     @Body() body: { conversationId?: string; message: string },
   ) {
     return this.ai.chat(slug, body);
+  }
+
+  @Get('ai/conversations')
+  listAiConversations(@Param('slug') slug: string) {
+    return this.ai.listConversations(slug);
+  }
+
+  @Get('ai/conversations/:id/messages')
+  listAiMessages(@Param('slug') slug: string, @Param('id') id: string) {
+    return this.ai.listMessages(slug, id);
+  }
+
+  @Delete('ai/conversations/:id')
+  deleteAiConversation(@Param('slug') slug: string, @Param('id') id: string) {
+    return this.ai.deleteConversation(slug, id);
   }
 
   @Post('ai/brief')
