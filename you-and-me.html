@@ -1722,10 +1722,10 @@ nav {
   cursor: pointer;
 }
 .ai-quick-btn:hover { color: var(--text-primary); border-color: var(--border-bright); background: var(--rose-pale); }
-.ai-assistant-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); background: rgba(20,8,10,0.16); }
-.ai-assistant-input { flex: 1; border: 1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,0.07); color: #fff; padding: 10px 12px; outline: none; font-family: inherit; }
+.ai-assistant-form { display: flex; align-items: flex-end; gap: 8px; padding: 12px; border-top: 1px solid var(--border); background: rgba(20,8,10,0.16); }
+.ai-assistant-input { flex: 1; min-height: 42px; max-height: 112px; border: 1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,0.07); color: #fff; padding: 10px 12px; outline: none; font-family: inherit; font-size: 14px; line-height: 1.45; resize: none; overflow-y: auto; }
 .ai-assistant-input:focus { border-color: var(--border-bright); box-shadow: 0 0 0 3px rgba(232,116,138,0.12); }
-.ai-assistant-send { border: 0; border-radius: 14px; padding: 0 15px; background: linear-gradient(135deg, var(--rose), var(--gold)); color: #fff; font-weight: 700; cursor: pointer; box-shadow: 0 5px 18px rgba(232,116,138,0.28); }
+.ai-assistant-send { min-height: 42px; border: 0; border-radius: 14px; padding: 0 15px; background: linear-gradient(135deg, var(--rose), var(--gold)); color: #fff; font-weight: 700; cursor: pointer; box-shadow: 0 5px 18px rgba(232,116,138,0.28); }
 .ai-assistant-send:disabled { opacity: 0.55; cursor: not-allowed; }
 .anniversary-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .anniversary-title-row .card-title { margin-bottom: 0; }
@@ -3136,7 +3136,7 @@ nav {
     <button class="ai-quick-btn" type="button" data-ai-prompt="今天适合听什么歌？结合我们的网站内容推荐一下。">听什么歌</button>
   </div>
   <form class="ai-assistant-form" id="aiAssistantForm">
-    <input class="ai-assistant-input" id="aiAssistantInput" autocomplete="off" placeholder="和心语说点什么..." />
+    <textarea class="ai-assistant-input" id="aiAssistantInput" rows="1" autocomplete="off" placeholder="和心语说点什么..."></textarea>
     <button class="ai-assistant-send" id="aiAssistantSend" type="submit">发送</button>
   </form>
 </div>
@@ -6559,7 +6559,29 @@ function sendAiQuickPrompt(text) {
   const form = document.getElementById('aiAssistantForm');
   if (!input || !form) return;
   input.value = text;
+  resizeAiAssistantInput(input);
   form.requestSubmit();
+}
+
+function resizeAiAssistantInput(input = document.getElementById('aiAssistantInput')) {
+  if (!input) return;
+  input.style.height = 'auto';
+  input.style.height = `${Math.min(input.scrollHeight, 112)}px`;
+}
+
+function bindAiAssistantInput() {
+  const input = document.getElementById('aiAssistantInput');
+  const form = document.getElementById('aiAssistantForm');
+  if (!input || !form || input.dataset.bound === 'true') return;
+  input.dataset.bound = 'true';
+  input.addEventListener('input', () => resizeAiAssistantInput(input));
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+  resizeAiAssistantInput(input);
 }
 
 async function openAiAssistant() {
@@ -6612,7 +6634,10 @@ async function sendAiAssistantMessage(event) {
     appendAiMessage('assistant', '现在还不能聊天：后台还没有保存 AI API Key。');
     return;
   }
-  if (input) input.value = '';
+  if (input) {
+    input.value = '';
+    resizeAiAssistantInput(input);
+  }
   appendAiMessage('user', text);
   const typing = appendAiTypingMessage();
   if (send) send.disabled = true;
@@ -7090,6 +7115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindSettingsPageControls();
   bindMobileSettingsSections();
   document.getElementById('aiAssistantForm')?.addEventListener('submit', sendAiAssistantMessage);
+  bindAiAssistantInput();
   document.querySelectorAll('[data-ai-prompt]').forEach(btn => {
     btn.addEventListener('click', () => sendAiQuickPrompt(btn.dataset.aiPrompt || ''));
   });
