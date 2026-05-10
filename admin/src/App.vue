@@ -1690,7 +1690,11 @@ function toAnniversaryInputValue(value: string, fallback = '') {
 function getAnniversarySyncKind(item: Dashboard['anniversaries'][number]) {
   const title = item.title || '';
   if (item.id === 'anniv-first-meet' || item.type === 'meet' || title.includes('第一次见面')) return 'meet';
-  if (item.id === 'anniv-together' || item.type === 'love' || title.includes('在一起') || title.includes('开始') || title.includes('确认关系')) return 'start';
+  if (
+    item.id === 'anniv-together'
+    || item.type === 'love'
+    || ['我们的开始', '在一起日期', '确认关系'].includes(title.trim())
+  ) return 'start';
   return '';
 }
 
@@ -1700,7 +1704,7 @@ function findSyncedAnniversaries(kind: 'start' | 'meet') {
     return items.filter((item) =>
       item.id === 'anniv-together'
       || item.type === 'love'
-      || ['在一起', '开始', '确认关系'].some((keyword) => item.title.includes(keyword)),
+      || ['我们的开始', '在一起日期', '确认关系'].includes((item.title || '').trim()),
     );
   }
   return items.filter((item) =>
@@ -1916,8 +1920,9 @@ async function uploadPageHeaderImage(options: UploadRequestOptions, pageKey: Pag
   }
 }
 
-function addAnniversary() {
-  dashboard.value?.anniversaries.push({
+async function addAnniversary() {
+  if (!dashboard.value) return;
+  const item: Dashboard['anniversaries'][number] = {
     id: '',
     title: '新的纪念日',
     eventDate: new Date().toISOString().slice(0, 10),
@@ -1929,17 +1934,47 @@ function addAnniversary() {
     repeatYearly: true,
     showCountdown: false,
     description: '',
-  });
+  };
+  dashboard.value.anniversaries.push(item);
+  await saveOneAnniversary(item);
 }
 
 function normalizeAnniversaryCalendar(item: Dashboard['anniversaries'][number]) {
   item.calendarType = item.calendarType === 'lunar' ? 'lunar' : 'solar';
   item.lunarLeapMonth = item.lunarLeapMonth === true;
   if (item.calendarType === 'lunar') {
-    item.lunarMonth = Number(item.lunarMonth) || 1;
-    item.lunarDay = Number(item.lunarDay) || 1;
+    const parsed = parseLunarDateText(`${item.title || ''} ${item.description || ''}`);
+    item.lunarMonth = Number(item.lunarMonth) || parsed?.month || 1;
+    item.lunarDay = Number(item.lunarDay) || parsed?.day || 1;
+    item.lunarLeapMonth = item.lunarLeapMonth || parsed?.leapMonth === true;
     item.repeatYearly = true;
   }
+}
+
+function parseLunarDateText(text: string) {
+  const match = text.match(/农历\s*(闰)?\s*([正冬腊一二三四五六七八九十\d]{1,3})月\s*([初十廿卅一二三四五六七八九\d]{1,3})/);
+  if (!match) return null;
+  const month = parseLunarNumber(match[2]);
+  const day = parseLunarNumber(match[3].replace(/^初/, '').replace(/^廿$/, '二十').replace(/^卅$/, '三十'));
+  if (!month || !day) return null;
+  return { month, day, leapMonth: Boolean(match[1]) };
+}
+
+function parseLunarNumber(value: string) {
+  const text = String(value || '').trim();
+  const numeric = Number(text);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  if (text === '正') return 1;
+  if (text === '冬') return 11;
+  if (text === '腊') return 12;
+  const digitMap: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+  if (digitMap[text]) return digitMap[text];
+  if (text === '十') return 10;
+  if (text.startsWith('十')) return 10 + (digitMap[text.slice(1)] || 0);
+  if (text.startsWith('廿')) return 20 + (digitMap[text.slice(1)] || 0);
+  if (text.startsWith('二十')) return 20 + (digitMap[text.slice(2)] || 0);
+  if (text.startsWith('三十') || text === '卅') return 30;
+  return 0;
 }
 
 async function saveOneAnniversary(item: Dashboard['anniversaries'][number]) {
