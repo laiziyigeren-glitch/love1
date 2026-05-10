@@ -3,6 +3,7 @@ import { MediaType, Prisma, PublishStatus, Visibility } from '@prisma/client';
 import { Anniversary, HeartGardenProject, HomeSettings, LoveLetter, Profile, Song, SpaceData, ThemeConfig } from './types';
 import { PrismaService } from './prisma.service';
 import { StorageService } from './storage.service';
+import { lunarToSolar, nextLunarDate } from './lunar';
 
 @Injectable()
 export class ContentService {
@@ -281,10 +282,21 @@ export class ContentService {
 
   async upsertAnniversary(slug: string, item: Partial<Anniversary> & Pick<Anniversary, 'title' | 'eventDate'>) {
     const space = await this.getSpaceRef(slug);
+    const calendarType = item.calendarType === 'lunar' ? 'lunar' : 'solar';
+    const lunarMonth = calendarType === 'lunar' ? this.toBoundedInt(item.lunarMonth, 1, 12) : null;
+    const lunarDay = calendarType === 'lunar' ? this.toBoundedInt(item.lunarDay, 1, 30) : null;
+    const lunarLeapMonth = calendarType === 'lunar' ? item.lunarLeapMonth === true : false;
+    const lunarSolarDate = calendarType === 'lunar' && lunarMonth && lunarDay
+      ? lunarToSolar(new Date().getFullYear(), lunarMonth, lunarDay, lunarLeapMonth)
+      : null;
     const data = {
       title: item.title,
-      eventDate: this.parseDate(item.eventDate),
+      eventDate: calendarType === 'lunar' && lunarSolarDate ? lunarSolarDate : this.parseDate(item.eventDate),
       type: item.type ?? 'custom',
+      calendarType,
+      lunarMonth,
+      lunarDay,
+      lunarLeapMonth,
       repeatYearly: item.repeatYearly ?? true,
       showCountdown: item.showCountdown ?? false,
       description: item.description ?? '',
@@ -803,6 +815,10 @@ export class ContentService {
     title: string;
     eventDate: Date;
     type: string;
+    calendarType?: string | null;
+    lunarMonth?: number | null;
+    lunarDay?: number | null;
+    lunarLeapMonth?: boolean | null;
     repeatYearly: boolean;
     showCountdown: boolean;
     description: string | null;
@@ -812,6 +828,10 @@ export class ContentService {
       title: item.title,
       eventDate: this.formatDate(item.eventDate),
       type: item.type,
+      calendarType: item.calendarType === 'lunar' ? 'lunar' : 'solar',
+      lunarMonth: item.lunarMonth ?? null,
+      lunarDay: item.lunarDay ?? null,
+      lunarLeapMonth: item.lunarLeapMonth ?? false,
       repeatYearly: item.repeatYearly,
       showCountdown: item.showCountdown,
       description: item.description ?? '',
@@ -824,10 +844,13 @@ export class ContentService {
       .filter((item) => item.repeatYearly || this.parseDate(item.eventDate) >= now)
       .map((item) => {
         const source = this.parseDate(item.eventDate);
-        const next = item.repeatYearly
+        const next = item.calendarType === 'lunar' && item.repeatYearly && item.lunarMonth && item.lunarDay
+          ? nextLunarDate(item.lunarMonth, item.lunarDay, item.lunarLeapMonth === true, now)
+          : item.repeatYearly
           ? new Date(now.getFullYear(), source.getMonth(), source.getDate())
           : source;
-        if (next < now && item.repeatYearly) {
+        if (!next) return null;
+        if (item.calendarType !== 'lunar' && next < now && item.repeatYearly) {
           next.setFullYear(next.getFullYear() + 1);
         }
         return {
@@ -837,6 +860,7 @@ export class ContentService {
           secondsUntil: Math.max(0, Math.floor((next.getTime() - now.getTime()) / 1000)),
         };
       })
+      .filter((item): item is { id: string; title: string; date: string; secondsUntil: number } => Boolean(item))
       .sort((a, b) => a.secondsUntil - b.secondsUntil);
 
     return upcoming[0] ?? null;
@@ -853,6 +877,12 @@ export class ContentService {
     const [datePart] = normalized.split('T');
     const [year, month, day] = datePart.split('-').map(Number);
     return new Date(year, (month || 1) - 1, day || 1);
+  }
+
+  private toBoundedInt(value: unknown, min: number, max: number) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return null;
+    return Math.max(min, Math.min(max, Math.round(parsed)));
   }
 
   private formatDate(date: Date) {

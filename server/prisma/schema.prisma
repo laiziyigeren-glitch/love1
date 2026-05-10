@@ -120,6 +120,10 @@ model Anniversary {
   title       String
   eventDate   DateTime
   type        String
+  calendarType String       @default("solar")
+  lunarMonth  Int?
+  lunarDay    Int?
+  lunarLeapMonth Boolean    @default(false)
   repeatYearly Boolean      @default(true)
   showCountdown Boolean     @default(false)
   description String? @db.LongText

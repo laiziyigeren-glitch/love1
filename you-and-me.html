@@ -5215,6 +5215,76 @@ const LUNAR_FESTIVALS = {
   },
 };
 
+const LUNAR_BASE_YEAR = 1900;
+const LUNAR_BASE_DATE = new Date(1900, 0, 31);
+const LUNAR_INFO = [
+  0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
+  0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,
+  0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970,
+  0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950,
+  0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557,
+  0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5d0, 0x14573, 0x052d0, 0x0a9a8, 0x0e950, 0x06aa0,
+  0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0,
+  0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b6a0, 0x195a6,
+  0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570,
+  0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x05ac0, 0x0ab60, 0x096d5, 0x092e0,
+  0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5,
+  0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930,
+  0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530,
+  0x05aa0, 0x076a3, 0x096d0, 0x04bd7, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45,
+  0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0,
+  0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0,
+  0x0a2e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4,
+  0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0,
+  0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160,
+  0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252,
+  0x0d520,
+];
+
+function lunarInfo(year) {
+  return LUNAR_INFO[year - LUNAR_BASE_YEAR] || 0;
+}
+
+function lunarLeapMonth(year) {
+  return lunarInfo(year) & 0xf;
+}
+
+function lunarLeapDays(year) {
+  return lunarLeapMonth(year) ? ((lunarInfo(year) & 0x10000) ? 30 : 29) : 0;
+}
+
+function lunarMonthDays(year, month) {
+  if (month < 1 || month > 12) return 0;
+  return (lunarInfo(year) & (0x10000 >> month)) ? 30 : 29;
+}
+
+function lunarYearDays(year) {
+  let sum = 348;
+  for (let bit = 0x8000; bit > 0x8; bit >>= 1) {
+    if (lunarInfo(year) & bit) sum += 1;
+  }
+  return sum + lunarLeapDays(year);
+}
+
+function lunarToSolar(year, month, day, leapMonth = false) {
+  if (year < LUNAR_BASE_YEAR || year >= LUNAR_BASE_YEAR + LUNAR_INFO.length) return null;
+  const monthDays = leapMonth ? lunarLeapDays(year) : lunarMonthDays(year, month);
+  if (!monthDays || day < 1 || day > monthDays) return null;
+  if (leapMonth && lunarLeapMonth(year) !== month) return null;
+  let offset = 0;
+  for (let y = LUNAR_BASE_YEAR; y < year; y += 1) offset += lunarYearDays(y);
+  const leap = lunarLeapMonth(year);
+  for (let m = 1; m < month; m += 1) {
+    offset += lunarMonthDays(year, m);
+    if (leap === m) offset += lunarLeapDays(year);
+  }
+  if (leapMonth) offset += lunarMonthDays(year, month);
+  offset += day - 1;
+  const result = new Date(LUNAR_BASE_DATE);
+  result.setDate(result.getDate() + offset);
+  return result;
+}
+
 function getBuiltInFestivals(year) {
   const lunar = LUNAR_FESTIVALS[year] || {};
   const solar = [
@@ -5252,7 +5322,24 @@ function getCalendarEvents(items = []) {
     ...getBuiltInFestivals(year),
     ...getBuiltInFestivals(year + 1),
   ];
-  return [...items, ...fixed];
+  const expanded = items.flatMap(item => expandLunarAnniversary(item, [year - 1, year, year + 1]));
+  return [...expanded, ...fixed];
+}
+
+function expandLunarAnniversary(item = {}, years = []) {
+  if (item.calendarType !== 'lunar' || !item.repeatYearly || !item.lunarMonth || !item.lunarDay) return [item];
+  return years
+    .map(year => {
+      const date = lunarToSolar(year, Number(item.lunarMonth), Number(item.lunarDay), item.lunarLeapMonth === true);
+      if (!date) return null;
+      return {
+        ...item,
+        eventDate: formatDateKey(date),
+        lunarSourceDate: `${item.lunarLeapMonth ? '闰' : ''}农历${item.lunarMonth}月${item.lunarDay}日`,
+        repeatYearly: false,
+      };
+    })
+    .filter(Boolean);
 }
 
 function getAnniversaryEventPriority(item = {}) {
@@ -5327,12 +5414,17 @@ function getNextEvent(items = []) {
   return candidates
     .filter(item => item.countdownEligible !== false)
     .map(item => {
-      const source = parseLocalDate(item.eventDate);
+      const source = item.calendarType === 'lunar'
+        ? parseLocalDate(expandLunarAnniversary(item, [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1])
+            .map(event => ({ ...event, date: parseLocalDate(event.eventDate) }))
+            .filter(event => event.date && event.date > now)
+            .sort((a, b) => a.date - b.date)[0]?.eventDate)
+        : parseLocalDate(item.eventDate);
       if (!source) return null;
       const next = item.repeatYearly
         ? new Date(now.getFullYear(), source.getMonth(), source.getDate())
         : source;
-      if (item.repeatYearly && next < now) next.setFullYear(next.getFullYear() + 1);
+      if (item.calendarType !== 'lunar' && item.repeatYearly && next < now) next.setFullYear(next.getFullYear() + 1);
       const secondsUntil = Math.floor((next - now) / 1000);
       if (secondsUntil <= 0) return null;
       return { ...item, nextDate: next, secondsUntil };
@@ -5356,7 +5448,7 @@ function selectAnniversaryDate(date, items = []) {
   setText(
     '#page-anniversary .anniv-sub',
     first
-      ? `${first.description || '特别日子'}${events.length > 1 ? ` · 同一天还有 ${events.length - 1} 个纪念日/节日` : ''}`
+      ? `${first.description || first.lunarSourceDate || '特别日子'}${events.length > 1 ? ` · 同一天还有 ${events.length - 1} 个纪念日/节日` : ''}`
       : (events.length ? '特别日子' : '普通但值得珍惜的一天'),
   );
   setText('#page-anniversary .anniv-sub2', formatChineseDate(date));
@@ -6129,7 +6221,9 @@ function formatAiActionDetail(action) {
   if (action?.type === 'create_anniversary') {
     return [
       `标题：${payload.title || action.title || '新的纪念日'}`,
-      `日期：${payload.date || payload.eventDate || '未识别'}`,
+      payload.calendarType === 'lunar'
+        ? `日期：${payload.lunarLeapMonth ? '闰' : ''}农历${payload.lunarMonth || ''}月${payload.lunarDay || ''}日`
+        : `日期：${payload.date || payload.eventDate || '未识别'}`,
       payload.description ? `说明：${payload.description}` : '',
     ].filter(Boolean).join('\n');
   }
@@ -6209,10 +6303,35 @@ function createAiActionEditor(action) {
     return row;
   };
 
+  const selectField = (key, label, fallback, options = []) => {
+    const row = document.createElement('label');
+    row.className = 'ai-action-field';
+    const text = document.createElement('span');
+    text.textContent = label;
+    const select = document.createElement('select');
+    select.dataset.aiPayload = key;
+    select.value = String(payload[key] ?? fallback ?? '');
+    options.forEach(option => {
+      const item = document.createElement('option');
+      item.value = option.value;
+      item.textContent = option.label;
+      select.append(item);
+    });
+    row.append(text, select);
+    return row;
+  };
+
   if (action?.type === 'create_anniversary') {
     editor.append(
       textField('title', '标题', action.title),
+      selectField('calendarType', '日历', payload.calendarType || 'solar', [
+        { label: '公历', value: 'solar' },
+        { label: '农历', value: 'lunar' },
+      ]),
       textField('date', '日期', payload.date || payload.eventDate || '', { type: 'date' }),
+      numberField('lunarMonth', '农历月', payload.lunarMonth || 1),
+      numberField('lunarDay', '农历日', payload.lunarDay || 1),
+      boolField('lunarLeapMonth', '闰月', payload.lunarLeapMonth === true),
       textField('description', '说明', payload.description || '', { textarea: true, wide: true }),
       boolField('repeatYearly', '每年重复', payload.repeatYearly !== false),
       boolField('showCountdown', '显示倒计时', payload.showCountdown === true),

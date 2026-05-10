@@ -299,7 +299,26 @@
             <template #header><div class="card-header"><span>纪念日管理</span><el-button type="primary" @click="addAnniversary">新增纪念日</el-button></div></template>
             <el-table class="desktop-editor-table" :data="dashboard.anniversaries" row-key="id">
               <el-table-column label="标题" min-width="150"><template #default="{ row }"><el-input v-model="row.title" /></template></el-table-column>
-              <el-table-column label="日期" width="180"><template #default="{ row }"><el-date-picker v-model="row.eventDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" /></template></el-table-column>
+              <el-table-column label="日历" width="105">
+                <template #default="{ row }">
+                  <el-select v-model="row.calendarType" @change="normalizeAnniversaryCalendar(row)">
+                    <el-option label="公历" value="solar" />
+                    <el-option label="农历" value="lunar" />
+                  </el-select>
+                </template>
+              </el-table-column>
+              <el-table-column label="日期" width="230">
+                <template #default="{ row }">
+                  <el-date-picker v-if="row.calendarType !== 'lunar'" v-model="row.eventDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" />
+                  <div v-else class="lunar-date-editor">
+                    <el-input-number v-model="row.lunarMonth" :min="1" :max="12" controls-position="right" />
+                    <span>月</span>
+                    <el-input-number v-model="row.lunarDay" :min="1" :max="30" controls-position="right" />
+                    <span>日</span>
+                    <el-checkbox v-model="row.lunarLeapMonth">闰月</el-checkbox>
+                  </div>
+                </template>
+              </el-table-column>
               <el-table-column label="每年重复" width="110"><template #default="{ row }"><el-switch v-model="row.repeatYearly" /></template></el-table-column>
               <el-table-column label="倒计时" width="100"><template #default="{ row }"><el-switch v-model="row.showCountdown" /></template></el-table-column>
               <el-table-column label="说明" min-width="220"><template #default="{ row }"><el-input v-model="row.description" /></template></el-table-column>
@@ -309,7 +328,15 @@
               <article v-for="(anniversary, index) in dashboard.anniversaries" :key="anniversary.id || index" class="mobile-edit-card">
                 <div class="mobile-edit-card__title">{{ anniversary.title || `纪念日 ${index + 1}` }}</div>
                 <label>标题<el-input v-model="anniversary.title" /></label>
-                <label>日期<el-date-picker v-model="anniversary.eventDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" /></label>
+                <label>日历<el-select v-model="anniversary.calendarType" @change="normalizeAnniversaryCalendar(anniversary)"><el-option label="公历" value="solar" /><el-option label="农历" value="lunar" /></el-select></label>
+                <label v-if="anniversary.calendarType !== 'lunar'">日期<el-date-picker v-model="anniversary.eventDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" /></label>
+                <div v-else class="lunar-date-editor mobile-lunar-editor">
+                  <el-input-number v-model="anniversary.lunarMonth" :min="1" :max="12" controls-position="right" />
+                  <span>月</span>
+                  <el-input-number v-model="anniversary.lunarDay" :min="1" :max="30" controls-position="right" />
+                  <span>日</span>
+                  <el-checkbox v-model="anniversary.lunarLeapMonth">闰月</el-checkbox>
+                </div>
                 <div class="mobile-switch-row"><span>每年重复</span><el-switch v-model="anniversary.repeatYearly" /></div>
                 <div class="mobile-switch-row"><span>倒计时</span><el-switch v-model="anniversary.showCountdown" /></div>
                 <label>说明<el-input v-model="anniversary.description" /></label>
@@ -1335,6 +1362,7 @@ async function load() {
     coupleAccessForm.password = '';
     coupleAccessForm.passwordSet = coupleAccess.passwordSet;
     dashboard.value.anniversaries ||= [];
+    dashboard.value.anniversaries.forEach(normalizeAnniversaryCalendar);
     dashboard.value.songs ||= [];
     dashboard.value.letters ||= [];
     dashboard.value.albumItems ||= [];
@@ -1894,15 +1922,30 @@ function addAnniversary() {
     title: '新的纪念日',
     eventDate: new Date().toISOString().slice(0, 10),
     type: 'custom',
+    calendarType: 'solar',
+    lunarMonth: null,
+    lunarDay: null,
+    lunarLeapMonth: false,
     repeatYearly: true,
     showCountdown: false,
     description: '',
   });
 }
 
+function normalizeAnniversaryCalendar(item: Dashboard['anniversaries'][number]) {
+  item.calendarType = item.calendarType === 'lunar' ? 'lunar' : 'solar';
+  item.lunarLeapMonth = item.lunarLeapMonth === true;
+  if (item.calendarType === 'lunar') {
+    item.lunarMonth = Number(item.lunarMonth) || 1;
+    item.lunarDay = Number(item.lunarDay) || 1;
+    item.repeatYearly = true;
+  }
+}
+
 async function saveOneAnniversary(item: Dashboard['anniversaries'][number]) {
   await withRowBusy('anniversary', item, async () => {
     try {
+      normalizeAnniversaryCalendar(item);
       const payload = {
         ...item,
         eventDate: String(item.eventDate || '').slice(0, 10),
@@ -3063,7 +3106,9 @@ function formatAiActionPayload(action: AiAction) {
   if (action.type === 'create_anniversary') {
     return [
       `标题：${String(payload.title || action.title || '')}`,
-      `日期：${String(payload.date || payload.eventDate || '')}`,
+      payload.calendarType === 'lunar'
+        ? `日期：${payload.lunarLeapMonth ? '闰' : ''}农历${String(payload.lunarMonth || '')}月${String(payload.lunarDay || '')}日`
+        : `日期：${String(payload.date || payload.eventDate || '')}`,
       payload.description ? `说明：${String(payload.description)}` : '',
     ].filter(Boolean).join('\n');
   }
@@ -3542,6 +3587,19 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  color: #806f6a;
+  font-size: 13px;
+}
+.lunar-date-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lunar-date-editor .el-input-number {
+  width: 78px;
+}
+.mobile-lunar-editor {
+  flex-wrap: wrap;
   color: #806f6a;
   font-size: 13px;
 }

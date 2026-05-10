@@ -118,6 +118,10 @@ export type Anniversary = {
   title: string;
   eventDate: string;
   type: string;
+  calendarType: 'solar' | 'lunar';
+  lunarMonth?: number | null;
+  lunarDay?: number | null;
+  lunarLeapMonth?: boolean;
   repeatYearly: boolean;
   showCountdown: boolean;
   description: string;
