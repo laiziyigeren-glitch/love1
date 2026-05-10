@@ -522,35 +522,10 @@ nav {
   letter-spacing: 0; line-height: 1.2;
 }
 .page-header-sub { font-size: 14px; color: var(--text-muted); line-height: 1.7; }
-.header-image-frame {
-  width: 100%; height: 130px; border-radius: 16px;
-  position: relative; overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-  background: rgba(255,255,255,0.05);
-  isolation: isolate;
-}
-.header-image-frame::before {
-  content: '';
-  position: absolute; inset: -18px;
-  background-image: var(--header-image-url);
-  background-size: cover;
-  background-position: center;
-  filter: blur(18px);
-  opacity: 0.62;
-  transform: scale(1.08);
-  z-index: -2;
-}
-.header-image-frame::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(20,8,10,0.2));
-  z-index: -1;
-}
 .header-img {
-  width: 100%; height: 100%;
-  object-fit: contain; object-position: center;
-  display: block; position: relative;
+  width: 100%; height: 130px; border-radius: 16px;
+  object-fit: cover; border: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
 }
 .header-img-placeholder {
   width: 100%; height: 130px; border-radius: 16px;
@@ -1921,7 +1896,7 @@ nav {
     display: block;
   }
   .page-header-sub { font-size: 13px; }
-  .header-image-frame,
+  .header-img,
   .header-img-placeholder {
     height: 118px;
     border-radius: 14px;
@@ -2281,7 +2256,7 @@ nav {
     padding: 18px 15px;
   }
   .page-header-title { font-size: 22px; }
-  .header-image-frame,
+  .header-img,
   .header-img-placeholder {
     height: 104px;
   }
@@ -2542,12 +2517,10 @@ nav {
           <div class="page-header-title">遇见你，是我最美丽的意外 💝</div>
           <div class="page-header-sub">感谢命运让我们相遇，从此，你的名字就是我最温暖的诗篇。</div>
         </div>
-        <div class="header-image-frame" style="--header-image-url:url('https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80')">
-          <img class="header-img"
-            src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80"
-            alt="couple"
-            onerror="this.closest('.header-image-frame').outerHTML='<div class=\'header-img-placeholder\'>🌅</div>'">
-        </div>
+        <img class="header-img"
+          src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80"
+          alt="couple"
+          onerror="this.outerHTML='<div class=\'header-img-placeholder\'>🌅</div>'">
       </div>
 
       <div class="cards-row">
@@ -2658,9 +2631,7 @@ nav {
           <div class="page-header-title">纪念日 💝</div>
           <div class="page-header-sub">把每一个值得记住的日子，都温柔收藏起来</div>
         </div>
-        <div class="header-image-frame" style="--header-image-url:url('https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=640&q=80')">
-          <img class="header-img" src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.closest('.header-image-frame').outerHTML='<div class=\'header-img-placeholder\'>🌸</div>'">
-        </div>
+        <img class="header-img" src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.outerHTML='<div class=\'header-img-placeholder\'>🌸</div>'">
       </div>
       <div class="anniversary-grid">
         <div class="calendar-card">
@@ -2771,9 +2742,7 @@ nav {
             <div class="album-stat">🔖 收藏 45 个</div>
           </div>
         </div>
-        <div class="header-image-frame" style="--header-image-url:url('https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80')">
-          <img class="header-img" src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.closest('.header-image-frame').outerHTML='<div class=\'header-img-placeholder\'>🌇</div>'">
-        </div>
+        <img class="header-img" src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.outerHTML='<div class=\'header-img-placeholder\'>🌇</div>'">
       </div>
       <div class="album-toolbar">
         <div class="album-tabs">
@@ -2869,9 +2838,7 @@ nav {
           <div class="page-header-title">音乐盒 🎵</div>
           <div class="page-header-sub">把每一首属于我们的歌，都温柔收藏</div>
         </div>
-        <div class="header-image-frame" style="--header-image-url:url('https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=640&q=80')">
-          <img class="header-img" src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.closest('.header-image-frame').outerHTML='<div class=\'header-img-placeholder\'>🌃</div>'">
-        </div>
+        <img class="header-img" src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.outerHTML='<div class=\'header-img-placeholder\'>🌃</div>'">
       </div>
       <div class="music-layout">
         <div class="vinyl-player">
@@ -3005,9 +2972,7 @@ nav {
           <div class="page-header-title">心动花园 🌹</div>
           <div class="page-header-sub">把收集来的爱心代码，变成可以随手打开的小惊喜</div>
         </div>
-        <div class="header-image-frame" style="--header-image-url:url('https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80')">
-          <img class="header-img" src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.closest('.header-image-frame').outerHTML='<div class=\'header-img-placeholder\'>🌹</div>'">
-        </div>
+        <img class="header-img" src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.outerHTML='<div class=\'header-img-placeholder\'>🌹</div>'">
       </div>
       <div class="romance-overview">
         <div class="romance-stat"><div class="romance-stat-num" id="romanceReadyCount">0</div><div class="romance-stat-label">可直接打开的花</div></div>
@@ -3065,9 +3030,7 @@ nav {
           <div class="page-header-title">设置页 💝</div>
           <div class="page-header-sub">把属于我们的浪漫，调成最喜欢的样子</div>
         </div>
-        <div class="header-image-frame" style="--header-image-url:url('https://images.unsplash.com/photo-1517534573028-3db0dab0d31c?auto=format&fit=crop&w=640&q=80')">
-          <img class="header-img" src="https://images.unsplash.com/photo-1517534573028-3db0dab0d31c?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.closest('.header-image-frame').outerHTML='<div class=\'header-img-placeholder\'>🕯️</div>'">
-        </div>
+        <img class="header-img" src="https://images.unsplash.com/photo-1517534573028-3db0dab0d31c?auto=format&fit=crop&w=640&q=80" alt="" onerror="this.outerHTML='<div class=\'header-img-placeholder\'>🕯️</div>'">
       </div>
       <div class="settings-grid">
         <div class="glass-card settings-grid-2 settings-section" data-settings-section="profile">
@@ -5862,8 +5825,6 @@ function renderPageHeaders(settings = {}, data = {}) {
     if (title) title.textContent = header.title || fallbackHome.title;
     if (subtitle) subtitle.textContent = header.subtitle || fallbackHome.subtitle;
     if (image && header.imageUrl) {
-      const frame = image.closest('.header-image-frame');
-      if (frame) frame.style.setProperty('--header-image-url', `url("${String(header.imageUrl).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")`);
       image.src = header.imageUrl;
       image.alt = header.title || '';
     }
