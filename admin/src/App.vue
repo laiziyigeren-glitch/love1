@@ -2881,6 +2881,8 @@ function rewriteScriptAssetUrls(script: string, basePath: string, resolveAssetUr
   const assetPattern = /\.(?:png|jpe?g|gif|webp|svg|mp3|wav|ogg|m4a|flac|mp4|webm|mov|m4v)(?:[?#][^"'`]*)?$/i;
   return String(script || '').replace(/(["'`])([^"'`\n\r]+)\1/g, (match, quote, rawValue) => {
     const value = String(rawValue || '').trim();
+    const cssRewritten = rewriteCssAssetUrls(value, basePath, resolveAssetUrl);
+    if (cssRewritten !== value) return `${quote}${cssRewritten.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
     if (!assetPattern.test(value)) return match;
     const resolved = resolveAssetUrl(value, basePath);
     return resolved === value ? match : `${quote}${resolved.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
@@ -2888,7 +2890,7 @@ function rewriteScriptAssetUrls(script: string, basePath: string, resolveAssetUr
 }
 
 function rewriteHtmlAssetUrls(html: string, basePath: string, resolveAssetUrl: (value: string, basePath?: string) => string) {
-  let result = String(html || '').replace(/\b(src|href|poster)=("([^"]*)"|'([^']*)')/gi, (match, attr, wrapped, doubleValue, singleValue) => {
+  let result = String(html || '').replace(/\b(src|href|poster|background)=("([^"]*)"|'([^']*)')/gi, (match, attr, wrapped, doubleValue, singleValue) => {
     const rawValue = doubleValue ?? singleValue ?? '';
     const resolved = resolveAssetUrl(rawValue, basePath);
     if (resolved === rawValue) return match;
