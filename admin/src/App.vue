@@ -1153,6 +1153,14 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function getLoadErrorMessage(error: unknown) {
+  const code = (error as { code?: string })?.code;
+  if (code === 'ECONNABORTED') {
+    return '后端唤醒或请求超时了，请稍后点“重新加载”';
+  }
+  return getErrorMessage(error, '无法连接后端，请确认 API 和 MySQL 已启动');
+}
+
 function removeListItem<T extends { id?: string }>(items: T[] | undefined, item: T, index: number) {
   if (!items) return;
   const matchedIndex = item.id ? items.findIndex((entry) => entry.id === item.id) : -1;
@@ -1343,21 +1351,11 @@ const heartValuesText = computed({
 async function load() {
   loading.value = true;
   try {
-    const [nextDashboard, coupleAccess, nextAiConfig, nextAiMemories, nextAiActions, nextAiKnowledge] = await Promise.all([
+    const [nextDashboard, coupleAccess] = await Promise.all([
       fetchDashboard(),
       fetchCoupleAccess(),
-      fetchAiConfig(),
-      fetchAiMemories().catch(() => []),
-      fetchAiActions().catch(() => []),
-      fetchAiKnowledge().catch(() => ({ summary: '', updatedAt: '' })),
     ]);
     dashboard.value = nextDashboard;
-    Object.assign(aiConfig, nextAiConfig);
-    aiMemories.value = nextAiMemories;
-    aiActions.value = nextAiActions;
-    aiKnowledgeSummary.value = nextAiKnowledge.summary || '';
-    aiKnowledgeUpdatedAt.value = nextAiKnowledge.updatedAt || '';
-    aiApiKeyDraft.value = '';
     coupleAccessForm.name = coupleAccess.name || 'love';
     coupleAccessForm.password = '';
     coupleAccessForm.passwordSet = coupleAccess.passwordSet;
@@ -1378,6 +1376,7 @@ async function load() {
     if (isLegacyDefaultFirstMeetDate(dashboard.value.site.settings.anniversaryPage.firstMeetDate) && !findSyncedAnniversary('meet')) {
       dashboard.value.site.settings.anniversaryPage.firstMeetDate = '';
     }
+    void loadAiOverview();
   } catch (error) {
     if ((error as { response?: { status?: number } }).response?.status === 401) {
       clearAdminToken();
@@ -1387,9 +1386,28 @@ async function load() {
       return;
     }
     dashboard.value = null;
-    ElMessage.error('无法连接后端，请确认 API 和 MySQL 已启动');
+    ElMessage.error(getLoadErrorMessage(error));
   } finally {
     loading.value = false;
+  }
+}
+
+async function loadAiOverview() {
+  const [configResult, memoriesResult, actionsResult, knowledgeResult] = await Promise.allSettled([
+    fetchAiConfig(),
+    fetchAiMemories(),
+    fetchAiActions(),
+    fetchAiKnowledge(),
+  ]);
+  if (configResult.status === 'fulfilled') {
+    Object.assign(aiConfig, configResult.value);
+    aiApiKeyDraft.value = '';
+  }
+  if (memoriesResult.status === 'fulfilled') aiMemories.value = memoriesResult.value;
+  if (actionsResult.status === 'fulfilled') aiActions.value = actionsResult.value;
+  if (knowledgeResult.status === 'fulfilled') {
+    aiKnowledgeSummary.value = knowledgeResult.value.summary || '';
+    aiKnowledgeUpdatedAt.value = knowledgeResult.value.updatedAt || '';
   }
 }
 

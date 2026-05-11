@@ -3,6 +3,7 @@ import axios, { AxiosHeaders } from 'axios';
 const apiBase = String(import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 const api = axios.create({
   baseURL: apiBase,
+  timeout: 30000,
 });
 
 const adminTokenKey = 'love1_admin_token';
@@ -21,11 +22,23 @@ export function clearAdminToken() {
 
 api.interceptors.request.use((config) => {
   const token = getAdminToken();
+  const headers = new AxiosHeaders(config.headers);
+
+  headers.set('Cache-Control', 'no-cache');
+  headers.set('Pragma', 'no-cache');
+
+  if (String(config.method || 'get').toLowerCase() === 'get') {
+    config.params = {
+      ...(config.params || {}),
+      _t: Date.now(),
+    };
+  }
+
+  config.headers = headers;
+
   if (!token) return config;
 
-  const headers = new AxiosHeaders(config.headers);
   headers.set('Authorization', `Bearer ${token}`);
-  config.headers = headers;
 
   return config;
 });
