@@ -209,6 +209,7 @@ model Song {
   audioUrl  String? @db.LongText
   lyric     String? @db.LongText
   favorite  Boolean     @default(false)
+  sortOrder Int         @default(0)
   space     CoupleSpace @relation(fields: [spaceId], references: [id])
   playlists PlaylistItem[]
 }

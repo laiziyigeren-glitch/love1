@@ -483,6 +483,12 @@
                   </div>
                 </template>
               </el-table-column>
+              <el-table-column label="排序" width="100" fixed="left">
+                <template #default="{ $index }">
+                  <el-button link :disabled="$index === 0 || songReordering" @click="moveSong($index, -1)">上移</el-button>
+                  <el-button link :disabled="$index === dashboard.songs.length - 1 || songReordering" @click="moveSong($index, 1)">下移</el-button>
+                </template>
+              </el-table-column>
               <el-table-column label="收藏" width="90"><template #default="{ row }"><el-switch v-model="row.favorite" /></template></el-table-column>
               <el-table-column label="操作" width="150" fixed="right"><template #default="{ row, $index }"><el-button link type="primary" :loading="isRowBusy('song', row)" :disabled="isRowBusy('song', row)" @click="saveOneSong(row)">保存</el-button><el-button link type="danger" :loading="isRowBusy('song', row)" :disabled="isRowBusy('song', row)" @click="removeSong(row, $index)">删除</el-button></template></el-table-column>
             </el-table>
@@ -1062,6 +1068,7 @@ const loginLoading = ref(false);
 const profileSaving = ref(false);
 const homeSaving = ref(false);
 const anniversaryPageSaving = ref(false);
+const songReordering = ref(false);
 type RowBusyBucket = 'album' | 'letter' | 'anniversary' | 'song' | 'playlist' | 'heartGarden';
 const rowBusyState = reactive<Record<RowBusyBucket, Record<string, boolean>>>({
   album: {},
@@ -2181,7 +2188,32 @@ async function removeLetter(item: Dashboard['letters'][number], index: number) {
 }
 
 function addSong() {
-  dashboard.value?.songs.unshift({ id: '', title: '新的歌曲', artist: '', duration: 0, coverUrl: '', audioUrl: '', lyric: '', favorite: false });
+  const songs = dashboard.value?.songs;
+  if (!songs) return;
+  const nextSortOrder = songs.reduce((max, song, index) => Math.max(max, Number(song.sortOrder ?? index)), -1) + 1;
+  songs.push({ id: '', title: '新的歌曲', artist: '', duration: 0, coverUrl: '', audioUrl: '', lyric: '', favorite: false, sortOrder: nextSortOrder });
+}
+
+async function moveSong(index: number, direction: -1 | 1) {
+  const songs = dashboard.value?.songs;
+  if (!songs) return;
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= songs.length) return;
+  [songs[index], songs[targetIndex]] = [songs[targetIndex], songs[index]];
+  songs.forEach((song, songIndex) => {
+    song.sortOrder = songIndex;
+  });
+  songReordering.value = true;
+  try {
+    await Promise.all(songs.filter((song) => song.id).map((song) => saveSong(song)));
+    ElMessage.success('歌曲顺序已保存');
+    await load();
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '歌曲排序保存失败'));
+    await load();
+  } finally {
+    songReordering.value = false;
+  }
 }
 
 function formatDurationInput(duration = 0) {

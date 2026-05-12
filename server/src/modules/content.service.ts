@@ -67,6 +67,7 @@ export class ContentService {
         audioUrl: item.audioUrl ?? '',
         lyric: item.lyric ?? '',
         favorite: item.favorite,
+        sortOrder: item.sortOrder,
       })),
       nextAnniversary: this.getNextAnniversary(anniversaries),
       counts,
@@ -627,7 +628,7 @@ export class ContentService {
     const space = await this.getSpaceRef(slug);
     const items = await this.prisma.song.findMany({
       where: { spaceId: space.id },
-      orderBy: [{ favorite: 'desc' }, { title: 'asc' }],
+      orderBy: [{ sortOrder: 'asc' }, { favorite: 'desc' }, { title: 'asc' }],
     });
 
     return items.map((item) => ({
@@ -639,6 +640,7 @@ export class ContentService {
       audioUrl: item.audioUrl ?? '',
       lyric: item.lyric ?? '',
       favorite: item.favorite,
+      sortOrder: item.sortOrder,
     }));
   }
 
@@ -652,6 +654,7 @@ export class ContentService {
       audioUrl: item.audioUrl ?? '',
       lyric: item.lyric ?? '',
       favorite: item.favorite ?? false,
+      sortOrder: Number.isFinite(Number(item.sortOrder)) ? Number(item.sortOrder) : await this.getNextSongSortOrder(space.id),
     };
     const saved = item.id
       ? await this.updateOwnedSong(space.id, item.id, data)
@@ -671,6 +674,7 @@ export class ContentService {
       audioUrl: saved.audioUrl ?? '',
       lyric: saved.lyric ?? '',
       favorite: saved.favorite,
+      sortOrder: saved.sortOrder,
     };
   }
 
@@ -734,7 +738,7 @@ export class ContentService {
           },
           orderBy: { sortOrder: 'asc' },
         },
-        songs: { orderBy: [{ favorite: 'desc' }, { title: 'asc' }] },
+        songs: { orderBy: [{ sortOrder: 'asc' }, { favorite: 'desc' }, { title: 'asc' }] },
       },
     });
     if (!space) {
@@ -798,6 +802,7 @@ export class ContentService {
       audioUrl: string;
       lyric: string;
       favorite: boolean;
+      sortOrder: number;
     },
   ) {
     const item = await this.prisma.song.findFirst({
@@ -808,6 +813,15 @@ export class ContentService {
       throw new NotFoundException(`Song ${id} was not found`);
     }
     return this.prisma.song.update({ where: { id }, data });
+  }
+
+  private async getNextSongSortOrder(spaceId: string) {
+    const latest = await this.prisma.song.findFirst({
+      where: { spaceId },
+      orderBy: { sortOrder: 'desc' },
+      select: { sortOrder: true },
+    });
+    return (latest?.sortOrder ?? -1) + 1;
   }
 
   private mapAnniversary(item: {
