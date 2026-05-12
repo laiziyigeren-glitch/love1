@@ -1359,7 +1359,7 @@ async function load() {
   loading.value = true;
   try {
     const [nextDashboard, coupleAccess] = await Promise.all([
-      fetchDashboard(),
+      fetchDashboard({ compact: true }),
       fetchCoupleAccess(),
     ]);
     dashboard.value = nextDashboard;
@@ -2436,7 +2436,7 @@ function ensureHeartGardenSettings() {
     project.description ||= '';
     project.url ||= '';
     project.cover ||= '';
-    project.status = project.url || project.content ? 'ready' : 'pending';
+    project.status = project.status === 'ready' || project.url || project.content ? 'ready' : 'pending';
     project.entryFile ||= 'index.html';
     project.files = Array.isArray(project.files)
       ? project.files
@@ -2724,7 +2724,27 @@ function ensureHeartGardenProjectFiles(project: HeartGardenProject) {
   }
 }
 
-function openHeartGardenCodeEditor(project: HeartGardenProject) {
+function hasHeartGardenProjectCode(project: HeartGardenProject) {
+  return typeof project.content === 'string'
+    || Boolean(project.files?.some((file) => isHeartGardenTextFile(file) && file.content !== undefined));
+}
+
+async function hydrateHeartGardenProject(project: HeartGardenProject) {
+  if (hasHeartGardenProjectCode(project)) return project;
+  const fullDashboard = await fetchDashboard();
+  const fullProject = fullDashboard.site.settings.heartGarden.projects.find((item) => item.id === project.id);
+  if (!fullProject) return project;
+  Object.assign(project, fullProject);
+  return project;
+}
+
+async function openHeartGardenCodeEditor(project: HeartGardenProject) {
+  try {
+    await hydrateHeartGardenProject(project);
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '心动花园代码加载失败，请稍后再试'));
+    return;
+  }
   ensureHeartGardenProjectFiles(project);
   codeEditor.project = project;
   codeEditor.entryFile = project.entryFile || 'index.html';

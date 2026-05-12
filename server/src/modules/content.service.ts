@@ -12,8 +12,8 @@ export class ContentService {
     private readonly storage: StorageService,
   ) {}
 
-  async getBootstrap(slug: string) {
-    const space = await this.getSpace(slug);
+  async getBootstrap(slug: string, options: { compact?: boolean } = {}) {
+    const space = await this.getSpace(slug, options);
     const [albumItems, counts] = await Promise.all([
       this.listAlbumItems(slug),
       this.getCounts(space.id),
@@ -39,7 +39,9 @@ export class ContentService {
         heroText: space.siteConfig?.heroText ?? '',
         story: space.siteConfig?.story ?? '',
         stats: this.asStats(space.siteConfig?.stats),
-        settings: this.asHomeSettings(space.siteConfig?.settings),
+        settings: options.compact
+          ? this.compactHomeSettings(this.asHomeSettings(space.siteConfig?.settings))
+          : this.asHomeSettings(space.siteConfig?.settings),
       },
       theme: {
         primaryColor: space.themeConfig?.primaryColor ?? '#e8748a',
@@ -65,7 +67,7 @@ export class ContentService {
         duration: item.duration,
         coverUrl: item.coverUrl ?? '',
         audioUrl: item.audioUrl ?? '',
-        lyric: item.lyric ?? '',
+        ...(options.compact ? {} : { lyric: (item as { lyric?: string | null }).lyric ?? '' }),
         favorite: item.favorite,
         sortOrder: item.sortOrder,
       })),
@@ -79,6 +81,9 @@ export class ContentService {
   async updateSite(slug: string, site: Partial<SpaceData['site']>) {
     const space = await this.getSpaceRef(slug);
     const current = await this.prisma.siteConfig.findUnique({ where: { spaceId: space.id } });
+    const settings = site.settings
+      ? this.restoreCompactHeartGardenPayload(current?.settings, site.settings)
+      : current?.settings ?? this.asHomeSettings(undefined);
     const saved = await this.prisma.siteConfig.upsert({
       where: { spaceId: space.id },
       create: {
@@ -87,14 +92,14 @@ export class ContentService {
         heroText: site.heroText ?? '',
         story: site.story ?? '',
         stats: site.stats ?? [],
-        settings: site.settings ?? this.asHomeSettings(undefined),
+        settings,
       },
       update: {
         heroTitle: site.heroTitle ?? current?.heroTitle ?? space.name,
         heroText: site.heroText ?? current?.heroText ?? '',
         story: site.story ?? current?.story ?? '',
         stats: site.stats ?? current?.stats ?? [],
-        settings: site.settings ?? current?.settings ?? this.asHomeSettings(undefined),
+        settings,
       },
     });
 
@@ -646,16 +651,28 @@ export class ContentService {
 
   async upsertSong(slug: string, item: Partial<Song> & Pick<Song, 'title' | 'artist'>) {
     const space = await this.getSpaceRef(slug);
-    const data = {
+    const isExisting = Boolean(item.id);
+    const data: {
+      title: string;
+      artist: string;
+      duration: number;
+      coverUrl: string;
+      audioUrl: string;
+      lyric?: string;
+      favorite: boolean;
+      sortOrder: number;
+    } = {
       title: item.title,
       artist: item.artist,
       duration: item.duration ?? 0,
       coverUrl: item.coverUrl ?? '',
       audioUrl: item.audioUrl ?? '',
-      lyric: item.lyric ?? '',
       favorite: item.favorite ?? false,
       sortOrder: Number.isFinite(Number(item.sortOrder)) ? Number(item.sortOrder) : await this.getNextSongSortOrder(space.id),
     };
+    if (!isExisting || item.lyric !== undefined) {
+      data.lyric = item.lyric ?? '';
+    }
     const saved = item.id
       ? await this.updateOwnedSong(space.id, item.id, data)
       : await this.prisma.song.create({
@@ -720,8 +737,19 @@ export class ContentService {
     return { success: true };
   }
 
-  private async getSpace(slug: string) {
+  private async getSpace(slug: string, options: { compact?: boolean } = {}) {
     const now = new Date();
+    const songSelect = {
+      id: true,
+      title: true,
+      artist: true,
+      duration: true,
+      coverUrl: true,
+      audioUrl: true,
+      favorite: true,
+      sortOrder: true,
+      ...(options.compact ? {} : { lyric: true }),
+    };
     const space = await this.prisma.coupleSpace.findUnique({
       where: { slug },
       include: {
@@ -738,7 +766,10 @@ export class ContentService {
           },
           orderBy: { sortOrder: 'asc' },
         },
-        songs: { orderBy: [{ sortOrder: 'asc' }, { favorite: 'desc' }, { title: 'asc' }] },
+        songs: {
+          orderBy: [{ sortOrder: 'asc' }, { favorite: 'desc' }, { title: 'asc' }],
+          select: songSelect,
+        },
       },
     });
     if (!space) {
@@ -800,7 +831,7 @@ export class ContentService {
       duration: number;
       coverUrl: string;
       audioUrl: string;
-      lyric: string;
+      lyric?: string;
       favorite: boolean;
       sortOrder: number;
     },
@@ -1156,9 +1187,68 @@ export class ContentService {
                 ...project,
                 type: 'html' as const,
                 group: ['particle', 'confession', 'custom'].includes(project.group) ? project.group : 'custom',
-                status: project.url || project.content ? 'ready' : 'pending',
+                status: project.status === 'ready' || project.url || project.content ? 'ready' : 'pending',
               }))
           : defaults.heartGarden.projects,
+      },
+    };
+  }
+
+  private compactHomeSettings(settings: HomeSettings): HomeSettings {
+    return {
+      ...settings,
+      heartGarden: {
+        ...settings.heartGarden,
+        projects: settings.heartGarden.projects.map((project) => {
+          const compactProject: HeartGardenProject = { ...project };
+          delete compactProject.content;
+          compactProject.files = Array.isArray(project.files)
+            ? project.files.map((file) => {
+                const compactFile = { ...file };
+                delete compactFile.content;
+                return compactFile;
+              })
+            : [];
+          return compactProject;
+        }),
+      },
+    };
+  }
+
+  private restoreCompactHeartGardenPayload(
+    currentValue: Prisma.JsonValue | undefined,
+    incomingValue: Prisma.JsonValue | HomeSettings,
+  ): HomeSettings {
+    const current = this.asHomeSettings(currentValue);
+    const incoming = this.asHomeSettings(incomingValue as Prisma.JsonValue);
+    const currentById = new Map(current.heartGarden.projects.map((project) => [project.id, project]));
+
+    return {
+      ...incoming,
+      heartGarden: {
+        ...incoming.heartGarden,
+        projects: incoming.heartGarden.projects.map((project) => {
+          const previous = currentById.get(project.id);
+          if (!previous) return project;
+
+          const restored: HeartGardenProject = { ...project };
+          if (restored.content === undefined && previous.content !== undefined) {
+            restored.content = previous.content;
+          }
+
+          const previousFiles = new Map((previous.files || []).map((file) => [file.id || file.path, file]));
+          restored.files = Array.isArray(project.files)
+            ? project.files.map((file) => {
+                const previousFile = previousFiles.get(file.id || file.path);
+                if (file.content === undefined && previousFile?.content !== undefined) {
+                  return { ...file, content: previousFile.content };
+                }
+                return file;
+              })
+            : previous.files || [];
+
+          return restored;
+        }),
       },
     };
   }

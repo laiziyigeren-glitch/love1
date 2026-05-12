@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ContentService } from './content.service';
 import { StorageService, type UploadPathOptions } from './storage.service';
 import { AdminAuthGuard } from './admin-auth.guard';
@@ -17,8 +17,8 @@ export class AdminController {
   ) {}
 
   @Get('dashboard')
-  getDashboard(@Param('slug') slug: string) {
-    return this.content.getBootstrap(slug);
+  getDashboard(@Param('slug') slug: string, @Query('compact') compact?: string) {
+    return this.content.getBootstrap(slug, { compact: compact === '1' || compact === 'true' });
   }
 
   @Patch('site-config')

@@ -216,7 +216,7 @@ export type Dashboard = {
     duration: number;
     coverUrl: string;
     audioUrl: string;
-    lyric: string;
+    lyric?: string;
     favorite: boolean;
     sortOrder: number;
   }>;
@@ -246,8 +246,10 @@ export async function loginAdmin(payload: { email: string; password: string }) {
   return response.data;
 }
 
-export async function fetchDashboard() {
-  const response = await api.get<Dashboard>(`/api/admin/spaces/${spaceSlug}/dashboard`);
+export async function fetchDashboard(options: { compact?: boolean } = {}) {
+  const response = await api.get<Dashboard>(`/api/admin/spaces/${spaceSlug}/dashboard`, {
+    params: options.compact ? { compact: '1' } : undefined,
+  });
   return response.data;
 }
 

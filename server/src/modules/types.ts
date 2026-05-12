@@ -158,7 +158,7 @@ export type Song = {
   duration: number;
   coverUrl: string;
   audioUrl: string;
-  lyric: string;
+  lyric?: string;
   favorite: boolean;
   sortOrder: number;
 };
