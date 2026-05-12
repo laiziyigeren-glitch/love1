@@ -367,12 +367,18 @@
                     <el-option label="私密相册" value="PRIVATE" />
                   </el-select>
                   <el-upload :show-file-list="false" accept="image/*,video/*" :http-request="uploadMedia"><el-button type="primary">上传图片/视频</el-button></el-upload>
+                  <input ref="livePhotoInputRef" class="visually-hidden-file" type="file" multiple accept="image/*,video/*" @change="uploadLivePhoto" />
+                  <el-button type="success" plain @click="triggerLivePhotoPicker">上传实况图</el-button>
                 </div>
               </div>
             </template>
             <div class="album-grid">
               <article v-for="item in dashboard.albumItems" :key="item.id" class="album-card">
-                <video v-if="item.mediaType === 'VIDEO'" :src="item.url" muted controls />
+                <div v-if="item.mediaType === 'LIVE_PHOTO'" class="album-live-preview">
+                  <video :src="item.url" :poster="item.thumbnailUrl" muted loop playsinline controls />
+                  <span>实况</span>
+                </div>
+                <video v-else-if="item.mediaType === 'VIDEO'" :src="item.url" muted controls />
                 <img v-else :src="item.thumbnailUrl || item.url" :alt="item.title" />
                 <div>
                   <strong>{{ item.title }}</strong>
@@ -1212,6 +1218,7 @@ const codeEditor = reactive({
   newFilePath: '',
 });
 const heartGardenFolderInputRef = ref<HTMLInputElement | null>(null);
+const livePhotoInputRef = ref<HTMLInputElement | null>(null);
 const aiConfig = reactive<AiConfig>({
   enabled: false,
   provider: 'deepseek',
@@ -2092,6 +2099,55 @@ async function uploadMedia(options: UploadRequestOptions) {
   } catch (error) {
     ElMessage.error('媒体上传失败，请确认 R2 环境变量和跨域规则已配置');
     options.onError?.(error as never);
+  }
+}
+
+function triggerLivePhotoPicker() {
+  livePhotoInputRef.value?.click();
+}
+
+async function uploadLivePhoto(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const files = Array.from(input.files || []);
+  input.value = '';
+  const imageFile = files.find((file) => file.type.startsWith('image/'));
+  const videoFile = files.find((file) => file.type.startsWith('video/'));
+  if (!imageFile || !videoFile) {
+    ElMessage.warning('实况图需要同时选择 1 张照片和 1 个短视频');
+    return;
+  }
+
+  try {
+    const albumTitle = uploadMeta.albumTitle || '默认相册';
+    const stillFile = await compressImageFile(imageFile, { maxSize: 1600, quality: 0.86 });
+    const [stillUploaded, videoUploaded] = await Promise.all([
+      uploadFileToObjectStorage(stillFile, { purpose: 'album', folder: albumTitle }),
+      uploadFileToObjectStorage(videoFile, { purpose: 'album', folder: albumTitle }),
+    ]);
+    const savedItem = await completeMediaUpload({
+      objectKey: videoUploaded.objectKey,
+      url: videoUploaded.publicUrl,
+      thumbnailUrl: stillUploaded.publicUrl,
+      mimeType: videoFile.type || 'video/mp4',
+      size: videoFile.size,
+      mediaType: 'LIVE_PHOTO',
+      title: uploadMeta.title || imageFile.name.replace(/\.[^.]+$/, '') || '新的实况图',
+      albumTitle,
+      location: uploadMeta.location,
+      takenAt: uploadMeta.takenAt || new Date().toISOString().slice(0, 10),
+      tags: uploadMeta.tags.split(',').map((item) => item.trim()).filter(Boolean),
+      visibility: uploadMeta.visibility,
+    });
+    if (dashboard.value && savedItem?.id) {
+      dashboard.value.albumItems = [
+        savedItem as Dashboard['albumItems'][number],
+        ...dashboard.value.albumItems.filter((item) => item.id !== savedItem.id),
+      ];
+    }
+    ElMessage.success('实况图已上传，前台会显示为可播放动态照片');
+    void load();
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '实况图上传失败，请确认 R2 环境变量和跨域规则已配置'));
   }
 }
 
@@ -3659,6 +3715,17 @@ onMounted(() => {
 .album-card { border: 1px solid #ebe1dd; border-radius: 8px; overflow: hidden; background: #fff; }
 .album-card img { width: 100%; height: 160px; object-fit: cover; display: block; }
 .album-card video { width: 100%; height: 160px; object-fit: cover; display: block; background: #160b0b; }
+.album-live-preview { position: relative; padding: 0 !important; }
+.album-card .album-live-preview span {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(20, 10, 12, 0.68);
+  color: #fff;
+  font-size: 12px;
+}
 .album-card div { padding: 12px; }
 .album-card strong, .album-card span { display: block; }
 .album-card span { color: #806f6a; font-size: 13px; margin: 6px 0; }

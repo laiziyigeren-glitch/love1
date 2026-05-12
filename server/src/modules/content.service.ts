@@ -377,6 +377,7 @@ export class ContentService {
       thumbnailUrl?: string;
       mimeType: string;
       size: number;
+      mediaType?: 'IMAGE' | 'VIDEO' | 'LIVE_PHOTO' | 'AUDIO';
       title?: string;
       albumTitle?: string;
       location?: string;
@@ -404,7 +405,7 @@ export class ContentService {
     const media = await this.prisma.mediaAsset.create({
       data: {
         spaceId: space.id,
-        type: this.getMediaType(body.mimeType),
+        type: this.getMediaType(body.mimeType, body.mediaType),
         objectKey: body.objectKey,
         url: body.url,
         thumbnailUrl: body.thumbnailUrl ?? body.url,
@@ -943,7 +944,8 @@ export class ContentService {
     return `${this.formatDate(date)}T${hours}:${minutes}`;
   }
 
-  private getMediaType(mimeType: string) {
+  private getMediaType(mimeType: string, override?: 'IMAGE' | 'VIDEO' | 'LIVE_PHOTO' | 'AUDIO') {
+    if (override && Object.values(MediaType).includes(override as MediaType)) return override as MediaType;
     if (mimeType.startsWith('video/')) return MediaType.VIDEO;
     if (mimeType.startsWith('audio/')) return MediaType.AUDIO;
     return MediaType.IMAGE;

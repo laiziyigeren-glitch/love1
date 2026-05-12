@@ -191,7 +191,7 @@ export type Dashboard = {
     id: string;
     title: string;
     album: string;
-    mediaType: 'IMAGE' | 'VIDEO' | 'AUDIO';
+    mediaType: 'IMAGE' | 'VIDEO' | 'LIVE_PHOTO' | 'AUDIO';
     url: string;
     thumbnailUrl: string;
     takenAt: string;
@@ -333,6 +333,7 @@ export async function completeMediaUpload(payload: {
   thumbnailUrl?: string;
   mimeType: string;
   size: number;
+  mediaType?: 'IMAGE' | 'VIDEO' | 'LIVE_PHOTO' | 'AUDIO';
   title?: string;
   albumTitle?: string;
   location?: string;

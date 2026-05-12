@@ -23,6 +23,7 @@ enum PublishStatus {
 enum MediaType {
   IMAGE
   VIDEO
+  LIVE_PHOTO
   AUDIO
 }
 

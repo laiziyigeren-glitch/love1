@@ -134,6 +134,7 @@ export class AdminController {
       thumbnailUrl?: string;
       mimeType: string;
       size: number;
+      mediaType?: 'IMAGE' | 'VIDEO' | 'LIVE_PHOTO' | 'AUDIO';
       title?: string;
       albumTitle?: string;
       location?: string;

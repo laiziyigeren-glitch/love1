@@ -825,6 +825,13 @@ nav {
 }
 .album-featured:hover { transform: scale(1.015); }
 .album-featured img, .album-featured video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+.album-live-badge {
+  position: absolute; top: 14px; left: 14px; z-index: 3;
+  padding: 4px 10px; border-radius: 999px;
+  color: white; font-size: 11px; line-height: 1;
+  background: rgba(20,10,12,0.65); border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(8px);
+}
 .album-featured-emoji { font-size: 90px; position: relative; z-index: 1; }
 .album-featured-info {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
@@ -4855,14 +4862,20 @@ function applyTheme(theme) {
   document.body.classList.toggle('effects-particles-off', !effects.particles);
 }
 
+function isLivePhotoItem(item) {
+  return item.mediaType === 'LIVE_PHOTO';
+}
+
 function isVideoItem(item) {
+  if (isLivePhotoItem(item)) return false;
   return item.mediaType === 'VIDEO' || String(item.url || '').startsWith('data:video') || /\.(mp4|webm|ogg)$/i.test(item.url || '');
 }
 
 function mediaMarkup(item, extra = '') {
-  if (isVideoItem(item)) {
+  if (isVideoItem(item) || isLivePhotoItem(item)) {
     const poster = item.thumbnailUrl && item.thumbnailUrl !== item.url ? `poster="${escapeHtml(item.thumbnailUrl)}"` : '';
-    return `<video src="${escapeHtml(item.url)}" ${poster} ${extra} muted playsinline preload="none"></video>`;
+    const badge = isLivePhotoItem(item) ? '<div class="album-live-badge">实况</div>' : '';
+    return `<video src="${escapeHtml(item.url)}" ${poster} ${extra} muted playsinline preload="none"></video>${badge}`;
   }
   return `<img src="${escapeHtml(item.thumbnailUrl || item.url)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async" ${extra}>`;
 }
@@ -4891,8 +4904,8 @@ function openMediaPreview(item) {
   const modal = document.getElementById('mediaLightbox');
   const stage = document.getElementById('mediaLightboxStage');
   if (!modal || !stage) return;
-  stage.innerHTML = isVideoItem(item)
-    ? `<video src="${escapeHtml(item.url)}" controls autoplay></video>`
+  stage.innerHTML = (isVideoItem(item) || isLivePhotoItem(item))
+    ? `<video src="${escapeHtml(item.url)}" ${item.thumbnailUrl ? `poster="${escapeHtml(item.thumbnailUrl)}"` : ''} controls autoplay playsinline></video>`
     : `<img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.title)}">`;
   setText('#mediaLightboxMeta', `${item.location || '未填写地点'} / ${item.takenAt || '未选时间'}`);
   setText('#mediaLightboxTags', '');
@@ -4913,7 +4926,8 @@ function renderAlbums(items = []) {
   const privateItems = items.filter(item => item.visibility === 'PRIVATE');
   const publicItems = items.filter(item => item.visibility !== 'PRIVATE');
   const visibleItems = publicItems;
-  const photos = visibleItems.filter(item => !isVideoItem(item));
+  const livePhotos = visibleItems.filter(isLivePhotoItem);
+  const photos = visibleItems.filter(item => !isVideoItem(item) && !isLivePhotoItem(item));
   const videos = visibleItems.filter(isVideoItem);
   const favorites = visibleItems.filter(item => item.favorite);
   const stats = document.querySelector('#page-album .album-stats-row');
@@ -4921,6 +4935,7 @@ function renderAlbums(items = []) {
     stats.innerHTML = `
       <div class="album-stat">📷 照片 ${photos.length} 张</div>
       <div class="album-stat">🎬 视频 ${videos.length} 个</div>
+      <div class="album-stat">◎ 实况 ${livePhotos.length} 张</div>
       <div class="album-stat">🔖 收藏 ${favorites.length} 个</div>
     `;
   }
