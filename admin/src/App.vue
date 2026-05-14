@@ -495,6 +495,7 @@
                   <el-button link :disabled="$index === dashboard.songs.length - 1 || songReordering" @click="moveSong($index, 1)">下移</el-button>
                 </template>
               </el-table-column>
+              <el-table-column label="前台展示" width="110"><template #default="{ row }"><el-switch v-model="row.showInPlaylist" /></template></el-table-column>
               <el-table-column label="收藏" width="90"><template #default="{ row }"><el-switch v-model="row.favorite" /></template></el-table-column>
               <el-table-column label="操作" width="150" fixed="right"><template #default="{ row, $index }"><el-button link type="primary" :loading="isRowBusy('song', row)" :disabled="isRowBusy('song', row)" @click="saveOneSong(row)">保存</el-button><el-button link type="danger" :loading="isRowBusy('song', row)" :disabled="isRowBusy('song', row)" @click="removeSong(row, $index)">删除</el-button></template></el-table-column>
             </el-table>
@@ -2247,7 +2248,7 @@ function addSong() {
   const songs = dashboard.value?.songs;
   if (!songs) return;
   const nextSortOrder = songs.reduce((max, song, index) => Math.max(max, Number(song.sortOrder ?? index)), -1) + 1;
-  songs.push({ id: '', title: '新的歌曲', artist: '', duration: 0, coverUrl: '', audioUrl: '', lyric: '', favorite: false, sortOrder: nextSortOrder });
+  songs.push({ id: '', title: '新的歌曲', artist: '', duration: 0, coverUrl: '', audioUrl: '', lyric: '', favorite: false, showInPlaylist: true, sortOrder: nextSortOrder });
 }
 
 async function moveSong(index: number, direction: -1 | 1) {

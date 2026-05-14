@@ -5055,17 +5055,18 @@ function renderAlbumMemories(items = []) {
 function renderSongs(items = []) {
   const list = document.querySelector('.playlist-card');
   initMusicPlayer();
-  musicState.songs = items;
-  musicState.recommendationIndex = getDailySongIndex(items);
+  const visibleSongs = getVisiblePlaylistSongs(items);
+  musicState.songs = visibleSongs;
+  musicState.recommendationIndex = getDailySongIndex(visibleSongs);
   if (!list) return;
-  if (!items.length) {
+  if (!visibleSongs.length) {
     list.innerHTML = `
       <div class="playlist-header">
         <div class="card-title" style="margin-bottom:0">🎶 播放列表</div>
         <div class="playlist-add">共 0 首</div>
       </div>
       <div class="playlist-scroll">
-        <div class="card-footer">后台还没有上传歌曲。</div>
+        <div class="card-footer">后台还没有选择要展示的歌曲。</div>
       </div>
     `;
     setText('.song-title', '暂无歌曲');
@@ -5079,10 +5080,10 @@ function renderSongs(items = []) {
   list.innerHTML = `
     <div class="playlist-header">
       <div class="card-title" style="margin-bottom:0">🎶 播放列表</div>
-      <div class="playlist-add">共 ${items.length} 首</div>
+      <div class="playlist-add">共 ${visibleSongs.length} 首</div>
     </div>
     <div class="playlist-scroll">
-    ${items.map((rawSong, index) => {
+    ${visibleSongs.map((rawSong, index) => {
       const song = normalizeSongDisplay(rawSong);
       return `
       <div class="playlist-item ${index === musicState.currentIndex ? 'playing' : ''}" data-song-index="${index}">
@@ -5101,7 +5102,7 @@ function renderSongs(items = []) {
       setMusicSong(Number(item.dataset.songIndex || 0), true);
     });
   });
-  if (musicState.currentIndex >= items.length) musicState.currentIndex = 0;
+  if (musicState.currentIndex >= visibleSongs.length) musicState.currentIndex = 0;
   setMusicSong(musicState.currentIndex, false);
   renderRecommendation(musicState.recommendationIndex);
   renderRecentSongs();
@@ -5923,7 +5924,7 @@ function renderHomeAlbumPreview(items = []) {
 function renderHomeSongs(items = []) {
   const list = document.querySelector('#page-home .music-mini');
   if (!list) return;
-  const source = items.slice(0, 3);
+  const source = getVisiblePlaylistSongs(items).slice(0, 3);
   list.innerHTML = source.length
     ? source.map(item => `
       <div class="music-mini-thumb" onclick="goToPageFromBackend('music',3)">
@@ -5935,6 +5936,10 @@ function renderHomeSongs(items = []) {
     : '<div class="card-footer">No songs yet.</div>';
   const links = document.querySelectorAll('#page-home .card-title span[style*="cursor:pointer"]');
   if (links[1]) links[1].onclick = () => goToPageFromBackend('music', 3);
+}
+
+function getVisiblePlaylistSongs(items = []) {
+  return (items || []).filter(item => item.showInPlaylist !== false);
 }
 
 function diffParts(targetDate) {

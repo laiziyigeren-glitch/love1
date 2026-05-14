@@ -69,6 +69,7 @@ export class ContentService {
         audioUrl: item.audioUrl ?? '',
         ...(options.compact ? {} : { lyric: (item as { lyric?: string | null }).lyric ?? '' }),
         favorite: item.favorite,
+        showInPlaylist: item.showInPlaylist,
         sortOrder: item.sortOrder,
       })),
       nextAnniversary: this.getNextAnniversary(anniversaries),
@@ -646,6 +647,7 @@ export class ContentService {
       audioUrl: item.audioUrl ?? '',
       lyric: item.lyric ?? '',
       favorite: item.favorite,
+      showInPlaylist: item.showInPlaylist,
       sortOrder: item.sortOrder,
     }));
   }
@@ -661,6 +663,7 @@ export class ContentService {
       audioUrl: string;
       lyric?: string;
       favorite: boolean;
+      showInPlaylist: boolean;
       sortOrder: number;
     } = {
       title: item.title,
@@ -669,6 +672,7 @@ export class ContentService {
       coverUrl: item.coverUrl ?? '',
       audioUrl: item.audioUrl ?? '',
       favorite: item.favorite ?? false,
+      showInPlaylist: item.showInPlaylist ?? true,
       sortOrder: Number.isFinite(Number(item.sortOrder)) ? Number(item.sortOrder) : await this.getNextSongSortOrder(space.id),
     };
     if (!isExisting || item.lyric !== undefined) {
@@ -692,6 +696,7 @@ export class ContentService {
       audioUrl: saved.audioUrl ?? '',
       lyric: saved.lyric ?? '',
       favorite: saved.favorite,
+      showInPlaylist: saved.showInPlaylist,
       sortOrder: saved.sortOrder,
     };
   }
@@ -748,6 +753,7 @@ export class ContentService {
       coverUrl: true,
       audioUrl: true,
       favorite: true,
+      showInPlaylist: true,
       sortOrder: true,
       ...(options.compact ? {} : { lyric: true }),
     };
@@ -834,6 +840,7 @@ export class ContentService {
       audioUrl: string;
       lyric?: string;
       favorite: boolean;
+      showInPlaylist: boolean;
       sortOrder: number;
     },
   ) {

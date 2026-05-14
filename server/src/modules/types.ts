@@ -160,6 +160,7 @@ export type Song = {
   audioUrl: string;
   lyric?: string;
   favorite: boolean;
+  showInPlaylist: boolean;
   sortOrder: number;
 };
 
