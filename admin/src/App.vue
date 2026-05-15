@@ -467,6 +467,19 @@
           <el-card shadow="never">
             <template #header><div class="card-header"><span>音乐管理</span><el-button type="primary" @click="addSong">新增歌曲</el-button></div></template>
             <el-table :data="dashboard.songs" row-key="id">
+              <el-table-column label="前台" width="116" fixed="left">
+                <template #default="{ row }">
+                  <div class="playlist-order-cell">
+                    <el-checkbox
+                      v-model="row.showInPlaylist"
+                      :disabled="songPlaylistSaving"
+                      @change="() => handleSongPlaylistToggle(row)"
+                    >
+                      {{ getSongPlaylistRank(row) ? `第${getSongPlaylistRank(row)}首` : '不展示' }}
+                    </el-checkbox>
+                  </div>
+                </template>
+              </el-table-column>
               <el-table-column label="歌名" min-width="160"><template #default="{ row }"><el-input v-model="row.title" /></template></el-table-column>
               <el-table-column label="歌手" min-width="140"><template #default="{ row }"><el-input v-model="row.artist" /></template></el-table-column>
               <el-table-column label="时长" width="130"><template #default="{ row }"><el-input :model-value="formatDurationInput(row.duration)" placeholder="04:25" @update:model-value="(value: string) => row.duration = parseDurationInput(value)" /></template></el-table-column>
@@ -489,13 +502,6 @@
                   </div>
                 </template>
               </el-table-column>
-              <el-table-column label="排序" width="100" fixed="left">
-                <template #default="{ $index }">
-                  <el-button link :disabled="$index === 0 || songReordering" @click="moveSong($index, -1)">上移</el-button>
-                  <el-button link :disabled="$index === dashboard.songs.length - 1 || songReordering" @click="moveSong($index, 1)">下移</el-button>
-                </template>
-              </el-table-column>
-              <el-table-column label="前台展示" width="110"><template #default="{ row }"><el-switch v-model="row.showInPlaylist" /></template></el-table-column>
               <el-table-column label="收藏" width="90"><template #default="{ row }"><el-switch v-model="row.favorite" /></template></el-table-column>
               <el-table-column label="操作" width="150" fixed="right"><template #default="{ row, $index }"><el-button link type="primary" :loading="isRowBusy('song', row)" :disabled="isRowBusy('song', row)" @click="saveOneSong(row)">保存</el-button><el-button link type="danger" :loading="isRowBusy('song', row)" :disabled="isRowBusy('song', row)" @click="removeSong(row, $index)">删除</el-button></template></el-table-column>
             </el-table>
@@ -1075,7 +1081,7 @@ const loginLoading = ref(false);
 const profileSaving = ref(false);
 const homeSaving = ref(false);
 const anniversaryPageSaving = ref(false);
-const songReordering = ref(false);
+const songPlaylistSaving = ref(false);
 type RowBusyBucket = 'album' | 'letter' | 'anniversary' | 'song' | 'playlist' | 'heartGarden';
 const rowBusyState = reactive<Record<RowBusyBucket, Record<string, boolean>>>({
   album: {},
@@ -2248,28 +2254,63 @@ function addSong() {
   const songs = dashboard.value?.songs;
   if (!songs) return;
   const nextSortOrder = songs.reduce((max, song, index) => Math.max(max, Number(song.sortOrder ?? index)), -1) + 1;
-  songs.push({ id: '', title: '新的歌曲', artist: '', duration: 0, coverUrl: '', audioUrl: '', lyric: '', favorite: false, showInPlaylist: true, sortOrder: nextSortOrder });
+  songs.push({ id: '', title: '新的歌曲', artist: '', duration: 0, coverUrl: '', audioUrl: '', lyric: '', favorite: false, showInPlaylist: false, sortOrder: nextSortOrder });
 }
 
-async function moveSong(index: number, direction: -1 | 1) {
+function getSongPlaylistRank(item: Dashboard['songs'][number]) {
+  const songs = dashboard.value?.songs;
+  if (!songs || !item.showInPlaylist) return 0;
+  const visibleSongs = songs
+    .filter((song) => song.showInPlaylist)
+    .slice()
+    .sort((left, right) => Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0));
+  return visibleSongs.findIndex((song) => song === item || (song.id && song.id === item.id)) + 1;
+}
+
+function normalizeSongPlaylistOrder() {
+  const currentDashboard = dashboard.value;
+  const songs = currentDashboard?.songs;
+  if (!songs) return [];
+
+  const indexedSongs = songs.map((song, index) => ({ song, index }));
+  const bySortOrder = (left: { song: Dashboard['songs'][number]; index: number }, right: { song: Dashboard['songs'][number]; index: number }) => (
+    Number(left.song.sortOrder ?? left.index) - Number(right.song.sortOrder ?? right.index) || left.index - right.index
+  );
+  const visibleSongs = indexedSongs.filter((item) => item.song.showInPlaylist).sort(bySortOrder);
+  const hiddenSongs = indexedSongs.filter((item) => !item.song.showInPlaylist).sort(bySortOrder);
+  const changedSongs: Dashboard['songs'][number][] = [];
+
+  [...visibleSongs, ...hiddenSongs].forEach(({ song }, index) => {
+    if (song.sortOrder !== index) {
+      song.sortOrder = index;
+      changedSongs.push(song);
+    }
+  });
+  currentDashboard.songs = [...visibleSongs, ...hiddenSongs].map((item) => item.song);
+  return changedSongs;
+}
+
+async function handleSongPlaylistToggle(item: Dashboard['songs'][number]) {
   const songs = dashboard.value?.songs;
   if (!songs) return;
-  const targetIndex = index + direction;
-  if (targetIndex < 0 || targetIndex >= songs.length) return;
-  [songs[index], songs[targetIndex]] = [songs[targetIndex], songs[index]];
-  songs.forEach((song, songIndex) => {
-    song.sortOrder = songIndex;
-  });
-  songReordering.value = true;
+  if (item.showInPlaylist) {
+    const lastVisibleOrder = songs
+      .filter((song) => song !== item && song.showInPlaylist)
+      .reduce((max, song, index) => Math.max(max, Number(song.sortOrder ?? index)), -1);
+    item.sortOrder = lastVisibleOrder + 1;
+  }
+  const changedSongs = normalizeSongPlaylistOrder();
+  const songsToSave = Array.from(new Set([item, ...changedSongs])).filter((song) => song.id || song === item);
+  songPlaylistSaving.value = true;
   try {
-    await Promise.all(songs.filter((song) => song.id).map((song) => saveSong(song)));
-    ElMessage.success('歌曲顺序已保存');
+    await Promise.all(songsToSave.map((song) => saveSong(song)));
+    ElMessage.success(item.showInPlaylist ? '已加入前台歌单' : '已从前台歌单隐藏');
     await load();
   } catch (error) {
-    ElMessage.error(getErrorMessage(error, '歌曲排序保存失败'));
+    ElMessage.error(getErrorMessage(error, '前台歌单更新失败'));
     await load();
   } finally {
-    songReordering.value = false;
+    songPlaylistSaving.value = false;
   }
 }
 
@@ -3541,6 +3582,10 @@ onMounted(() => {
 .inline-actions.compact .el-input { width: 96px; }
 .upload-actions .el-input, .upload-actions .el-select, .upload-actions .el-date-editor { width: 150px; }
 .song-upload-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.playlist-order-cell { display: flex; align-items: center; min-height: 32px; }
+.playlist-order-cell :deep(.el-checkbox) { height: auto; margin-right: 0; }
+.playlist-order-cell :deep(.el-checkbox__label) { color: #6b5e59; font-size: 12px; white-space: nowrap; }
+.playlist-order-cell :deep(.el-checkbox.is-checked .el-checkbox__label) { color: #2f6fed; font-weight: 600; }
 .lyric-status-cell { display: flex; flex-direction: column; gap: 6px; line-height: 1.5; color: #6b5e59; }
 .lyric-status-cell strong { color: #3d2f2a; font-size: 13px; }
 .lyric-status-cell span { font-size: 12px; }
