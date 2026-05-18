@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>You & Me | 遇见你，是我最美丽的意外 ♡</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='12' y1='8' x2='52' y2='56'%3E%3Cstop stop-color='%23ffb08a'/%3E%3Cstop offset='1' stop-color='%23e24b78'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='%23230b10'/%3E%3Cpath fill='url(%23g)' d='M32 51S12 39 12 24c0-7 5-12 12-12 4 0 7 2 8 5 2-3 5-5 9-5 7 0 12 5 12 12 0 15-21 27-21 27z'/%3E%3Cpath fill='%23fff3ee' opacity='.9' d='M24 20c-3 0-5 2-6 5-.5 1.6-3 .9-2.6-.8 1-4.3 4.4-7.2 8.6-7.2 1.7 0 1.7 3 0 3z'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none'%3E%3Crect width='64' height='64' rx='18' fill='%23160812'/%3E%3Ccircle cx='24' cy='24' r='8' stroke='%23f1b66a' stroke-width='5'/%3E%3Cpath d='M24 7v5M24 36v5M7 24h5M36 24h5M12 12l4 4M32 32l4 4M12 36l4-4M32 16l4-4' stroke='%23f1b66a' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M51 29a16 16 0 1 1-17-17 11 11 0 0 0 15 15c1-.6 2 .3 2 2z' fill='%23d7ccff'/%3E%3Cpath d='M49 31a13 13 0 0 1-18-18' stroke='%239b7ae5' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Ma+Shan+Zheng&family=ZCOOL+QingKe+HuangYou&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
 <script src="/config.js"></script>
@@ -281,6 +281,12 @@ nav {
   font-size: 16px;
   box-shadow: 0 0 18px rgba(232,116,138,0.6), 0 0 6px rgba(232,116,138,0.4);
   animation: heartPulse 2.5s ease-in-out infinite;
+}
+.nav-logo .heart-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 @keyframes heartPulse {
   0%,100% { transform: scale(1); box-shadow: 0 0 18px rgba(232,116,138,0.6); }
@@ -2473,7 +2479,7 @@ nav {
 <!-- ===== NAV ===== -->
 <nav>
   <a class="nav-logo" href="#">
-    <div class="heart-icon">💝</div>
+    <div class="heart-icon nav-logo-avatar"><img alt="avatar" onerror="this.style.display='none'"></div>
     You &amp; Me
   </a>
   <div class="nav-links">
@@ -5854,7 +5860,7 @@ function closeRomancePreview() {
 }
 
 function ensureAvatarImages(avatarUrl) {
-  document.querySelectorAll('.profile-avatar, .settings-avatar').forEach(box => {
+  document.querySelectorAll('.profile-avatar, .settings-avatar, .nav-logo-avatar').forEach(box => {
     let img = box.querySelector('img');
     if (!img) {
       img = document.createElement('img');
@@ -6184,7 +6190,7 @@ function renderSpace(data) {
   setText('.about-text', data.site.story);
   renderPageHeaders(settings, data);
   renderProfileCards(data, settings);
-  setImage('.profile-avatar img, .settings-avatar img', data.profiles?.[0]?.avatarUrl);
+  setImage('.profile-avatar img, .settings-avatar img, .nav-logo-avatar img', data.profiles?.[0]?.avatarUrl);
   updateProfileDerivedStats(data);
   renderHomeSettings(data.site.settings, data);
   bindHeartIndexFilters();
@@ -6913,7 +6919,7 @@ async function saveSettingsToBackend() {
   renderProfileCards(spaceData, spaceData.site.settings);
   setText('.profile-name', savedProfile.name || spaceData.name);
   setText('.profile-tagline', savedProfile.bio || spaceData.subtitle || '因为有你，世界变得温柔');
-  setImage('.profile-avatar img, .settings-avatar img', savedProfile.avatarUrl || spaceData.profiles?.[0]?.avatarUrl);
+  setImage('.profile-avatar img, .settings-avatar img, .nav-logo-avatar img', savedProfile.avatarUrl || spaceData.profiles?.[0]?.avatarUrl);
   applyTheme(spaceData.theme);
   renderHomeCountdown(spaceData.site.settings, spaceData.nextAnniversary);
   renderAnniversaryPage(spaceData);
@@ -7022,7 +7028,7 @@ async function uploadAvatarToBackend(file) {
   });
   const avatarUrl = saved.publicUrl || saved.profile?.avatarUrl || '';
   ensureAvatarImages(avatarUrl);
-  setImage('.profile-avatar img, .settings-avatar img', avatarUrl);
+  setImage('.profile-avatar img, .settings-avatar img, .nav-logo-avatar img', avatarUrl);
   if (spaceData.profiles?.[0]) {
     spaceData.profiles[0] = { ...spaceData.profiles[0], ...(saved.profile || {}), avatarUrl };
   } else if (saved.profile) {
