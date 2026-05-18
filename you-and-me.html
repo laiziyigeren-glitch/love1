@@ -1242,21 +1242,24 @@ nav {
 .controls { display: flex; align-items: center; justify-content: center; gap: 22px; }
 .ctrl-btn {
   background: none; border: none; cursor: pointer;
-  color: var(--text-secondary); font-size: 20px; transition: all 0.2s;
+  color: var(--text-secondary); transition: all 0.2s;
+  display: inline-flex; align-items: center; justify-content: center;
 }
+.ctrl-btn .line-icon { width: 20px; height: 20px; }
 .ctrl-btn:hover { color: var(--rose-light); transform: scale(1.15); }
 .ctrl-play {
   width: 56px; height: 56px; border-radius: 50%;
   background: linear-gradient(135deg, var(--rose), #c04060);
   border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px; color: white;
+  color: white;
   box-shadow: 0 0 24px rgba(232,116,138,0.5);
   transition: all 0.3s;
 }
+.ctrl-play .line-icon { width: 24px; height: 24px; }
 .ctrl-play:hover { transform: scale(1.08); box-shadow: 0 0 36px rgba(232,116,138,0.7); }
 .volume-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-.vol-icon { font-size: 14px; color: var(--text-muted); }
+.vol-icon { width: 16px; height: 16px; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; }
 .vol-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; cursor: pointer; }
 .vol-fill { height: 100%; width: 45%; border-radius: 2px; background: var(--rose); }
 
@@ -1300,7 +1303,9 @@ nav {
 .playlist-name { flex: 1; font-size: 13px; color: var(--text-primary); }
 .playlist-artist { font-size: 11px; color: var(--text-muted); width: 80px; }
 .playlist-dur { font-size: 11px; color: var(--text-muted); width: 34px; text-align: right; }
-.playlist-fav { color: var(--rose); font-size: 15px; cursor: pointer; transition: transform 0.15s; }
+.playlist-fav { color: var(--rose); cursor: pointer; transition: transform 0.15s; display: inline-flex; align-items: center; justify-content: center; }
+.playlist-fav .line-icon { width: 16px; height: 16px; }
+.playlist-fav.is-muted { color: var(--text-muted); opacity: 0.7; }
 .playlist-fav:hover { transform: scale(1.3); }
 .playlist-footer { margin-top: 14px; padding-top: 11px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
 .playlist-link { color: var(--rose-light); cursor: pointer; }
@@ -1319,7 +1324,8 @@ nav {
 .rec-title { font-size: 15px; color: var(--text-primary); font-weight: 600; }
 .rec-artist { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .rec-desc { font-size: 11px; color: var(--text-muted); margin-top: 7px; line-height: 1.6; }
-.rec-play-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--rose); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-size: 15px; transition: all 0.2s; }
+.rec-play-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--rose); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; transition: all 0.2s; }
+.rec-play-btn .line-icon { width: 16px; height: 16px; }
 .rec-play-btn:hover { transform: scale(1.15); }
 .rec-refresh { font-size: 11px; color: var(--rose-light); cursor: pointer; }
 
@@ -1459,7 +1465,12 @@ nav {
   min-height: 38px;
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(232,116,138,0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
+.mood-playlist-primary .line-icon { width: 15px; height: 15px; }
 .mood-playlist-primary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -1476,13 +1487,15 @@ nav {
   border: none; border-radius: 999px; background: var(--gold); color: #fff;
   width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
+.mood-playlist-play .line-icon { width: 14px; height: 14px; }
 .mood-playlist-play:disabled { opacity: 0.45; cursor: not-allowed; }
 .mood-playlist-card.show-all .mood-extra { display: grid; }
 .mood-extra { display: none; }
 
 .recently-bar { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 18px 22px; box-shadow: var(--shadow); }
 .recently-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.clear-btn { font-size: 11px; color: var(--text-muted); cursor: pointer; }
+.clear-btn { font-size: 11px; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.clear-btn .line-icon { width: 13px; height: 13px; }
 .recent-grid { display: flex; gap: 0; overflow-x: auto; }
 .recent-item { min-width: 20%; flex-shrink: 0; display: flex; align-items: center; gap: 11px; padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: background 0.2s; }
 .recent-item:hover { background: var(--rose-pale); }
@@ -2522,6 +2535,17 @@ nav {
   <symbol id="icon-heart" viewBox="0 0 24 24"><path d="M19 14c1.5-1.5 3-3.5 3-6a5 5 0 0 0-9-3 5 5 0 0 0-9 3c0 2.5 1.5 4.5 3 6l5 5Z"/></symbol>
   <symbol id="icon-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
   <symbol id="icon-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+  <symbol id="icon-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+  <symbol id="icon-skip-back" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" x2="5" y1="19" y2="5"/></symbol>
+  <symbol id="icon-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+  <symbol id="icon-pause" viewBox="0 0 24 24"><rect width="4" height="16" x="6" y="4" rx="1"/><rect width="4" height="16" x="14" y="4" rx="1"/></symbol>
+  <symbol id="icon-skip-forward" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></symbol>
+  <symbol id="icon-volume-2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></symbol>
+  <symbol id="icon-volume-x" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></symbol>
+  <symbol id="icon-list-music" viewBox="0 0 24 24"><path d="M21 15V6"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12H3"/><path d="M16 6H3"/><path d="M12 18H3"/></symbol>
+  <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M16 8h5V3"/></symbol>
+  <symbol id="icon-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></symbol>
+  <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
 </svg>
 <nav>
   <a class="nav-logo" href="#">
@@ -2974,14 +2998,14 @@ nav {
               <span class="progress-time" id="durationTimeText">00:00</span>
             </div>
             <div class="controls">
-              <button class="ctrl-btn" id="loopBtn">🔁</button>
-              <button class="ctrl-btn" id="prevBtn">⏮</button>
-              <button class="ctrl-play" id="playBtn">▶</button>
-              <button class="ctrl-btn" id="nextBtn">⏭</button>
-              <button class="ctrl-btn" id="muteBtn">🔊</button>
+              <button class="ctrl-btn" id="loopBtn" aria-label="循环播放"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-repeat"></use></svg></button>
+              <button class="ctrl-btn" id="prevBtn" aria-label="上一首"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-skip-back"></use></svg></button>
+              <button class="ctrl-play" id="playBtn" aria-label="播放"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-play"></use></svg></button>
+              <button class="ctrl-btn" id="nextBtn" aria-label="下一首"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-skip-forward"></use></svg></button>
+              <button class="ctrl-btn" id="muteBtn" aria-label="静音"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-volume-2"></use></svg></button>
             </div>
             <div class="volume-row">
-              <span class="vol-icon">🔈</span>
+              <span class="vol-icon" id="volumeIcon"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-volume-2"></use></svg></span>
               <div class="vol-bar" id="volBar"><div class="vol-fill" id="volFill"></div></div>
               <span class="progress-time" id="volumeText">45%</span>
             </div>
@@ -2989,34 +3013,34 @@ nav {
         </div>
         <div class="playlist-card">
           <div class="playlist-header">
-            <div class="card-title" style="margin-bottom:0">🎶 播放列表</div>
+            <div class="card-title" style="margin-bottom:0"><span class="card-title-icon"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-list-music"></use></svg></span> 播放列表</div>
             <div class="playlist-add">+ 新建歌单</div>
           </div>
           <div class="playlist-scroll">
             <div class="playlist-item playing">
               <div class="playlist-bars"><div class="playlist-bar"></div><div class="playlist-bar"></div><div class="playlist-bar"></div></div>
-              <div class="playlist-name">小幸运</div><div class="playlist-artist">田馥甄</div><div class="playlist-dur">04:25</div><div class="playlist-fav">❤️</div>
+              <div class="playlist-name">小幸运</div><div class="playlist-artist">田馥甄</div><div class="playlist-dur">04:25</div><div class="playlist-fav"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-heart"></use></svg></div>
             </div>
-            <div class="playlist-item"><div class="playlist-num">02</div><div class="playlist-name">直到世界尽头</div><div class="playlist-artist">周华健</div><div class="playlist-dur">04:35</div><div class="playlist-fav">❤️</div></div>
-            <div class="playlist-item"><div class="playlist-num">03</div><div class="playlist-name">有点甜</div><div class="playlist-artist">汪苏泷/BY2</div><div class="playlist-dur">03:33</div><div class="playlist-fav">❤️</div></div>
-            <div class="playlist-item"><div class="playlist-num">04</div><div class="playlist-name">不期而遇</div><div class="playlist-artist">陈奕迅</div><div class="playlist-dur">04:41</div><div class="playlist-fav">❤️</div></div>
-            <div class="playlist-item"><div class="playlist-num">05</div><div class="playlist-name">喜欢你</div><div class="playlist-artist">陈洁仪</div><div class="playlist-dur">04:29</div><div class="playlist-fav">❤️</div></div>
-            <div class="playlist-item"><div class="playlist-num">06</div><div class="playlist-name">暖暖</div><div class="playlist-artist">梁静茹</div><div class="playlist-dur">04:41</div><div class="playlist-fav">❤️</div></div>
+            <div class="playlist-item"><div class="playlist-num">02</div><div class="playlist-name">直到世界尽头</div><div class="playlist-artist">周华健</div><div class="playlist-dur">04:35</div><div class="playlist-fav"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-heart"></use></svg></div></div>
+            <div class="playlist-item"><div class="playlist-num">03</div><div class="playlist-name">有点甜</div><div class="playlist-artist">汪苏泷/BY2</div><div class="playlist-dur">03:33</div><div class="playlist-fav"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-heart"></use></svg></div></div>
+            <div class="playlist-item"><div class="playlist-num">04</div><div class="playlist-name">不期而遇</div><div class="playlist-artist">陈奕迅</div><div class="playlist-dur">04:41</div><div class="playlist-fav"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-heart"></use></svg></div></div>
+            <div class="playlist-item"><div class="playlist-num">05</div><div class="playlist-name">喜欢你</div><div class="playlist-artist">陈洁仪</div><div class="playlist-dur">04:29</div><div class="playlist-fav"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-heart"></use></svg></div></div>
+            <div class="playlist-item"><div class="playlist-num">06</div><div class="playlist-name">暖暖</div><div class="playlist-artist">梁静茹</div><div class="playlist-dur">04:41</div><div class="playlist-fav"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-heart"></use></svg></div></div>
           </div>
           <div class="playlist-footer"><span>共 28 首歌曲</span><span class="playlist-link">查看全部</span></div>
         </div>
       </div>
       <div class="music-bottom">
         <div class="today-rec">
-          <div class="card-title"><span>🔄</span> 今日推荐 <span class="rec-refresh" style="margin-left:auto">↺ 换一换</span></div>
+          <div class="card-title"><span class="card-title-icon"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-refresh"></use></svg></span> 今日推荐 <span class="rec-refresh" style="margin-left:auto">换一换</span></div>
           <div class="rec-item">
             <div class="rec-cover"><img src="https://images.unsplash.com/photo-1490750967868-88df5691cc53?auto=format&fit=crop&w=80&q=70" alt="" onerror="this.outerHTML='🌸'"></div>
             <div class="rec-info"><div class="rec-title">慢慢喜欢你</div><div class="rec-artist">莫文蔚</div><div class="rec-desc">慢慢喜欢你，慢慢的回忆...</div></div>
-            <button class="rec-play-btn">▶</button>
+            <button class="rec-play-btn" aria-label="播放推荐"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-play"></use></svg></button>
           </div>
         </div>
         <div class="lyrics-card">
-          <div class="card-title"><span>🎤</span> 歌词展示</div>
+          <div class="card-title"><span class="card-title-icon"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-mic"></use></svg></span> 歌词展示</div>
           <div class="lyrics-scroll" id="lyricsScroll">
             <div class="lyric-line active">原来你是我最想留住的幸运</div>
             <div class="lyric-line nearby">原来我们和爱情曾经靠得那么近</div>
@@ -3026,7 +3050,7 @@ nav {
           <div class="lyrics-song">— 小幸运 · 田馥甄 <span style="color:var(--rose)">❤️</span></div>
         </div>
         <div class="mood-playlist-card">
-          <div class="card-title"><span>❤️</span> 心情歌单 <span style="margin-left:auto;font-size:11px;color:var(--rose-light);cursor:pointer">查看全部</span></div>
+          <div class="card-title"><span class="card-title-icon"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-heart"></use></svg></span> 心情歌单 <span style="margin-left:auto;font-size:11px;color:var(--rose-light);cursor:pointer">查看全部</span></div>
           <div class="mood-cover"><img src="https://images.unsplash.com/photo-1459231978203-b7d0a6b1b010?auto=format&fit=crop&w=300&q=70" alt="" onerror="this.outerHTML='🌧️'"></div>
           <div style="font-size:13px;color:var(--text-primary);font-weight:600">下雨天的思念 ☁️</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:5px">12 首 · 雨声里藏着对你的想念</div>
@@ -3034,8 +3058,8 @@ nav {
       </div>
       <div class="recently-bar">
         <div class="recently-header">
-          <div class="card-title" style="margin-bottom:0">🎵 最近播放</div>
-          <div class="clear-btn">🗑 清空记录</div>
+          <div class="card-title" style="margin-bottom:0"><span class="card-title-icon"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-music"></use></svg></span> 最近播放</div>
+          <div class="clear-btn"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-trash"></use></svg> 清空记录</div>
         </div>
         <div class="recent-grid">
           <div class="recent-item"><div class="recent-cover"><img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=60&q=60" alt="" onerror="this.outerHTML='🎵'"></div><div><div class="recent-name">小幸运</div><div class="recent-artist">田馥甄</div></div></div>
@@ -3415,6 +3439,18 @@ function formatMusicTime(seconds = 0) {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
+function iconSvg(name, className = 'line-icon') {
+  return `<svg class="${className}" viewBox="0 0 24 24"><use href="#icon-${name}"></use></svg>`;
+}
+
+function cardIcon(name) {
+  return `<span class="card-title-icon">${iconSvg(name)}</span>`;
+}
+
+function favoriteIcon(isFavorite) {
+  return `<div class="playlist-fav ${isFavorite ? '' : 'is-muted'}">${iconSvg('heart')}</div>`;
+}
+
 function getMusicAudio() {
   return document.getElementById('musicAudio');
 }
@@ -3424,7 +3460,11 @@ function updatePlayerButtons() {
   const playBtn = document.getElementById('playBtn');
   const vinylDisc = document.getElementById('vinylDisc');
   const loopBtn = document.getElementById('loopBtn');
-  if (playBtn) playBtn.textContent = audio && !audio.paused ? '⏸' : '▶';
+  if (playBtn) {
+    const isPlaying = audio && !audio.paused;
+    playBtn.innerHTML = iconSvg(isPlaying ? 'pause' : 'play');
+    playBtn.setAttribute('aria-label', isPlaying ? '暂停' : '播放');
+  }
   if (vinylDisc) vinylDisc.style.animationPlayState = audio && !audio.paused ? 'running' : 'paused';
   if (loopBtn) loopBtn.style.color = musicState.loop ? 'var(--rose-light)' : '';
 }
@@ -3446,10 +3486,18 @@ function updateMusicVolume() {
   const audio = getMusicAudio();
   const volFill = document.getElementById('volFill');
   const volumeText = document.getElementById('volumeText');
+  const volumeIcon = document.getElementById('volumeIcon');
+  const muteBtn = document.getElementById('muteBtn');
   if (!audio) return;
   const value = audio.muted ? 0 : Math.round(audio.volume * 100);
   if (volFill) volFill.style.width = `${value}%`;
   if (volumeText) volumeText.textContent = `${value}%`;
+  const iconName = value === 0 ? 'volume-x' : 'volume-2';
+  if (volumeIcon) volumeIcon.innerHTML = iconSvg(iconName);
+  if (muteBtn) {
+    muteBtn.innerHTML = iconSvg(iconName);
+    muteBtn.setAttribute('aria-label', value === 0 ? '取消静音' : '静音');
+  }
 }
 
 function setMusicSong(index, shouldPlay = false) {
@@ -3717,7 +3765,7 @@ function renderRecommendation(index = musicState.recommendationIndex) {
   musicState.recommendationIndex = (index + musicState.songs.length) % musicState.songs.length;
   const song = normalizeSongDisplay(musicState.songs[musicState.recommendationIndex]);
   card.innerHTML = `
-    <div class="card-title"><span>🔄</span> 今日推荐 <span class="rec-refresh" style="margin-left:auto">↺ 换一换</span></div>
+    <div class="card-title">${cardIcon('refresh')} 今日推荐 <span class="rec-refresh" style="margin-left:auto">换一换</span></div>
     <div class="rec-item">
       <div class="rec-cover">${song.coverUrl ? `<img src="${escapeHtml(song.coverUrl)}" alt="">` : '🎵'}</div>
       <div class="rec-info">
@@ -3725,7 +3773,7 @@ function renderRecommendation(index = musicState.recommendationIndex) {
         <div class="rec-artist">${escapeHtml(song.artist || '未填歌手')}</div>
         <div class="rec-desc">${escapeHtml(getSongLyricPreview(song))}</div>
       </div>
-      <button class="rec-play-btn">▶</button>
+      <button class="rec-play-btn" aria-label="播放推荐">${iconSvg('play')}</button>
     </div>
   `;
   card.querySelector('.rec-refresh')?.addEventListener('click', () => {
@@ -3808,7 +3856,7 @@ function renderMoodPlaylists(settings = {}) {
     };
   });
   if (!playlistModels.length) {
-    card.innerHTML = '<div class="card-title"><span>❤️</span> 心情歌单</div><div class="card-footer">后台还没有配置心情歌单。</div>';
+    card.innerHTML = `<div class="card-title">${cardIcon('heart')} 心情歌单</div><div class="card-footer">后台还没有配置心情歌单。</div>`;
     return;
   }
   const featured = playlistModels.find((item) => item.songs.length) || playlistModels[0];
@@ -3821,7 +3869,7 @@ function renderMoodPlaylists(settings = {}) {
           <div class="mood-playlist-name">${escapeHtml(playlist.title || '未命名心情歌单')}</div>
           <div class="mood-playlist-desc">${songs.length} 首 · ${escapeHtml(playlist.description || firstSong?.title || '还没有填写描述')}</div>
         </div>
-        <button class="mood-playlist-play" data-song-id="${escapeHtml(firstSong?.id || '')}" ${firstSong ? '' : 'disabled'}>▶</button>
+        <button class="mood-playlist-play" data-song-id="${escapeHtml(firstSong?.id || '')}" ${firstSong ? '' : 'disabled'}>${iconSvg('play')}</button>
       </div>
     `;
   }).join('');
@@ -3829,7 +3877,7 @@ function renderMoodPlaylists(settings = {}) {
   const firstSongs = featured.songs;
   const firstSong = featured.firstSong;
   card.innerHTML = `
-    <div class="card-title"><span>❤️</span> 心情歌单 <span class="mood-show-all" style="margin-left:auto;font-size:11px;color:var(--rose-light);cursor:pointer">查看全部</span></div>
+    <div class="card-title">${cardIcon('heart')} 心情歌单 <span class="mood-show-all" style="margin-left:auto;font-size:11px;color:var(--rose-light);cursor:pointer">查看全部</span></div>
     <div class="mood-cover">${first.coverUrl ? `<img src="${escapeHtml(first.coverUrl)}" alt="">` : '☁️'}</div>
     <div class="mood-playlist-summary">
       <div class="mood-playlist-title-row">
@@ -3838,7 +3886,7 @@ function renderMoodPlaylists(settings = {}) {
       </div>
       <div class="mood-playlist-first">第一首：<strong>${escapeHtml(firstSong?.title || '还没有配置歌曲')}</strong></div>
       <div class="mood-playlist-actions">
-        <button class="mood-playlist-primary" data-playlist-index="${featured.index}" ${firstSongs.length ? '' : 'disabled'}>▶ 一键播放整张歌单</button>
+        <button class="mood-playlist-primary" data-playlist-index="${featured.index}" ${firstSongs.length ? '' : 'disabled'}>${iconSvg('play')} 一键播放整张歌单</button>
       </div>
     </div>
     <div class="mood-playlist-items">
@@ -5198,7 +5246,7 @@ function renderSongs(items = []) {
   if (!visibleSongs.length) {
     list.innerHTML = `
       <div class="playlist-header">
-        <div class="card-title" style="margin-bottom:0">🎶 播放列表</div>
+        <div class="card-title" style="margin-bottom:0">${cardIcon('list-music')} 播放列表</div>
         <div class="playlist-add">共 0 首</div>
       </div>
       <div class="playlist-scroll">
@@ -5215,7 +5263,7 @@ function renderSongs(items = []) {
   }
   list.innerHTML = `
     <div class="playlist-header">
-      <div class="card-title" style="margin-bottom:0">🎶 播放列表</div>
+      <div class="card-title" style="margin-bottom:0">${cardIcon('list-music')} 播放列表</div>
       <div class="playlist-add">共 ${visibleSongs.length} 首</div>
     </div>
     <div class="playlist-scroll">
@@ -5227,7 +5275,7 @@ function renderSongs(items = []) {
         <div class="playlist-name">${escapeHtml(song.title)}</div>
         <div class="playlist-artist">${escapeHtml(song.artist || '未填歌手')}</div>
         <div class="playlist-dur">${Math.floor((song.duration || 0) / 60)}:${String((song.duration || 0) % 60).padStart(2, '0')}</div>
-        <div class="playlist-fav">${song.favorite ? '❤️' : '♡'}</div>
+        ${favoriteIcon(song.favorite)}
       </div>
     `}).join('')}
     </div>

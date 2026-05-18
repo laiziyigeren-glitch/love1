@@ -37,13 +37,19 @@
         </div>
       </div>
       <el-menu :default-active="active" class="menu" @select="selectAdminPage">
-        <el-menu-item v-for="item in adminNavItems" :key="item.index" :index="item.index">{{ item.label }}</el-menu-item>
+        <el-menu-item v-for="item in adminNavItems" :key="item.index" :index="item.index">
+          <span class="nav-menu-icon" v-html="item.icon"></span>
+          <span>{{ item.label }}</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
     <el-drawer v-model="mobileMenuOpen" title="后台菜单" direction="ltr" size="280px" class="mobile-menu-drawer">
       <el-menu :default-active="active" class="mobile-menu" @select="selectAdminPage">
-        <el-menu-item v-for="item in adminNavItems" :key="item.index" :index="item.index">{{ item.label }}</el-menu-item>
+        <el-menu-item v-for="item in adminNavItems" :key="item.index" :index="item.index">
+          <span class="nav-menu-icon" v-html="item.icon"></span>
+          <span>{{ item.label }}</span>
+        </el-menu-item>
       </el-menu>
     </el-drawer>
 
@@ -1103,18 +1109,19 @@ const coupleAccessForm = reactive({
   passwordSet: false,
 });
 const dashboard = ref<Dashboard | null>(null);
+const adminIcon = (paths: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
 const adminNavItems = [
-  { index: 'dashboard', label: '仪表盘' },
-  { index: 'home', label: '首页' },
-  { index: 'profile', label: '资料' },
-  { index: 'anniversary', label: '纪念日' },
-  { index: 'album', label: '相册' },
-  { index: 'letter', label: '情书' },
-  { index: 'music', label: '音乐' },
-  { index: 'romance', label: '心动花园' },
-  { index: 'ai', label: 'AI 小助手' },
-  { index: 'theme', label: '主题' },
-  { index: 'privacy', label: '隐私提醒' },
+  { index: 'dashboard', label: '仪表盘', icon: adminIcon('<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>') },
+  { index: 'home', label: '首页', icon: adminIcon('<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v11h14V10"/>') },
+  { index: 'profile', label: '资料', icon: adminIcon('<path d="M18 20a6 6 0 0 0-12 0"/><circle cx="12" cy="10" r="4"/>') },
+  { index: 'anniversary', label: '纪念日', icon: adminIcon('<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>') },
+  { index: 'album', label: '相册', icon: adminIcon('<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>') },
+  { index: 'letter', label: '情书', icon: adminIcon('<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>') },
+  { index: 'music', label: '音乐', icon: adminIcon('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>') },
+  { index: 'romance', label: '心动花园', icon: adminIcon('<circle cx="12" cy="12" r="3"/><path d="M12 3.5c2 2.2 2 4.3 0 6.5-2-2.2-2-4.3 0-6.5Z"/><path d="M3.5 12c2.2-2 4.3-2 6.5 0-2.2 2-4.3 2-6.5 0Z"/><path d="M20.5 12c-2.2 2-4.3 2-6.5 0 2.2-2 4.3-2 6.5 0Z"/>') },
+  { index: 'ai', label: 'AI 小助手', icon: adminIcon('<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 13h.01"/><path d="M15 13h.01"/><path d="M10 17h4"/>') },
+  { index: 'theme', label: '主题', icon: adminIcon('<circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6 2 11.2 2 15.9 5.9 20 11 20h1.5a2.5 2.5 0 0 0 0-5H11a2 2 0 0 1 0-4h1a10 10 0 0 0 10-9.6C20.4 2.4 16.5 2 12 2Z"/>') },
+  { index: 'privacy', label: '隐私提醒', icon: adminIcon('<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>') },
 ];
 const pageHeaderKeys = [
   { key: 'home', label: '首页' },
@@ -3568,8 +3575,27 @@ onMounted(() => {
 .brand strong { display: block; font-size: 18px; }
 .brand span { display: block; color: #dbc5c0; font-size: 12px; margin-top: 4px; }
 .menu { border-right: 0; background: transparent; }
-.menu :deep(.el-menu-item) { color: #f7eeee; border-radius: 8px; }
+.menu :deep(.el-menu-item) { color: #f7eeee; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
 .menu :deep(.el-menu-item.is-active), .menu :deep(.el-menu-item:hover) { background: #3b1d20; color: #fff; }
+.nav-menu-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: currentColor;
+}
+.nav-menu-icon :deep(svg),
+:global(.mobile-menu .nav-menu-icon svg) {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .topbar { height: 88px; background: #fff; border-bottom: 1px solid #e8dfda; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
 .topbar-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .mobile-menu-button { display: none; }
@@ -4062,6 +4088,9 @@ onMounted(() => {
 
 :global(.mobile-menu .el-menu-item) {
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 @media (max-width: 768px) {
