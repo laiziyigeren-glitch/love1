@@ -1026,7 +1026,7 @@
       </el-main>
 
       <el-main v-else class="main">
-        <el-empty description="后端未连接或暂无数据">
+        <el-empty :description="loadErrorMessage || '后端未连接或暂无数据'">
           <el-button type="primary" :loading="loading" @click="load">重新加载</el-button>
         </el-empty>
       </el-main>
@@ -1077,6 +1077,7 @@ import {
 const active = ref('dashboard');
 const mobileMenuOpen = ref(false);
 const loading = ref(false);
+const loadErrorMessage = ref('');
 const loginLoading = ref(false);
 const profileSaving = ref(false);
 const homeSaving = ref(false);
@@ -1175,10 +1176,14 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 function getLoadErrorMessage(error: unknown) {
   const code = (error as { code?: string })?.code;
-  if (code === 'ECONNABORTED') {
-    return '后端唤醒或请求超时了，请稍后点“重新加载”';
+  const message = error instanceof Error ? error.message : '';
+  if (code === 'ERR_NETWORK' || message.includes('Network Error')) {
+    return '后端连接失败，已尝试主 API 和备用 API；如果国内网络仍打不开，请稍后重试或开 VPN 管理';
   }
-  return getErrorMessage(error, '无法连接后端，请确认 API 和 MySQL 已启动');
+  if (code === 'ECONNABORTED') {
+    return '后端唤醒或请求超时，已尝试备用 API；请稍后点“重新加载”';
+  }
+  return getErrorMessage(error, '无法连接后端，已尝试主 API 和备用 API，请确认 API 和 MySQL 已启动');
 }
 
 function removeListItem<T extends { id?: string }>(items: T[] | undefined, item: T, index: number) {
@@ -1376,6 +1381,7 @@ async function load() {
       fetchDashboard({ compact: true }),
       fetchCoupleAccess(),
     ]);
+    loadErrorMessage.value = '';
     dashboard.value = nextDashboard;
     coupleAccessForm.name = coupleAccess.name || 'love';
     coupleAccessForm.password = '';
@@ -1407,7 +1413,8 @@ async function load() {
       return;
     }
     dashboard.value = null;
-    ElMessage.error(getLoadErrorMessage(error));
+    loadErrorMessage.value = getLoadErrorMessage(error);
+    ElMessage.error(loadErrorMessage.value);
   } finally {
     loading.value = false;
   }

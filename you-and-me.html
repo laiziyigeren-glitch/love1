@@ -1549,6 +1549,31 @@ nav {
 .reminder-toast.show { transform: none; opacity: 1; }
 .reminder-toast-title { color: var(--rose-light); font-weight: 700; margin-bottom: 5px; }
 .reminder-toast-body { color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.api-status-notice {
+  position: fixed;
+  left: 50%;
+  bottom: max(86px, calc(env(safe-area-inset-bottom) + 70px));
+  transform: translateX(-50%) translateY(14px);
+  z-index: 849;
+  max-width: min(520px, calc(100vw - 28px));
+  padding: 12px 18px;
+  border: 1px solid rgba(255, 174, 190, .42);
+  border-radius: 18px;
+  background: rgba(50, 19, 25, .88);
+  color: var(--text);
+  box-shadow: 0 14px 34px rgba(0,0,0,.28);
+  backdrop-filter: blur(16px);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.api-status-notice.show {
+  opacity: 1;
+  transform: translateX(-50%);
+}
 .settings-footer-btns { display: flex; gap: 12px; justify-content: center; margin-top: 0; }
 .settings-section-actions { justify-content: flex-end; }
 
@@ -1899,6 +1924,10 @@ nav {
     bottom: calc(106px + env(safe-area-inset-bottom)) !important;
     width: min(calc(100vw - 44px), 420px);
     text-align: center;
+  }
+  .api-status-notice {
+    bottom: calc(158px + env(safe-area-inset-bottom));
+    width: min(calc(100vw - 44px), 420px);
   }
   .main-content { gap: 14px; }
   .content-grid { gap: 14px; }
@@ -4549,6 +4578,10 @@ document.getElementById('loveModal').addEventListener('click', (e) => {
 // ===== BACKEND INTEGRATION =====
 const SPACE_SLUG = 'default';
 const API_BASE = window.LOVE1_API_BASE || `/api`;
+const API_FALLBACK_BASES = Array.isArray(window.LOVE1_API_FALLBACKS) ? window.LOVE1_API_FALLBACKS : [];
+const API_BASES = [...new Set([API_BASE, ...API_FALLBACK_BASES, 'https://api.likeu.love/api', 'https://love1-api.onrender.com/api']
+  .filter(Boolean)
+  .map(base => String(base).replace(/\/$/, '')))];
 const SPACE_CACHE_KEY = `love1:space:${SPACE_SLUG}:v1`;
 const COUPLE_TOKEN_KEY = `love1:couple:${SPACE_SLUG}:token`;
 const AI_CONVERSATION_KEY = `love1:ai:${SPACE_SLUG}:conversation`;
@@ -4569,6 +4602,8 @@ let aiAssistantConfig = { enabled: true, apiKeySet: false, assistantName: '心�
 let aiAssistantConfigPromise = null;
 let aiConversationId = '';
 let aiAssistantBriefLoaded = false;
+let activeApiBase = API_BASES[0] || '/api';
+let apiNoticeTimer = null;
 
 const romanceProjects = [
   {
@@ -4652,20 +4687,42 @@ const romanceProjects = [
 
 async function apiFetch(path, options = {}) {
   const { timeoutMs = 20000, headers = {}, ...fetchOptions } = options;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const method = String(fetchOptions.method || 'GET').toUpperCase();
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...fetchOptions,
-    cache: method === 'GET' ? 'no-store' : fetchOptions.cache,
-    headers: { 'Content-Type': 'application/json', ...headers },
-    signal: controller.signal,
-  }).finally(() => clearTimeout(timer));
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
-    throw new Error(`API ${res.status}${detail ? `: ${detail.slice(0, 180)}` : ''}`);
+  const canTryFallbacks = method === 'GET';
+  const bases = canTryFallbacks
+    ? [activeApiBase, ...API_BASES.filter(base => base !== activeApiBase)]
+    : [activeApiBase];
+  let lastError = null;
+
+  for (const base of bases) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(`${base}${path}`, {
+        ...fetchOptions,
+        cache: method === 'GET' ? 'no-store' : fetchOptions.cache,
+        headers: { 'Content-Type': 'application/json', ...headers },
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        const error = new Error(`API ${res.status}${detail ? `: ${detail.slice(0, 180)}` : ''}`);
+        error.status = res.status;
+        throw error;
+      }
+      activeApiBase = base;
+      return res.json();
+    } catch (error) {
+      lastError = error;
+      const status = Number(error?.status || 0);
+      const shouldTryNext = canTryFallbacks && (isRetryableNetworkError(error) || status >= 500 || status === 408);
+      if (!shouldTryNext) throw error;
+      console.warn(`API request failed on ${base}, trying next fallback.`, error);
+    } finally {
+      clearTimeout(timer);
+    }
   }
-  return res.json();
+  throw lastError || new Error('API request failed');
 }
 
 function isRetryableNetworkError(error) {
@@ -4781,11 +4838,16 @@ function initCoupleEntrance(settings = defaultSettingsState(), showLogin = true)
 }
 
 function readSpaceCache() {
+  const cached = readSpaceCacheEntry();
+  return cached?.data || null;
+}
+
+function readSpaceCacheEntry() {
   try {
     const raw = localStorage.getItem(SPACE_CACHE_KEY);
     if (!raw) return null;
     const cached = JSON.parse(raw);
-    return cached?.data || null;
+    return cached && cached.data ? cached : null;
   } catch (error) {
     console.warn('Failed to read local space cache.', error);
     return null;
@@ -4798,6 +4860,27 @@ function writeSpaceCache(data) {
   } catch (error) {
     console.warn('Failed to write local space cache.', error);
   }
+}
+
+function showApiStatusNotice(message, autoHideMs = 9000) {
+  let notice = document.getElementById('apiStatusNotice');
+  if (!notice) {
+    notice = document.createElement('div');
+    notice.id = 'apiStatusNotice';
+    notice.className = 'api-status-notice';
+    document.body.appendChild(notice);
+  }
+  notice.textContent = message;
+  notice.classList.add('show');
+  clearTimeout(apiNoticeTimer);
+  if (autoHideMs > 0) {
+    apiNoticeTimer = setTimeout(() => notice.classList.remove('show'), autoHideMs);
+  }
+}
+
+function hideApiStatusNotice() {
+  clearTimeout(apiNoticeTimer);
+  document.getElementById('apiStatusNotice')?.classList.remove('show');
 }
 
 function renderSpaceIfChanged(data, force = false) {
@@ -6134,9 +6217,16 @@ async function loadSpaceFromBackend({ force = false } = {}) {
     const data = await apiFetch(`/public/spaces/${SPACE_SLUG}/bootstrap${cacheBust}`, { timeoutMs: 7000 });
     if (settingsDirty) return;
     writeSpaceCache(data);
+    hideApiStatusNotice();
     renderSpaceIfChanged(data);
   } catch (error) {
-    console.warn('Backend is not ready, using static HTML content.', error);
+    const cached = readSpaceCacheEntry();
+    if (cached?.data && !spaceData && !settingsDirty) {
+      renderSpaceIfChanged(cached.data, true);
+    }
+    const savedText = cached?.savedAt ? `，当前显示 ${new Date(cached.savedAt).toLocaleString()} 保存的缓存` : '，页面可能暂时显示默认内容';
+    showApiStatusNotice(`暂时连不上后端，已自动尝试备用 API${savedText}。`, 12000);
+    console.warn('Backend is not ready, using cached or static HTML content.', error);
   } finally {
     backendRefreshInFlight = false;
   }

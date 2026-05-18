@@ -1,8 +1,15 @@
-import axios, { AxiosHeaders } from 'axios';
+import axios, { AxiosHeaders, type AxiosError, type AxiosRequestConfig } from 'axios';
 
 const apiBase = String(import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+const apiFallbackBases = [
+  apiBase,
+  'https://api.likeu.love',
+  'https://love1-api.onrender.com',
+]
+  .map((base) => String(base).replace(/\/$/, ''));
+const apiBases = Array.from(new Set(apiFallbackBases));
 const api = axios.create({
-  baseURL: apiBase,
+  baseURL: apiBases[0] || '',
   timeout: 30000,
 });
 
@@ -41,6 +48,38 @@ api.interceptors.request.use((config) => {
   headers.set('Authorization', `Bearer ${token}`);
 
   return config;
+});
+
+type RetryableRequestConfig = AxiosRequestConfig & {
+  __love1TriedApiBases?: string[];
+};
+
+function isRetryableApiError(error: AxiosError) {
+  const code = error.code || '';
+  const message = error.message || '';
+  return !error.response && (
+    code === 'ERR_NETWORK'
+    || code === 'ECONNABORTED'
+    || message.includes('Network Error')
+    || message.includes('timeout')
+  );
+}
+
+api.interceptors.response.use(undefined, async (error: AxiosError) => {
+  const config = error.config as RetryableRequestConfig | undefined;
+  const method = String(config?.method || 'get').toLowerCase();
+  if (!config || method !== 'get' || !isRetryableApiError(error)) {
+    throw error;
+  }
+
+  const currentBase = String(config.baseURL || api.defaults.baseURL || '').replace(/\/$/, '');
+  const triedBases = new Set([...(config.__love1TriedApiBases || []), currentBase]);
+  const nextBase = apiBases.find((base) => !triedBases.has(base));
+  if (!nextBase) throw error;
+
+  config.__love1TriedApiBases = Array.from(triedBases);
+  config.baseURL = nextBase;
+  return api.request(config);
 });
 
 export type Dashboard = {
