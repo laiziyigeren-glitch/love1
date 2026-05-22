@@ -987,6 +987,28 @@ nav {
 .album-showcase-btn .line-icon { width: 15px; height: 15px; }
 .album-showcase-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(232,116,138,0.36); border-color: rgba(244,160,176,0.62); }
 .album-showcase-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+.album-we-btn {
+  display: none;
+  padding: 9px 18px;
+  border: 1px solid rgba(232,176,120,0.46);
+  border-radius: 999px;
+  cursor: pointer;
+  color: #fff7df;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background:
+    radial-gradient(circle at 28% 20%, rgba(255,255,255,0.18), transparent 28%),
+    linear-gradient(135deg, rgba(103,45,83,0.78), rgba(212,149,106,0.54));
+  box-shadow: 0 6px 22px rgba(212,149,106,0.22), inset 0 0 0 1px rgba(255,255,255,0.06);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.album-we-btn.is-visible { display: inline-flex; }
+.album-we-btn .line-icon { width: 15px; height: 15px; }
+.album-we-btn:hover { transform: translateY(-2px); border-color: rgba(232,176,120,0.7); box-shadow: 0 9px 28px rgba(212,149,106,0.32); }
 .album-showcase {
   position: fixed; inset: 0; z-index: 1800;
   display: none; overflow: hidden;
@@ -1149,6 +1171,170 @@ nav {
 .album-showcase-strip img,
 .album-showcase-strip video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .album-showcase-controls { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.album-we {
+  position: fixed; inset: 0; z-index: 1850;
+  display: none; overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(232,116,138,0.14), transparent 28%),
+    radial-gradient(circle at 78% 12%, rgba(212,149,106,0.12), transparent 26%),
+    linear-gradient(180deg, #09030b 0%, #140715 56%, #070308 100%);
+  perspective: 1200px;
+  isolation: isolate;
+}
+.album-we.show { display: block; }
+.album-we::before {
+  content: ""; position: absolute; inset: -12%;
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.12) 0 1px, transparent 1.6px) 0 0 / 82px 82px,
+    radial-gradient(circle, rgba(232,116,138,0.2) 0 1.5px, transparent 2.2px) 20px 36px / 126px 126px,
+    radial-gradient(circle, rgba(212,149,106,0.18) 0 1.2px, transparent 2px) 50px 80px / 156px 156px;
+  opacity: 0.6; transform: translateZ(-120px) scale(1.16);
+  animation: albumWeStarDrift 36s linear infinite;
+}
+.album-we::after {
+  content: ""; position: absolute; inset: 0; z-index: 8; pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 45%, transparent 0 28%, rgba(7,3,10,0.36) 58%, rgba(7,3,10,0.94) 100%),
+    linear-gradient(90deg, rgba(7,3,10,0.82), transparent 22%, transparent 78%, rgba(7,3,10,0.86));
+}
+.album-we-brand {
+  position: absolute; z-index: 22; top: 28px; left: 38px;
+  user-select: none;
+}
+.album-we-brand-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(28px, 4vw, 46px);
+  letter-spacing: 0.18em;
+  color: #f4d59b;
+  text-shadow: 0 0 24px rgba(212,149,106,0.28);
+}
+.album-we-brand-sub {
+  margin-top: 8px; color: rgba(253,240,234,0.45);
+  font-size: 11px; letter-spacing: 0.34em; text-transform: uppercase;
+}
+.album-we-status {
+  position: absolute; z-index: 22; top: 30px; right: 88px;
+  text-align: right; color: rgba(253,240,234,0.56);
+  font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+}
+.album-we-status b { display: block; margin-top: 8px; color: var(--rose-light); font-size: 13px; }
+.album-we-close {
+  position: absolute; z-index: 24; top: 24px; right: 30px;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid rgba(244,160,176,0.28);
+  background: rgba(15,6,18,0.62); color: #fff; cursor: pointer;
+  font-size: 22px; backdrop-filter: blur(12px);
+}
+.album-we-field {
+  position: absolute; inset: 0; z-index: 10;
+  transform-style: preserve-3d;
+}
+.album-we-card {
+  --x: 0px; --y: 0px; --z: 0px; --rx: 0deg; --ry: 0deg; --rz: 0deg; --scale: 1; --delay: 0s;
+  position: absolute; left: 50%; top: 50%;
+  width: clamp(104px, 11vw, 154px); aspect-ratio: 0.72;
+  border: 1px solid rgba(255,255,255,0.14); border-radius: 22px;
+  overflow: hidden; background: rgba(255,255,255,0.06);
+  box-shadow: 0 20px 46px rgba(0,0,0,0.48), 0 0 0 1px rgba(232,116,138,0.08) inset;
+  transform: translate3d(calc(-50% + var(--x)), calc(-50% + var(--y)), var(--z)) rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(var(--rz)) scale(var(--scale));
+  transition: transform 1.25s cubic-bezier(.2,.8,.2,1), opacity 0.9s, filter 0.9s, box-shadow 0.35s;
+  cursor: pointer; opacity: 0.9; filter: saturate(0.9) brightness(0.92);
+  animation: albumWeCardBreath 5.8s ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+.album-we-card::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 34%), linear-gradient(0deg, rgba(0,0,0,0.74), transparent 44%);
+}
+.album-we-card img,
+.album-we-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-we-card small {
+  position: absolute; z-index: 2; left: 12px; right: 12px; bottom: 13px;
+  color: rgba(255,247,245,0.84); font-size: 10px; line-height: 1.4; letter-spacing: 0.08em;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.72);
+}
+.album-we-card.focused {
+  z-index: 18; opacity: 1; filter: none;
+  box-shadow: 0 34px 90px rgba(0,0,0,0.62), 0 0 42px rgba(232,116,138,0.24), 0 0 0 1px rgba(255,225,232,0.26) inset;
+}
+.album-we.glow-off .album-we-card {
+  box-shadow: 0 18px 42px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08) inset;
+}
+.album-we.glow-off::before {
+  opacity: 0.38;
+}
+.album-we-poem {
+  position: absolute; z-index: 18; left: 50%; top: 50%;
+  width: min(760px, calc(100vw - 48px));
+  transform: translate(-50%, -42%); text-align: center;
+  pointer-events: none; opacity: 0;
+  text-shadow: 0 10px 38px rgba(0,0,0,0.62);
+  transition: opacity 0.8s, transform 0.8s;
+}
+.album-we-poem.show { opacity: 1; transform: translate(-50%, -50%); }
+.album-we-poem-line { display: block; font-size: clamp(22px, 3.4vw, 42px); line-height: 1.6; letter-spacing: 0.08em; }
+.album-we-poem-line.gold { color: #ead19b; font-size: clamp(28px, 4.8vw, 60px); letter-spacing: 0.18em; }
+.album-we-focus {
+  position: absolute; z-index: 19; left: 50%; bottom: 64px;
+  width: min(520px, calc(100vw - 48px));
+  transform: translateX(-50%) translateY(18px);
+  opacity: 0; pointer-events: none; text-align: center;
+  transition: opacity 0.45s, transform 0.45s;
+}
+.album-we-focus.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.album-we-focus-title { color: #f5dba1; font-size: clamp(24px,4vw,44px); letter-spacing: 0.12em; text-shadow: 0 8px 30px rgba(0,0,0,0.6); }
+.album-we-focus-desc { margin-top: 12px; color: rgba(253,240,234,0.64); font-size: 13px; line-height: 1.8; }
+.album-we-controls {
+  position: absolute; z-index: 22; right: 34px; bottom: 28px;
+  display: flex; align-items: center; gap: 10px;
+}
+.album-we-control,
+.album-we-viewer-btn {
+  min-height: 38px; padding: 0 14px;
+  border: 1px solid rgba(244,160,176,0.24); border-radius: 999px;
+  background: rgba(15,6,18,0.58); color: rgba(253,240,234,0.78);
+  backdrop-filter: blur(12px); cursor: pointer; font-family: inherit;
+  transition: transform 0.2s, border-color 0.2s, background 0.2s, color 0.2s;
+}
+.album-we-control:hover,
+.album-we-control.active,
+.album-we-viewer-btn:hover {
+  transform: translateY(-1px); border-color: rgba(244,160,176,0.52);
+  background: rgba(232,116,138,0.18); color: #fff;
+}
+.album-we-viewer {
+  position: absolute; inset: 0; z-index: 60;
+  display: none; place-items: center; padding: 34px;
+  background: rgba(4,1,6,0.78); backdrop-filter: blur(18px);
+}
+.album-we-viewer.open { display: grid; }
+.album-we-viewer-shell {
+  width: min(980px,100%); max-height: min(760px, calc(100vh - 68px));
+  display: grid; grid-template-columns: minmax(0,1fr) 280px;
+  overflow: hidden; border: 1px solid rgba(244,160,176,0.28); border-radius: 30px;
+  background: linear-gradient(145deg, rgba(32,12,38,0.84), rgba(10,3,13,0.9));
+  box-shadow: 0 34px 120px rgba(0,0,0,0.62);
+}
+.album-we-viewer-media { min-height: 520px; display: grid; place-items: center; background: radial-gradient(circle at 50% 18%, rgba(232,116,138,0.16), transparent 26%), #07030a; overflow: hidden; }
+.album-we-viewer-media img,
+.album-we-viewer-media video { width: 100%; height: 100%; max-height: min(760px, calc(100vh - 68px)); object-fit: contain; display: block; }
+.album-we-viewer-info {
+  padding: 26px; display: flex; flex-direction: column; justify-content: space-between; gap: 22px;
+  border-left: 1px solid rgba(244,160,176,0.14);
+}
+.album-we-viewer-kicker { color: rgba(253,240,234,0.45); font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; }
+.album-we-viewer-title { margin-top: 14px; color: #f3d79e; font-size: 30px; line-height: 1.24; letter-spacing: 0.08em; }
+.album-we-viewer-desc { margin-top: 14px; color: rgba(253,240,234,0.66); font-size: 13px; line-height: 1.8; }
+.album-we-viewer-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.album-we-viewer-close { grid-column: 1 / -1; }
+@keyframes albumWeStarDrift {
+  from { transform: translate3d(0,0,-120px) scale(1.16); }
+  to { transform: translate3d(-90px,50px,-120px) scale(1.16); }
+}
+@keyframes albumWeCardBreath {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: -10px; }
+}
 @keyframes albumShowcaseDrift {
   from { transform: scale(1.02) translate3d(-4px,-4px,0); }
   to { transform: scale(1.08) translate3d(6px,4px,0); }
@@ -2235,6 +2421,7 @@ nav {
     justify-content: flex-start;
   }
   .album-showcase-btn,
+  .album-we-btn,
   .album-toolbar-actions .sort-select,
   .album-toolbar-actions .album-upload-btn {
     min-height: 44px;
@@ -2295,6 +2482,34 @@ nav {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .album-showcase-control { padding: 0 8px; }
+  .album-we-brand { top: 20px; left: 20px; }
+  .album-we-brand-title { font-size: 28px; }
+  .album-we-brand-sub { letter-spacing: 0.18em; }
+  .album-we-status { top: 22px; right: 62px; font-size: 9px; }
+  .album-we-close { top: 17px; right: 18px; width: 34px; height: 34px; }
+  .album-we-card { width: clamp(76px, 22vw, 110px); border-radius: 16px; }
+  .album-we-poem { top: 46%; }
+  .album-we-focus { bottom: 86px; }
+  .album-we-controls {
+    left: 16px;
+    right: 16px;
+    bottom: 18px;
+    justify-content: space-between;
+  }
+  .album-we-control { flex: 1; padding: 0 8px; font-size: 12px; }
+  .album-we-viewer { padding: 16px; }
+  .album-we-viewer-shell {
+    grid-template-columns: 1fr;
+    max-height: calc(100vh - 32px);
+    border-radius: 24px;
+  }
+  .album-we-viewer-media { min-height: 58vh; }
+  .album-we-viewer-info {
+    border-left: 0;
+    border-top: 1px solid rgba(244,160,176,0.14);
+    padding: 18px;
+  }
+  .album-we-viewer-title { font-size: 24px; }
   .anniv-highlight { padding: 20px 14px; }
   .anniv-date { font-size: 38px; }
   .anniv-date.anniv-duration {
@@ -3144,6 +3359,7 @@ nav {
         </div>
         <div class="album-toolbar-actions">
           <button class="album-showcase-btn" id="albumShowcaseOpenBtn" type="button"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-sparkles"></use></svg> 回忆放映</button>
+          <button class="album-we-btn" id="albumWeOpenBtn" type="button"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-star"></use></svg> 我们</button>
           <select class="sort-select"><option value="latest">最新上传</option><option value="oldest">最早上传</option><option value="favorite">按收藏</option></select>
           <button class="album-upload-btn">⬆ 上传照片</button>
         </div>
@@ -3591,6 +3807,46 @@ nav {
       <button class="album-showcase-control" id="albumShowcasePlayBtn" type="button">暂停</button>
       <button class="album-showcase-control" id="albumShowcaseNextBtn" type="button">下一张</button>
       <button class="album-showcase-control" id="albumShowcaseSpeedBtn" type="button">速度</button>
+    </div>
+  </div>
+</div>
+
+<div class="album-we" id="albumWe" aria-hidden="true">
+  <div class="album-we-brand">
+    <div class="album-we-brand-title">我们</div>
+    <div class="album-we-brand-sub">eternal blossoms</div>
+  </div>
+  <div class="album-we-status">
+    <span id="albumWeModeText">valley: arrival / 入场</span>
+    <b id="albumWeProgress">0%</b>
+  </div>
+  <button class="album-we-close" id="albumWeCloseBtn" type="button" aria-label="关闭">×</button>
+  <div class="album-we-poem" id="albumWePoem"></div>
+  <div class="album-we-field" id="albumWeField"></div>
+  <div class="album-we-focus" id="albumWeFocus">
+    <div class="album-we-focus-title" id="albumWeFocusTitle">有你的时光</div>
+    <div class="album-we-focus-desc" id="albumWeFocusDesc">每一张照片都是一个小小的入口，通往只有我们知道的那一天。</div>
+  </div>
+  <div class="album-we-controls">
+    <button class="album-we-control" id="albumWeModeBtn" type="button">切换阵型</button>
+    <button class="album-we-control active" id="albumWeGlowBtn" type="button">恒光 ON</button>
+    <button class="album-we-control" id="albumWeFocusBtn" type="button">凝望</button>
+  </div>
+  <div class="album-we-viewer" id="albumWeViewer" aria-hidden="true">
+    <div class="album-we-viewer-shell">
+      <div class="album-we-viewer-media" id="albumWeViewerMedia"></div>
+      <aside class="album-we-viewer-info">
+        <div>
+          <div class="album-we-viewer-kicker" id="albumWeViewerKicker">memory card</div>
+          <div class="album-we-viewer-title" id="albumWeViewerTitle">我们</div>
+          <div class="album-we-viewer-desc" id="albumWeViewerDesc"></div>
+        </div>
+        <div class="album-we-viewer-actions">
+          <button class="album-we-viewer-btn" id="albumWeViewerPrev" type="button">上一张</button>
+          <button class="album-we-viewer-btn" id="albumWeViewerNext" type="button">下一张</button>
+          <button class="album-we-viewer-btn album-we-viewer-close" id="albumWeViewerClose" type="button">回到我们</button>
+        </div>
+      </aside>
     </div>
   </div>
 </div>
@@ -5029,6 +5285,21 @@ const ALBUM_SHOWCASE_SPEEDS = [
   { label: '标准速度', delay: 3600 },
   { label: '快速', delay: 2400 },
 ];
+let albumWeItems = [];
+let albumWeModeIndex = 0;
+let albumWeFocusIndex = 0;
+let albumWeViewerIndex = 0;
+let albumWeAutoTimer = null;
+let albumWePoemTimer = null;
+let albumWeScrollX = 0;
+let albumWeScrollY = 0;
+const ALBUM_WE_MODES = [
+  { key: 'arrival', label: 'valley: arrival / 入场', poem: ['你是所有方向里', '唯一的目的地'] },
+  { key: 'wall', label: 'valley: wall / 花墙', poem: ['时间奔流成浩瀚长河', '我此生只在你温柔的岸'] },
+  { key: 'bloom', label: 'valley: bloom / 花开', poem: ['你在身旁', '就是最好的时光'] },
+  { key: 'orbit', label: 'valley: orbit / 环绕', poem: ['所有的偶然', '都是命中注定的必然'] },
+  { key: 'focus', label: 'valley: focus / 凝望', poem: ['纵使东风把繁花吹散', '终会将我们吹回同一个原点'] },
+];
 let currentPageId = 'home';
 let settingsDirty = false;
 let romanceFilter = 'all';
@@ -5644,6 +5915,322 @@ function bindAlbumShowcaseControls() {
   });
 }
 
+function getAlbumWeItems() {
+  const limit = window.innerWidth < 768 ? 14 : 24;
+  return albumWeItems.slice(0, limit);
+}
+
+function albumWeItemTitle(item = {}) {
+  return getAlbumShowcaseTitle(item);
+}
+
+function albumWeItemDesc(item = {}) {
+  const parts = [];
+  if (item.takenAt) parts.push(item.takenAt);
+  if (item.album) parts.push(item.album);
+  if (item.location && item.location !== item.title) parts.push(item.location);
+  return parts.join(' · ') || '这张照片被放进了只属于你们的私密相册。';
+}
+
+function albumWeCardMediaMarkup(item = {}) {
+  const thumb = getAlbumShowcaseImage(item);
+  if (thumb) return `<img src="${escapeHtml(thumb)}" alt="${escapeHtml(albumWeItemTitle(item))}" loading="lazy" decoding="async">`;
+  if (isVideoItem(item) || isLivePhotoItem(item)) return `<video src="${escapeHtml(item.url || '')}" muted playsinline preload="metadata"></video>`;
+  return '<span style="display:grid;place-items:center;width:100%;height:100%;font-size:22px">我们</span>';
+}
+
+function albumWeViewerMediaMarkup(item = {}) {
+  if (isVideoItem(item) || isLivePhotoItem(item)) {
+    const poster = getAlbumShowcaseImage(item);
+    return `<video src="${escapeHtml(item.url || '')}" ${poster ? `poster="${escapeHtml(poster)}"` : ''} controls autoplay playsinline></video>`;
+  }
+  return `<img src="${escapeHtml(item.url || item.thumbnailUrl || '')}" alt="${escapeHtml(albumWeItemTitle(item))}">`;
+}
+
+function updateAlbumWeButton() {
+  const btn = document.getElementById('albumWeOpenBtn');
+  if (!btn) return;
+  const visible = albumFilter === '私密相册' && albumWeItems.length > 0;
+  btn.classList.toggle('is-visible', visible);
+  btn.disabled = !visible;
+  btn.title = visible ? '进入只属于你们的「我们」' : '切到私密相册后可进入「我们」';
+}
+
+function setAlbumWeCard(card, vars) {
+  Object.entries(vars).forEach(([key, value]) => card.style.setProperty(key, value));
+}
+
+function renderAlbumWeCards() {
+  const field = document.getElementById('albumWeField');
+  if (!field) return;
+  const items = getAlbumWeItems();
+  field.innerHTML = items.map((item, index) => `
+    <button class="album-we-card" type="button" data-album-we-index="${index}" style="--delay:${-(index % 8) * 0.36}s">
+      ${albumWeCardMediaMarkup(item)}
+      <small>${escapeHtml(albumWeItemTitle(item))} / ${escapeHtml(getAlbumShowcaseType(item))}</small>
+    </button>
+  `).join('');
+  field.querySelectorAll('[data-album-we-index]').forEach(card => {
+    card.addEventListener('click', () => {
+      openAlbumWeViewer(Number(card.dataset.albumWeIndex) || 0);
+      restartAlbumWeAuto();
+    });
+    card.addEventListener('dblclick', () => {
+      openAlbumWeViewer(Number(card.dataset.albumWeIndex) || 0);
+      restartAlbumWeAuto();
+    });
+  });
+}
+
+function layoutAlbumWeArrival(cards) {
+  cards.forEach((card, index) => {
+    const spread = (index - (cards.length - 1) / 2) * 18;
+    setAlbumWeCard(card, {
+      '--x': `${spread}px`,
+      '--y': `${Math.sin(index) * 18}px`,
+      '--z': `${-360 - index * 9}px`,
+      '--rx': '0deg',
+      '--ry': `${spread / 8}deg`,
+      '--rz': `${spread / 18}deg`,
+      '--scale': '0.78',
+    });
+  });
+}
+
+function layoutAlbumWeWall(cards) {
+  const columns = window.innerWidth < 768 ? 4 : 8;
+  const gapX = window.innerWidth < 768 ? 82 : 128;
+  const gapY = window.innerWidth < 768 ? 104 : 154;
+  cards.forEach((card, index) => {
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    const x = (col - (columns - 1) / 2) * gapX;
+    const y = (row - Math.floor(cards.length / columns) / 2) * gapY + 18;
+    setAlbumWeCard(card, {
+      '--x': `${x}px`,
+      '--y': `${y}px`,
+      '--z': `${Math.sin(index * 1.7) * 80}px`,
+      '--rx': `${Math.sin(index) * 3}deg`,
+      '--ry': `${(col - columns / 2) * -3}deg`,
+      '--rz': `${Math.sin(index * 2) * 4}deg`,
+      '--scale': '0.92',
+    });
+  });
+}
+
+function layoutAlbumWeBloom(cards) {
+  const radius = window.innerWidth < 768 ? 138 : 250;
+  cards.forEach((card, index) => {
+    const angle = (index / cards.length) * Math.PI * 2;
+    const layer = index % 2 ? 0.72 : 1;
+    setAlbumWeCard(card, {
+      '--x': `${Math.cos(angle) * radius * layer}px`,
+      '--y': `${Math.sin(angle) * radius * 0.62 * layer}px`,
+      '--z': `${Math.sin(angle) * 120}px`,
+      '--rx': '0deg',
+      '--ry': `${Math.cos(angle) * -28}deg`,
+      '--rz': `${angle * 57.3 + 90}deg`,
+      '--scale': `${index % 3 === 0 ? 0.9 : 0.76}`,
+    });
+  });
+}
+
+function layoutAlbumWeOrbit(cards) {
+  const radius = window.innerWidth < 768 ? 154 : 330;
+  cards.forEach((card, index) => {
+    const angle = (index / cards.length) * Math.PI * 2 + albumWeModeIndex * 0.18;
+    setAlbumWeCard(card, {
+      '--x': `${Math.cos(angle) * radius}px`,
+      '--y': `${Math.sin(angle * 2) * (window.innerWidth < 768 ? 38 : 70)}px`,
+      '--z': `${Math.sin(angle) * 260}px`,
+      '--rx': '0deg',
+      '--ry': `${-angle * 57.3 + 90}deg`,
+      '--rz': `${Math.sin(angle) * 4}deg`,
+      '--scale': `${0.76 + (Math.sin(angle) + 1) * 0.12}`,
+    });
+  });
+}
+
+function layoutAlbumWeFocus(cards) {
+  const items = getAlbumWeItems();
+  cards.forEach((card, index) => {
+    const offset = index - albumWeFocusIndex;
+    const wrapped = Math.abs(offset) > cards.length / 2 ? offset - Math.sign(offset) * cards.length : offset;
+    const isFocus = index === albumWeFocusIndex;
+    card.classList.toggle('focused', isFocus);
+    setAlbumWeCard(card, {
+      '--x': `${wrapped * (window.innerWidth < 768 ? 28 : 54)}px`,
+      '--y': `${isFocus ? -12 : 82 + Math.abs(wrapped) * 4}px`,
+      '--z': `${isFocus ? 260 : -Math.abs(wrapped) * 34}px`,
+      '--rx': `${isFocus ? 0 : 8}deg`,
+      '--ry': `${wrapped * -8}deg`,
+      '--rz': `${wrapped * 2.2}deg`,
+      '--scale': `${isFocus ? (window.innerWidth < 768 ? 1.62 : 2.18) : 0.72}`,
+    });
+  });
+  const item = items[albumWeFocusIndex] || items[0];
+  const title = document.getElementById('albumWeFocusTitle');
+  const desc = document.getElementById('albumWeFocusDesc');
+  if (title) title.textContent = albumWeItemTitle(item);
+  if (desc) desc.textContent = albumWeItemDesc(item);
+}
+
+function showAlbumWePoem(lines = []) {
+  const poem = document.getElementById('albumWePoem');
+  if (!poem) return;
+  clearTimeout(albumWePoemTimer);
+  poem.innerHTML = `<span class="album-we-poem-line">${escapeHtml(lines[0] || '')}</span><span class="album-we-poem-line gold">${escapeHtml(lines[1] || '')}</span>`;
+  poem.classList.add('show');
+  albumWePoemTimer = setTimeout(() => poem.classList.remove('show'), 3200);
+}
+
+function applyAlbumWeMode(forceKey) {
+  const forceIndex = forceKey ? ALBUM_WE_MODES.findIndex(mode => mode.key === forceKey) : -1;
+  if (forceIndex >= 0) albumWeModeIndex = forceIndex;
+  const mode = ALBUM_WE_MODES[albumWeModeIndex] || ALBUM_WE_MODES[0];
+  const cards = [...document.querySelectorAll('#albumWeField .album-we-card')];
+  cards.forEach(card => card.classList.remove('focused'));
+  document.getElementById('albumWeFocus')?.classList.toggle('show', mode.key === 'focus');
+  const modeText = document.getElementById('albumWeModeText');
+  const progress = document.getElementById('albumWeProgress');
+  if (modeText) modeText.textContent = mode.label;
+  if (progress) progress.textContent = `${Math.round((albumWeModeIndex / (ALBUM_WE_MODES.length - 1)) * 100)}%`;
+  showAlbumWePoem(mode.poem);
+  if (mode.key === 'arrival') layoutAlbumWeArrival(cards);
+  if (mode.key === 'wall') layoutAlbumWeWall(cards);
+  if (mode.key === 'bloom') layoutAlbumWeBloom(cards);
+  if (mode.key === 'orbit') layoutAlbumWeOrbit(cards);
+  if (mode.key === 'focus') layoutAlbumWeFocus(cards);
+}
+
+function nextAlbumWeMode() {
+  albumWeModeIndex = (albumWeModeIndex + 1) % ALBUM_WE_MODES.length;
+  if (ALBUM_WE_MODES[albumWeModeIndex].key === 'focus') {
+    albumWeFocusIndex = (albumWeFocusIndex + 3) % Math.max(1, getAlbumWeItems().length);
+  }
+  applyAlbumWeMode();
+}
+
+function restartAlbumWeAuto() {
+  clearInterval(albumWeAutoTimer);
+  if (!document.getElementById('albumWe')?.classList.contains('show')) return;
+  albumWeAutoTimer = setInterval(nextAlbumWeMode, 5400);
+}
+
+function renderAlbumWeViewer() {
+  const items = getAlbumWeItems();
+  const item = items[albumWeViewerIndex] || items[0];
+  const media = document.getElementById('albumWeViewerMedia');
+  const kicker = document.getElementById('albumWeViewerKicker');
+  const title = document.getElementById('albumWeViewerTitle');
+  const desc = document.getElementById('albumWeViewerDesc');
+  if (media) media.innerHTML = albumWeViewerMediaMarkup(item);
+  if (kicker) kicker.textContent = `${String(albumWeViewerIndex + 1).padStart(2, '0')} / ${String(items.length).padStart(2, '0')} · ${getAlbumShowcaseType(item)}`;
+  if (title) title.textContent = albumWeItemTitle(item);
+  if (desc) desc.textContent = albumWeItemDesc(item);
+}
+
+function openAlbumWeViewer(index) {
+  const viewer = document.getElementById('albumWeViewer');
+  const items = getAlbumWeItems();
+  if (!viewer || !items.length) return;
+  albumWeViewerIndex = (index + items.length) % items.length;
+  renderAlbumWeViewer();
+  viewer.classList.add('open');
+  viewer.setAttribute('aria-hidden', 'false');
+}
+
+function closeAlbumWeViewer() {
+  const viewer = document.getElementById('albumWeViewer');
+  const media = document.getElementById('albumWeViewerMedia');
+  if (media) media.innerHTML = '';
+  if (viewer) {
+    viewer.classList.remove('open');
+    viewer.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function changeAlbumWeViewer(offset) {
+  const items = getAlbumWeItems();
+  if (!items.length) return;
+  albumWeViewerIndex = (albumWeViewerIndex + offset + items.length) % items.length;
+  renderAlbumWeViewer();
+}
+
+function openAlbumWe() {
+  const modal = document.getElementById('albumWe');
+  if (!modal || !albumWeItems.length) {
+    showAlbumShowcaseToast('切到私密相册后，就可以进入「我们」。');
+    return;
+  }
+  albumWeScrollX = window.scrollX || document.documentElement.scrollLeft || 0;
+  albumWeScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.classList.add('album-showcase-open');
+  if (albumWeScrollX) window.scrollTo(0, albumWeScrollY);
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+  albumWeModeIndex = 0;
+  albumWeFocusIndex = 0;
+  renderAlbumWeCards();
+  applyAlbumWeMode('arrival');
+  restartAlbumWeAuto();
+}
+
+function closeAlbumWe() {
+  const modal = document.getElementById('albumWe');
+  clearInterval(albumWeAutoTimer);
+  clearTimeout(albumWePoemTimer);
+  closeAlbumWeViewer();
+  document.body.classList.remove('album-showcase-open');
+  window.scrollTo(albumWeScrollX, albumWeScrollY);
+  if (modal) {
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function bindAlbumWeControls() {
+  document.getElementById('albumWeOpenBtn')?.addEventListener('click', openAlbumWe);
+  document.getElementById('albumWeCloseBtn')?.addEventListener('click', closeAlbumWe);
+  document.getElementById('albumWeModeBtn')?.addEventListener('click', () => {
+    nextAlbumWeMode();
+    restartAlbumWeAuto();
+  });
+  document.getElementById('albumWeFocusBtn')?.addEventListener('click', () => {
+    const length = Math.max(1, getAlbumWeItems().length);
+    albumWeFocusIndex = (albumWeFocusIndex + 1) % length;
+    applyAlbumWeMode('focus');
+    restartAlbumWeAuto();
+  });
+  document.getElementById('albumWeGlowBtn')?.addEventListener('click', (event) => {
+    event.currentTarget.classList.toggle('active');
+    event.currentTarget.textContent = event.currentTarget.classList.contains('active') ? '恒光 ON' : '恒光 OFF';
+    document.getElementById('albumWe')?.classList.toggle('glow-off');
+  });
+  document.getElementById('albumWeViewerClose')?.addEventListener('click', closeAlbumWeViewer);
+  document.getElementById('albumWeViewerPrev')?.addEventListener('click', () => changeAlbumWeViewer(-1));
+  document.getElementById('albumWeViewerNext')?.addEventListener('click', () => changeAlbumWeViewer(1));
+  document.getElementById('albumWeViewer')?.addEventListener('click', (event) => {
+    if (event.target?.id === 'albumWeViewer') closeAlbumWeViewer();
+  });
+  document.addEventListener('keydown', (event) => {
+    const modal = document.getElementById('albumWe');
+    if (!modal?.classList.contains('show')) return;
+    if (document.getElementById('albumWeViewer')?.classList.contains('open')) {
+      if (event.key === 'Escape') closeAlbumWeViewer();
+      if (event.key === 'ArrowLeft') changeAlbumWeViewer(-1);
+      if (event.key === 'ArrowRight') changeAlbumWeViewer(1);
+      return;
+    }
+    if (event.key === 'Escape') closeAlbumWe();
+  });
+  window.addEventListener('resize', () => {
+    if (!document.getElementById('albumWe')?.classList.contains('show')) return;
+    renderAlbumWeCards();
+    applyAlbumWeMode();
+  });
+}
+
 function renderAlbums(items = []) {
   const grid = document.querySelector('.album-grid-main');
   if (!grid) return;
@@ -5706,6 +6293,10 @@ function renderAlbums(items = []) {
   albumShowcaseItems = sorted;
   albumShowcaseIndex = Math.min(albumShowcaseIndex, Math.max(0, albumShowcaseItems.length - 1));
   updateAlbumShowcaseButton();
+  albumWeItems = albumFilter === '私密相册' ? sorted : [];
+  albumWeFocusIndex = Math.min(albumWeFocusIndex, Math.max(0, albumWeItems.length - 1));
+  albumWeViewerIndex = Math.min(albumWeViewerIndex, Math.max(0, albumWeItems.length - 1));
+  updateAlbumWeButton();
   if (!sorted.length) {
     grid.innerHTML = '<div class="glass-card" style="grid-column:1/-1">暂无媒体，点击上传图片/视频添加。</div>';
     renderAlbumMemories(visibleItems);
@@ -7905,6 +8496,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindSettingsPageControls();
   bindMobileSettingsSections();
   bindAlbumShowcaseControls();
+  bindAlbumWeControls();
   document.getElementById('aiAssistantForm')?.addEventListener('submit', sendAiAssistantMessage);
   bindAiAssistantInput();
   document.querySelectorAll('[data-ai-prompt]').forEach(btn => {
