@@ -126,6 +126,12 @@
       pointer-events: none;
       text-shadow: 0 10px 38px rgba(0, 0, 0, 0.62);
       transition: opacity 0.8s ease, transform 0.8s ease;
+      opacity: 0;
+    }
+
+    .poem.show {
+      opacity: 1;
+      transform: translate(-50%, -50%);
     }
 
     .poem.hide {
@@ -323,6 +329,109 @@
       pointer-events: none;
     }
 
+    .viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: none;
+      place-items: center;
+      padding: 34px;
+      background: rgba(4, 1, 6, 0.78);
+      backdrop-filter: blur(18px);
+    }
+
+    .viewer.open {
+      display: grid;
+    }
+
+    .viewer-shell {
+      width: min(980px, 100%);
+      max-height: min(760px, calc(100vh - 68px));
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      overflow: hidden;
+      border: 1px solid rgba(244, 160, 176, 0.28);
+      border-radius: 30px;
+      background: linear-gradient(145deg, rgba(32, 12, 38, 0.84), rgba(10, 3, 13, 0.9));
+      box-shadow: 0 34px 120px rgba(0, 0, 0, 0.62);
+    }
+
+    .viewer-photo {
+      min-height: 520px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(231, 120, 150, 0.16), transparent 26%),
+        #07030a;
+      overflow: hidden;
+    }
+
+    .viewer-photo img {
+      width: 100%;
+      height: 100%;
+      max-height: min(760px, calc(100vh - 68px));
+      object-fit: contain;
+      display: block;
+    }
+
+    .viewer-info {
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 22px;
+      border-left: 1px solid rgba(244, 160, 176, 0.14);
+    }
+
+    .viewer-kicker {
+      color: rgba(255, 244, 240, 0.45);
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+    }
+
+    .viewer-title {
+      margin-top: 14px;
+      color: #f3d79e;
+      font-size: 30px;
+      line-height: 1.24;
+      letter-spacing: 0.08em;
+    }
+
+    .viewer-desc {
+      margin-top: 14px;
+      color: rgba(255, 244, 240, 0.66);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .viewer-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .viewer-btn {
+      min-height: 40px;
+      border: 1px solid rgba(244,160,176,0.24);
+      border-radius: 999px;
+      background: rgba(15, 6, 18, 0.58);
+      color: rgba(255, 244, 240, 0.76);
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, background 0.2s, color 0.2s;
+    }
+
+    .viewer-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(244,160,176,0.52);
+      background: rgba(231, 120, 150, 0.18);
+      color: #fff;
+    }
+
+    .viewer-close {
+      grid-column: 1 / -1;
+    }
+
     .glow-ring {
       position: absolute;
       z-index: 7;
@@ -375,6 +484,25 @@
       .control-btn { flex: 1; padding: 0 8px; font-size: 12px; }
       .hint { display: none; }
       .focus-panel { bottom: 86px; }
+      .viewer {
+        padding: 16px;
+      }
+      .viewer-shell {
+        grid-template-columns: 1fr;
+        max-height: calc(100vh - 32px);
+        border-radius: 24px;
+      }
+      .viewer-photo {
+        min-height: 58vh;
+      }
+      .viewer-info {
+        border-left: 0;
+        border-top: 1px solid rgba(244, 160, 176, 0.14);
+        padding: 18px;
+      }
+      .viewer-title {
+        font-size: 24px;
+      }
     }
   </style>
 </head>
@@ -411,6 +539,26 @@
 
     <div class="hint">drag card center to move · double-click to reveal</div>
   </main>
+
+  <div class="viewer" id="viewer" aria-hidden="true">
+    <div class="viewer-shell">
+      <div class="viewer-photo">
+        <img id="viewerImage" src="" alt="">
+      </div>
+      <aside class="viewer-info">
+        <div>
+          <div class="viewer-kicker" id="viewerKicker">memory card</div>
+          <div class="viewer-title" id="viewerTitle">我们</div>
+          <div class="viewer-desc" id="viewerDesc">点击照片后，可以在这里认真查看。未来接入真实私密相册时，这里会显示真实标题、日期、备注和地点。</div>
+        </div>
+        <div class="viewer-actions">
+          <button class="viewer-btn" id="viewerPrev" type="button">上一张</button>
+          <button class="viewer-btn" id="viewerNext" type="button">下一张</button>
+          <button class="viewer-btn viewer-close" id="viewerClose" type="button">回到我们</button>
+        </div>
+      </aside>
+    </div>
+  </div>
 
   <script>
     const photos = [
@@ -456,9 +604,16 @@
     const focusPanel = document.getElementById("focusPanel");
     const focusTitle = document.getElementById("focusTitle");
     const focusDesc = document.getElementById("focusDesc");
+    const viewer = document.getElementById("viewer");
+    const viewerImage = document.getElementById("viewerImage");
+    const viewerKicker = document.getElementById("viewerKicker");
+    const viewerTitle = document.getElementById("viewerTitle");
+    const viewerDesc = document.getElementById("viewerDesc");
     let modeIndex = 0;
     let focusIndex = 0;
     let autoTimer = null;
+    let poemTimer = null;
+    let viewerIndex = 0;
 
     function clampCardCount() {
       return window.innerWidth < 760 ? 14 : photos.length;
@@ -474,8 +629,11 @@
       `).join("");
       field.querySelectorAll(".memory-card").forEach(card => {
         card.addEventListener("click", () => {
-          focusIndex = Number(card.dataset.index) || 0;
-          applyMode("focus");
+          openViewer(Number(card.dataset.index) || 0);
+          restartAuto();
+        });
+        card.addEventListener("dblclick", () => {
+          openViewer(Number(card.dataset.index) || 0);
           restartAuto();
         });
       });
@@ -582,6 +740,43 @@
       focusDesc.textContent = "这张会从你们的私密相册里读取。未来可以显示日期、备注、地点，或者 AI 替你们写一句温柔的小标题。";
     }
 
+    function showPoem(lines) {
+      clearTimeout(poemTimer);
+      poem.innerHTML = `<span class="poem-line">${lines[0]}</span><span class="poem-line gold">${lines[1]}</span>`;
+      poem.classList.remove("hide");
+      poem.classList.add("show");
+      poemTimer = setTimeout(() => {
+        poem.classList.remove("show");
+        poem.classList.add("hide");
+      }, 3200);
+    }
+
+    function renderViewer() {
+      const item = photos[viewerIndex] || photos[0];
+      viewerImage.src = item[2];
+      viewerImage.alt = item[1];
+      viewerKicker.textContent = `${String(viewerIndex + 1).padStart(2, "0")} / ${String(clampCardCount()).padStart(2, "0")} · ${item[0]}`;
+      viewerTitle.textContent = item[1];
+      viewerDesc.textContent = "这张照片未来会来自你们的私密相册。可以在后台给它写日期、备注、地点，也可以让 AI 为这张照片生成一句只属于你们的小标题。";
+    }
+
+    function openViewer(index) {
+      viewerIndex = (index + clampCardCount()) % clampCardCount();
+      renderViewer();
+      viewer.classList.add("open");
+      viewer.setAttribute("aria-hidden", "false");
+    }
+
+    function closeViewer() {
+      viewer.classList.remove("open");
+      viewer.setAttribute("aria-hidden", "true");
+    }
+
+    function changeViewer(offset) {
+      viewerIndex = (viewerIndex + offset + clampCardCount()) % clampCardCount();
+      renderViewer();
+    }
+
     function applyMode(forceKey) {
       const forceIndex = forceKey ? modes.findIndex(mode => mode.key === forceKey) : -1;
       if (forceIndex >= 0) modeIndex = forceIndex;
@@ -589,8 +784,7 @@
       const cards = [...field.querySelectorAll(".memory-card")];
       cards.forEach(card => card.classList.remove("focused"));
       focusPanel.classList.toggle("show", mode.key === "focus");
-      poem.classList.toggle("hide", mode.key === "focus");
-      poem.innerHTML = `<span class="poem-line">${mode.poem[0]}</span><span class="poem-line gold">${mode.poem[1]}</span>`;
+      showPoem(mode.poem);
       modeText.textContent = mode.label;
       progressText.textContent = `${Math.round((modeIndex / (modes.length - 1)) * 100)}%`;
       if (mode.key === "arrival") layoutArrival(cards);
@@ -637,6 +831,18 @@
       focusIndex = (focusIndex + 1) % clampCardCount();
       applyMode("focus");
       restartAuto();
+    });
+    document.getElementById("viewerClose").addEventListener("click", closeViewer);
+    document.getElementById("viewerPrev").addEventListener("click", () => changeViewer(-1));
+    document.getElementById("viewerNext").addEventListener("click", () => changeViewer(1));
+    viewer.addEventListener("click", event => {
+      if (event.target === viewer) closeViewer();
+    });
+    document.addEventListener("keydown", event => {
+      if (!viewer.classList.contains("open")) return;
+      if (event.key === "Escape") closeViewer();
+      if (event.key === "ArrowLeft") changeViewer(-1);
+      if (event.key === "ArrowRight") changeViewer(1);
     });
     window.addEventListener("resize", () => {
       buildCards();
