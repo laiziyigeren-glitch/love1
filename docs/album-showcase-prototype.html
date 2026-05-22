@@ -3,21 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>相册回忆放映原型</title>
+  <title>相册回忆放映原型 V2</title>
   <style>
     :root {
-      --bg: #130608;
-      --panel: rgba(55, 21, 26, 0.58);
-      --panel-strong: rgba(38, 13, 17, 0.82);
-      --line: rgba(244, 160, 176, 0.28);
-      --line-bright: rgba(244, 160, 176, 0.58);
+      --ink: #130609;
+      --ink-2: #211014;
+      --glass: rgba(45, 17, 22, 0.62);
+      --glass-strong: rgba(29, 10, 14, 0.82);
+      --line: rgba(244, 160, 176, 0.26);
+      --line-strong: rgba(244, 160, 176, 0.54);
       --rose: #e8748a;
-      --rose-deep: #bd4564;
-      --gold: #e0a46f;
-      --text: #fff6f7;
-      --muted: rgba(255, 238, 240, 0.68);
-      --soft: rgba(255, 238, 240, 0.42);
-      --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+      --rose-2: #c94d70;
+      --gold: #e2a26f;
+      --text: #fff7f8;
+      --muted: rgba(255, 237, 240, 0.7);
+      --faint: rgba(255, 237, 240, 0.46);
+      --shadow: 0 32px 90px rgba(0, 0, 0, 0.5);
       color-scheme: dark;
     }
 
@@ -26,10 +27,12 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
       color: var(--text);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
       background:
-        linear-gradient(180deg, rgba(18, 5, 8, 0.46), rgba(18, 5, 8, 0.88)),
+        radial-gradient(circle at 18% 10%, rgba(232, 116, 138, 0.16), transparent 24%),
+        radial-gradient(circle at 78% 8%, rgba(226, 162, 111, 0.14), transparent 28%),
+        linear-gradient(180deg, rgba(12, 4, 6, 0.4), rgba(12, 4, 6, 0.92)),
         url("https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=1920&q=72") center / cover fixed;
       overflow-x: hidden;
     }
@@ -38,122 +41,131 @@
       content: "";
       position: fixed;
       inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(circle at 18% 18%, rgba(232, 116, 138, 0.18), transparent 24%),
-        radial-gradient(circle at 78% 14%, rgba(224, 164, 111, 0.12), transparent 26%),
-        linear-gradient(90deg, rgba(60, 16, 22, 0.34), transparent 42%, rgba(20, 7, 9, 0.6));
       z-index: -1;
+      background:
+        linear-gradient(90deg, rgba(13, 5, 7, 0.54), transparent 46%, rgba(14, 5, 7, 0.6)),
+        linear-gradient(0deg, rgba(74, 23, 28, 0.38), transparent 48%);
+      pointer-events: none;
     }
 
-    button, select {
+    button {
       font: inherit;
+      color: inherit;
     }
 
     .page {
-      width: min(1160px, calc(100vw - 36px));
-      margin: 34px auto;
+      width: min(1180px, calc(100vw - 36px));
+      margin: 32px auto;
     }
 
-    .prototype-note {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+      gap: 18px;
+      align-items: stretch;
       margin-bottom: 18px;
-      color: var(--muted);
-      font-size: 13px;
     }
 
-    .prototype-note strong {
-      color: var(--text);
-      font-size: 18px;
-      letter-spacing: 0;
-    }
-
-    .album-card {
-      min-height: 640px;
-      padding: 24px;
+    .intro-main,
+    .design-notes,
+    .album-panel {
       border: 1px solid var(--line);
-      border-radius: 24px;
-      background: linear-gradient(145deg, rgba(72, 29, 33, 0.62), rgba(28, 9, 12, 0.62));
+      background: linear-gradient(145deg, rgba(53, 20, 25, 0.62), rgba(18, 7, 10, 0.68));
       box-shadow: var(--shadow);
       backdrop-filter: blur(16px);
-      position: relative;
-      overflow: hidden;
     }
 
-    .album-card::after {
+    .intro-main {
+      min-height: 210px;
+      border-radius: 26px;
+      padding: clamp(22px, 4vw, 42px);
+      display: grid;
+      align-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .intro-main::after {
       content: "";
       position: absolute;
-      inset: auto 0 0 0;
-      height: 42%;
-      background: linear-gradient(0deg, rgba(232, 116, 138, 0.12), transparent);
+      inset: 0 0 auto auto;
+      width: 44%;
+      height: 100%;
+      background:
+        linear-gradient(90deg, transparent, rgba(19, 6, 9, 0.38)),
+        url("https://images.unsplash.com/photo-1529634597503-139d3726fed5?auto=format&fit=crop&w=900&q=72") center / cover;
+      opacity: 0.58;
+      mask-image: linear-gradient(90deg, transparent 0%, black 38%);
       pointer-events: none;
     }
 
-    .album-head {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: flex-start;
-      padding-bottom: 22px;
-      border-bottom: 1px solid rgba(244, 160, 176, 0.18);
-    }
-
-    .album-title {
-      margin: 0 0 8px;
-      font-size: clamp(24px, 3vw, 38px);
-      line-height: 1.18;
+    .eyebrow {
+      margin-bottom: 10px;
+      color: #ffd3dc;
+      font-size: 13px;
       letter-spacing: 0;
     }
 
-    .album-subtitle {
+    h1 {
       margin: 0;
+      max-width: 680px;
+      font-size: clamp(28px, 5vw, 54px);
+      line-height: 1.1;
+      letter-spacing: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .intro-main p {
+      margin: 14px 0 0;
+      max-width: 600px;
       color: var(--muted);
-      line-height: 1.7;
-      font-size: 14px;
-      max-width: 620px;
+      line-height: 1.8;
+      position: relative;
+      z-index: 1;
     }
 
-    .album-count {
+    .design-notes {
+      border-radius: 24px;
+      padding: 22px;
+    }
+
+    .design-notes h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .note-list {
       display: grid;
-      gap: 8px;
-      grid-template-columns: repeat(3, 86px);
-      flex-shrink: 0;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
     }
 
-    .count-box {
-      padding: 13px 10px;
-      border-radius: 16px;
-      border: 1px solid rgba(244, 160, 176, 0.18);
-      background: rgba(20, 7, 9, 0.32);
-      text-align: center;
+    .note-list li {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(244, 160, 176, 0.12);
     }
 
-    .count-box b {
-      display: block;
-      font-size: 19px;
-      margin-bottom: 3px;
-    }
-
-    .count-box span {
-      display: block;
-      color: var(--soft);
-      font-size: 12px;
+    .album-panel {
+      border-radius: 28px;
+      padding: 22px;
     }
 
     .album-toolbar {
-      position: relative;
-      z-index: 1;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 14px;
       flex-wrap: wrap;
-      padding: 20px 0;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(244, 160, 176, 0.16);
     }
 
     .tabs {
@@ -163,15 +175,15 @@
     }
 
     .tab,
-    .ghost-btn,
-    .showcase-btn,
-    .control-btn,
-    .mode-btn {
+    .toolbar-btn,
+    .cinema-btn,
+    .icon-btn,
+    .chip {
       border: 1px solid rgba(244, 160, 176, 0.24);
+      background: rgba(23, 8, 11, 0.34);
       color: var(--muted);
-      background: rgba(20, 7, 9, 0.22);
       cursor: pointer;
-      transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease, color 0.22s ease;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease, color .2s ease;
     }
 
     .tab {
@@ -181,418 +193,449 @@
     }
 
     .tab.active,
-    .tab:hover {
+    .tab:hover,
+    .toolbar-btn:hover,
+    .icon-btn:hover {
       color: #fff;
-      border-color: var(--line-bright);
-      background: rgba(232, 116, 138, 0.26);
+      border-color: var(--line-strong);
+      background: rgba(232, 116, 138, 0.18);
     }
 
     .toolbar-actions {
       display: flex;
       align-items: center;
+      gap: 10px;
       flex-wrap: wrap;
       justify-content: flex-end;
-      gap: 10px;
     }
 
-    .showcase-btn {
-      min-height: 40px;
+    .cinema-btn {
+      min-height: 42px;
       padding: 0 18px;
       border-radius: 999px;
-      color: #fff;
-      border-color: rgba(244, 160, 176, 0.46);
-      background: linear-gradient(135deg, rgba(232, 116, 138, 0.76), rgba(224, 164, 111, 0.52));
-      box-shadow: 0 10px 28px rgba(232, 116, 138, 0.22);
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-      font-weight: 700;
-    }
-
-    .showcase-btn:hover,
-    .control-btn:hover,
-    .mode-btn:hover {
-      transform: translateY(-1px);
-      border-color: var(--line-bright);
       color: #fff;
+      font-weight: 700;
+      border-color: rgba(255, 211, 220, 0.5);
+      background:
+        linear-gradient(135deg, rgba(232, 116, 138, 0.82), rgba(226, 162, 111, 0.58));
+      box-shadow: 0 12px 32px rgba(232, 116, 138, 0.26);
     }
 
-    .ghost-btn {
-      min-height: 40px;
+    .cinema-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 38px rgba(232, 116, 138, 0.34);
+    }
+
+    .toolbar-btn {
+      min-height: 42px;
       padding: 0 15px;
-      border-radius: 12px;
+      border-radius: 14px;
     }
 
-    .demo-grid {
-      position: relative;
-      z-index: 1;
+    .album-preview {
       display: grid;
-      grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
       gap: 16px;
+      padding-top: 20px;
     }
 
-    .featured,
+    .hero-photo,
     .thumb {
       position: relative;
       overflow: hidden;
-      border: 1px solid rgba(244, 160, 176, 0.2);
-      background: rgba(20, 7, 9, 0.36);
-      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
-    }
-
-    .featured {
-      min-height: 430px;
       border-radius: 22px;
+      border: 1px solid rgba(244, 160, 176, 0.2);
+      background: rgba(12, 4, 6, 0.36);
     }
 
-    .thumb-grid {
+    .hero-photo {
+      min-height: 420px;
+    }
+
+    .thumbs {
       display: grid;
-      gap: 16px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
     }
 
     .thumb {
-      min-height: 207px;
-      border-radius: 18px;
+      min-height: 202px;
     }
 
-    .featured img,
+    .hero-photo img,
     .thumb img {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
-      position: absolute;
-      inset: 0;
-      filter: saturate(0.96);
-      transition: transform 0.5s ease;
+      display: block;
+      transition: transform .5s ease;
     }
 
-    .featured:hover img,
+    .hero-photo:hover img,
     .thumb:hover img {
       transform: scale(1.04);
     }
 
-    .photo-info {
+    .photo-copy {
       position: absolute;
       inset: auto 0 0;
-      padding: 46px 18px 18px;
-      background: linear-gradient(0deg, rgba(9, 3, 4, 0.88), transparent);
+      padding: 54px 20px 18px;
+      background: linear-gradient(0deg, rgba(8, 3, 5, .88), transparent);
     }
 
-    .photo-info b {
+    .photo-copy b {
       display: block;
       margin-bottom: 6px;
-      font-size: 17px;
+      font-size: 18px;
     }
 
-    .photo-info span {
+    .photo-copy span {
       color: var(--muted);
       font-size: 12px;
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
-    .media-pill {
+    .badge {
       position: absolute;
-      left: 14px;
       top: 14px;
-      z-index: 1;
+      left: 14px;
+      z-index: 2;
       padding: 5px 10px;
       border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, .16);
+      background: rgba(18, 6, 9, .54);
       color: #fff;
       font-size: 12px;
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(22, 8, 10, 0.58);
       backdrop-filter: blur(10px);
     }
 
-    .showcase {
+    .cinema {
       position: fixed;
       inset: 0;
+      z-index: 40;
       display: none;
-      align-items: stretch;
-      justify-content: center;
-      padding: 28px;
-      z-index: 30;
-      background: rgba(10, 3, 5, 0.76);
-      backdrop-filter: blur(18px);
-    }
-
-    .showcase.open {
-      display: flex;
-    }
-
-    .showcase-shell {
-      width: min(1180px, 100%);
-      min-height: min(760px, calc(100vh - 56px));
-      border-radius: 28px;
-      border: 1px solid rgba(244, 160, 176, 0.34);
-      background:
-        linear-gradient(160deg, rgba(47, 15, 19, 0.66), rgba(15, 5, 8, 0.84)),
-        var(--active-bg) center / cover;
-      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.58);
-      position: relative;
+      background: #080204;
       overflow: hidden;
     }
 
-    .showcase-shell::before {
+    .cinema.open {
+      display: block;
+    }
+
+    .cinema-bg,
+    .cinema-bg-next {
+      position: absolute;
+      inset: -24px;
+      background: var(--bg-url) center / cover;
+      filter: blur(34px) saturate(.9) brightness(.56);
+      transform: scale(1.08);
+      opacity: 1;
+      transition: opacity .8s ease;
+    }
+
+    .cinema-bg-next {
+      opacity: 0;
+    }
+
+    .cinema::after {
       content: "";
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at 48% 36%, rgba(232, 116, 138, 0.2), transparent 24%),
-        linear-gradient(90deg, rgba(12, 4, 6, 0.48), transparent 36%, rgba(12, 4, 6, 0.58));
-      backdrop-filter: blur(22px) saturate(0.95);
-      transform: scale(1.04);
+        radial-gradient(circle at 50% 46%, transparent 0%, rgba(8, 2, 4, .3) 48%, rgba(8, 2, 4, .88) 100%),
+        linear-gradient(90deg, rgba(8, 2, 4, .82), transparent 24%, transparent 76%, rgba(8, 2, 4, .84)),
+        linear-gradient(0deg, rgba(8, 2, 4, .92), transparent 28%, rgba(8, 2, 4, .62));
+      pointer-events: none;
     }
 
-    .showcase-top,
-    .showcase-bottom {
+    .cinema-top {
       position: absolute;
-      z-index: 4;
-      left: 22px;
-      right: 22px;
+      z-index: 5;
+      top: 22px;
+      left: 26px;
+      right: 26px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 16px;
     }
 
-    .showcase-top {
-      top: 18px;
-    }
-
-    .showcase-bottom {
-      bottom: 18px;
-      align-items: flex-end;
-    }
-
-    .showcase-title {
+    .cinema-brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       min-width: 0;
     }
 
-    .showcase-title h2 {
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--rose), var(--gold));
+      box-shadow: 0 0 28px rgba(232, 116, 138, .36);
+    }
+
+    .cinema-brand h2 {
       margin: 0;
       font-size: 18px;
       line-height: 1.2;
     }
 
-    .showcase-title p {
-      margin: 5px 0 0;
+    .cinema-brand p {
+      margin: 4px 0 0;
       color: var(--muted);
       font-size: 12px;
     }
 
-    .spark {
-      width: 38px;
-      height: 38px;
-      display: grid;
-      place-items: center;
-      border-radius: 50%;
-      color: #fff;
-      background: linear-gradient(135deg, rgba(232, 116, 138, 0.84), rgba(224, 164, 111, 0.7));
-      box-shadow: 0 0 32px rgba(232, 116, 138, 0.36);
-      flex: 0 0 auto;
-    }
-
-    .top-actions,
-    .play-actions,
-    .modes {
+    .top-controls {
       display: flex;
       align-items: center;
+      justify-content: flex-end;
       gap: 8px;
       flex-wrap: wrap;
-      justify-content: flex-end;
     }
 
-    .control-btn,
-    .mode-btn {
+    .chip {
       min-height: 38px;
+      padding: 0 14px;
       border-radius: 999px;
-      background: rgba(24, 8, 11, 0.52);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
     }
 
-    .control-btn {
-      min-width: 38px;
-      padding: 0 13px;
-      color: var(--muted);
-    }
-
-    .mode-btn {
-      padding: 0 13px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .mode-btn.active {
+    .chip.active {
       color: #fff;
-      border-color: rgba(244, 160, 176, 0.62);
-      background: rgba(232, 116, 138, 0.28);
+      border-color: rgba(255, 211, 220, .58);
+      background: rgba(232, 116, 138, .24);
     }
 
-    .stage {
-      position: absolute;
-      inset: 76px 32px 92px;
-      z-index: 2;
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
       display: grid;
       place-items: center;
-      perspective: 1000px;
+      font-size: 20px;
+      backdrop-filter: blur(14px);
     }
 
-    .main-photo {
-      width: min(58vw, 620px);
-      height: min(54vh, 430px);
-      min-height: 300px;
-      border-radius: 28px;
-      border: 1px solid rgba(255,255,255,0.22);
-      overflow: hidden;
+    .cinema-stage {
+      position: absolute;
+      z-index: 3;
+      inset: 90px 36px 150px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      place-items: center;
+      perspective: 1400px;
+    }
+
+    .memory-frame {
+      width: min(76vw, 980px);
+      height: min(60vh, 610px);
+      min-height: 420px;
       position: relative;
+      border-radius: 34px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .18);
+      background: rgba(20, 7, 10, .5);
       box-shadow:
-        0 30px 80px rgba(0, 0, 0, 0.5),
-        0 0 0 12px rgba(232, 116, 138, 0.06);
-      transform: translateZ(80px);
-      animation: mainFloat 7s ease-in-out infinite;
+        0 34px 100px rgba(0, 0, 0, .56),
+        0 0 0 13px rgba(232, 116, 138, .055);
+      transform: translate3d(0, 0, 0) scale(1);
     }
 
-    .main-photo img {
+    .memory-frame img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
+      transform-origin: center;
+      animation: kenburns 8s ease-in-out infinite alternate;
     }
 
-    .main-photo::after {
+    .memory-frame.is-changing img {
+      animation: none;
+    }
+
+    .memory-frame::after {
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, transparent 54%, rgba(10, 3, 5, 0.72));
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.06), transparent 42%, rgba(0,0,0,.78)),
+        radial-gradient(circle at 10% 12%, rgba(255,255,255,.16), transparent 18%);
+      pointer-events: none;
     }
 
-    .caption {
+    .memory-copy {
       position: absolute;
-      left: 22px;
-      right: 22px;
-      bottom: 18px;
       z-index: 2;
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 18px;
+      left: clamp(18px, 4vw, 48px);
+      right: clamp(18px, 4vw, 48px);
+      bottom: clamp(18px, 4vw, 42px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
     }
 
-    .caption b {
-      display: block;
-      margin-bottom: 6px;
-      font-size: clamp(18px, 2.2vw, 28px);
+    .memory-type {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      margin-bottom: 12px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,.2);
+      background: rgba(14, 5, 7, .46);
+      backdrop-filter: blur(12px);
     }
 
-    .caption span {
-      display: block;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.6;
+    .memory-title {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 64px);
+      line-height: 1.04;
+      letter-spacing: 0;
+      text-shadow: 0 5px 24px rgba(0,0,0,.55);
     }
 
-    .caption .date {
-      flex: 0 0 auto;
-      color: #ffd4da;
+    .memory-desc {
+      margin: 12px 0 0;
+      max-width: 640px;
+      color: rgba(255, 246, 247, .8);
+      line-height: 1.75;
+      font-size: 14px;
+    }
+
+    .memory-date {
+      color: #ffd1da;
       font-weight: 700;
-      font-size: 13px;
+      white-space: nowrap;
+      text-shadow: 0 4px 18px rgba(0,0,0,.6);
     }
 
-    .orbit {
+    .side-peek {
       position: absolute;
-      width: 144px;
-      height: 104px;
-      border-radius: 18px;
+      z-index: 2;
+      top: 50%;
+      width: 128px;
+      height: 168px;
+      border-radius: 22px;
       overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(20, 7, 9, 0.42);
-      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
-      transform: translate3d(var(--x), var(--y), var(--z)) rotate(var(--r));
-      opacity: var(--o);
-      animation: orbitFloat 6.4s ease-in-out infinite;
-      animation-delay: var(--d);
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      box-shadow: 0 24px 58px rgba(0,0,0,.42);
+      opacity: .62;
+      cursor: pointer;
+      transition: transform .25s ease, opacity .25s ease, border-color .25s ease;
     }
 
-    .orbit img {
+    .side-peek:hover {
+      opacity: .9;
+      border-color: rgba(255, 211, 220, .42);
+    }
+
+    .side-peek img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
     }
 
-    .orbit:nth-child(2) { --x: -390px; --y: -154px; --z: -90px; --r: -8deg; --o: .72; --d: -1s; }
-    .orbit:nth-child(3) { --x: 374px; --y: -122px; --z: -80px; --r: 8deg; --o: .72; --d: -2.2s; }
-    .orbit:nth-child(4) { --x: -342px; --y: 174px; --z: -120px; --r: 7deg; --o: .58; --d: -3s; }
-    .orbit:nth-child(5) { --x: 350px; --y: 178px; --z: -120px; --r: -7deg; --o: .58; --d: -4s; }
-    .orbit:nth-child(6) { --x: 0; --y: -230px; --z: -180px; --r: 2deg; --o: .42; --d: -5s; }
+    .side-peek.prev {
+      left: max(24px, calc(50% - 640px));
+      transform: translateY(-50%) rotateY(18deg) rotateZ(-3deg);
+    }
 
-    .progress-wrap {
-      min-width: min(420px, 44vw);
+    .side-peek.next {
+      right: max(24px, calc(50% - 640px));
+      transform: translateY(-50%) rotateY(-18deg) rotateZ(3deg);
+    }
+
+    .cinema-bottom {
+      position: absolute;
+      z-index: 6;
+      left: 26px;
+      right: 26px;
+      bottom: 22px;
+      display: grid;
+      grid-template-columns: minmax(220px, 460px) minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
     }
 
     .progress-meta {
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 8px;
       color: var(--muted);
       font-size: 12px;
+      margin-bottom: 9px;
     }
 
     .progress {
       height: 5px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.12);
       overflow: hidden;
+      background: rgba(255, 255, 255, .14);
     }
 
     .progress i {
       display: block;
+      width: var(--progress, 16%);
       height: 100%;
-      width: var(--progress, 20%);
       border-radius: inherit;
       background: linear-gradient(90deg, var(--rose), var(--gold));
-      transition: width 0.3s ease;
+      transition: width .3s ease;
     }
 
     .filmstrip {
-      position: absolute;
-      z-index: 3;
-      left: 50%;
-      bottom: 78px;
-      width: min(520px, calc(100% - 52px));
-      transform: translateX(-50%);
+      justify-self: center;
+      width: min(520px, 100%);
       display: flex;
       gap: 8px;
       padding: 8px;
-      border-radius: 18px;
-      border: 1px solid rgba(244,160,176,0.18);
-      background: rgba(12,4,6,0.34);
-      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      border: 1px solid rgba(244, 160, 176, .18);
+      background: rgba(13, 5, 7, .45);
+      backdrop-filter: blur(16px);
       overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .filmstrip::-webkit-scrollbar {
+      display: none;
     }
 
     .filmstrip button {
-      width: 54px;
-      height: 42px;
-      border: 1px solid transparent;
-      border-radius: 12px;
-      padding: 0;
-      overflow: hidden;
       flex: 0 0 auto;
+      width: 62px;
+      height: 46px;
+      padding: 0;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      overflow: hidden;
+      opacity: .52;
+      background: rgba(255,255,255,.08);
       cursor: pointer;
-      background: rgba(255,255,255,0.08);
-      opacity: .62;
+      transition: opacity .2s ease, border-color .2s ease, transform .2s ease;
     }
 
     .filmstrip button.active {
-      border-color: rgba(244,160,176,0.72);
       opacity: 1;
+      border-color: rgba(255, 211, 220, .74);
+      transform: translateY(-2px);
     }
 
     .filmstrip img {
@@ -602,38 +645,65 @@
       display: block;
     }
 
+    .play-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .control {
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(244, 160, 176, .24);
+      background: rgba(14, 5, 7, .44);
+      color: var(--muted);
+      backdrop-filter: blur(16px);
+      cursor: pointer;
+      transition: transform .2s ease, color .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    .control:hover {
+      transform: translateY(-1px);
+      color: #fff;
+      border-color: rgba(255, 211, 220, .56);
+      background: rgba(232, 116, 138, .18);
+    }
+
     .petal {
       position: absolute;
       z-index: 1;
+      top: -20px;
       width: 8px;
       height: 12px;
       border-radius: 8px 8px 8px 2px;
-      background: rgba(244, 160, 176, 0.72);
-      filter: blur(.1px);
-      animation: petalDrop linear infinite;
+      background: rgba(244, 160, 176, .72);
+      opacity: 0;
+      animation: petal 15s linear infinite;
     }
 
-    .petal:nth-child(1) { left: 8%; animation-duration: 12s; animation-delay: -2s; }
-    .petal:nth-child(2) { left: 23%; animation-duration: 15s; animation-delay: -6s; }
-    .petal:nth-child(3) { left: 68%; animation-duration: 13s; animation-delay: -4s; }
-    .petal:nth-child(4) { left: 82%; animation-duration: 16s; animation-delay: -9s; }
-    .petal:nth-child(5) { left: 54%; animation-duration: 14s; animation-delay: -8s; }
+    .petal:nth-child(1) { left: 8%; animation-delay: -1s; }
+    .petal:nth-child(2) { left: 24%; animation-delay: -8s; animation-duration: 18s; }
+    .petal:nth-child(3) { left: 64%; animation-delay: -5s; animation-duration: 16s; }
+    .petal:nth-child(4) { left: 82%; animation-delay: -11s; animation-duration: 20s; }
 
     .toast {
       position: fixed;
+      z-index: 80;
       left: 50%;
       bottom: 24px;
-      transform: translateX(-50%) translateY(30px);
+      transform: translateX(-50%) translateY(26px);
       opacity: 0;
-      z-index: 60;
       padding: 12px 18px;
       border-radius: 999px;
+      background: rgba(20, 7, 10, .88);
+      border: 1px solid rgba(244, 160, 176, .28);
       color: #fff;
-      background: rgba(28, 9, 12, 0.88);
-      border: 1px solid rgba(244,160,176,0.32);
-      transition: opacity .25s ease, transform .25s ease;
-      pointer-events: none;
       font-size: 13px;
+      pointer-events: none;
+      transition: opacity .25s ease, transform .25s ease;
     }
 
     .toast.show {
@@ -641,42 +711,31 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    @keyframes mainFloat {
-      0%, 100% { transform: translate3d(0, 0, 80px) scale(1); }
-      50% { transform: translate3d(0, -10px, 80px) scale(1.012); }
+    @keyframes kenburns {
+      from { transform: scale(1.02) translate3d(-4px, -4px, 0); }
+      to { transform: scale(1.08) translate3d(6px, 4px, 0); }
     }
 
-    @keyframes orbitFloat {
-      0%, 100% { margin-top: 0; }
-      50% { margin-top: -12px; }
+    @keyframes petal {
+      0% { top: -20px; opacity: 0; transform: translateX(0) rotate(0deg); }
+      12% { opacity: .8; }
+      100% { top: calc(100% + 28px); opacity: 0; transform: translateX(90px) rotate(260deg); }
     }
 
-    @keyframes petalDrop {
-      0% { top: -24px; transform: translateX(0) rotate(0deg); opacity: 0; }
-      12% { opacity: .9; }
-      100% { top: calc(100% + 24px); transform: translateX(70px) rotate(220deg); opacity: 0; }
-    }
-
-    @media (max-width: 820px) {
+    @media (max-width: 900px) {
       .page {
-        width: min(100vw - 22px, 640px);
-        margin: 18px auto;
+        width: min(100vw - 22px, 680px);
+        margin: 16px auto;
       }
 
-      .prototype-note,
-      .album-head {
-        display: block;
+      .intro,
+      .album-preview {
+        grid-template-columns: 1fr;
       }
 
-      .album-card {
-        padding: 18px;
-        min-height: 0;
-        border-radius: 22px;
-      }
-
-      .album-count {
-        margin-top: 16px;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+      .intro-main::after {
+        width: 62%;
+        opacity: .28;
       }
 
       .album-toolbar,
@@ -685,111 +744,81 @@
         justify-content: flex-start;
       }
 
-      .showcase-btn,
-      .ghost-btn {
+      .cinema-btn,
+      .toolbar-btn {
         flex: 1 1 auto;
-        justify-content: center;
       }
 
-      .demo-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .featured {
-        min-height: 300px;
+      .hero-photo {
+        min-height: 320px;
       }
 
       .thumb {
         min-height: 150px;
       }
 
-      .showcase {
-        padding: 0;
-      }
-
-      .showcase-shell {
-        width: 100%;
-        min-height: 100vh;
-        border-radius: 0;
-        border-left: 0;
-        border-right: 0;
-      }
-
-      .showcase-top {
+      .cinema-top {
         top: 14px;
         left: 14px;
         right: 14px;
       }
 
-      .showcase-bottom {
-        left: 14px;
-        right: 14px;
-        bottom: 14px;
-        display: grid;
-        gap: 12px;
-      }
-
-      .top-actions {
-        flex-wrap: nowrap;
-      }
-
-      .mode-btn:not(.active) {
+      .cinema-brand p {
         display: none;
       }
 
-      .stage {
-        inset: 86px 14px 152px;
+      .chip:not(.active) {
+        display: none;
       }
 
-      .main-photo {
-        width: min(100%, 430px);
-        height: min(55vh, 460px);
-        min-height: 340px;
-        border-radius: 24px;
+      .cinema-stage {
+        inset: 78px 12px 172px;
       }
 
-      .caption {
+      .memory-frame {
+        width: 100%;
+        height: min(62vh, 540px);
+        min-height: 360px;
+        border-radius: 26px;
+      }
+
+      .memory-copy {
         display: block;
       }
 
-      .caption .date {
-        margin-top: 8px;
+      .memory-date {
+        margin-top: 10px;
       }
 
-      .orbit {
-        width: 92px;
-        height: 68px;
-        border-radius: 14px;
+      .side-peek {
+        display: none;
       }
 
-      .orbit:nth-child(2) { --x: -120px; --y: -176px; --z: -100px; }
-      .orbit:nth-child(3) { --x: 120px; --y: -166px; --z: -100px; }
-      .orbit:nth-child(4) { --x: -124px; --y: 188px; --z: -120px; }
-      .orbit:nth-child(5) { --x: 124px; --y: 178px; --z: -120px; }
-      .orbit:nth-child(6) { display: none; }
-
-      .progress-wrap {
-        min-width: 0;
-        width: 100%;
-      }
-
-      .play-actions {
-        justify-content: space-between;
-      }
-
-      .play-actions .control-btn {
-        flex: 1;
+      .cinema-bottom {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        grid-template-columns: 1fr;
+        gap: 10px;
       }
 
       .filmstrip {
-        bottom: 112px;
+        order: -1;
+        width: 100%;
+      }
+
+      .play-controls {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .control {
+        padding: 0 8px;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      *,
-      *::before,
-      *::after {
+      *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
@@ -799,273 +828,278 @@
 </head>
 <body>
   <main class="page">
-    <div class="prototype-note">
-      <div>
-        <strong>相册回忆放映原型</strong>
-        <div>这是一个独立 HTML 预览页，只演示入口、放映层和动效气质，不连接后台数据。</div>
+    <section class="intro">
+      <div class="intro-main">
+        <div class="eyebrow">Album Showcase Prototype V2</div>
+        <h1>把相册变成一场温柔的回忆放映</h1>
+        <p>这一版参考成熟相册产品的共同做法：主图足够大，控制按钮足够少，缩略图只做导航，动效用慢推拉和溶解，不再把许多图片散乱地漂在画面里。</p>
       </div>
-      <div>建议入口：相册工具栏右侧</div>
-    </div>
+      <aside class="design-notes">
+        <h2>这版优化点</h2>
+        <ul class="note-list">
+          <li>主图改成电影放映感，视觉焦点更明确。</li>
+          <li>左右只保留上一张、下一张的轻量预览，减少杂乱。</li>
+          <li>底部保留胶片缩略图、进度和播放控制，像成熟相册产品。</li>
+          <li>背景跟随当前照片柔化，不会显得空，也更贴合网站氛围。</li>
+        </ul>
+      </aside>
+    </section>
 
-    <section class="album-card">
-      <header class="album-head">
-        <div>
-          <h1 class="album-title">时光相册</h1>
-          <p class="album-subtitle">点开“回忆放映”，把相册里已经上传的照片、视频和实况图，临时组成一个沉浸式放映厅。</p>
-        </div>
-        <div class="album-count">
-          <div class="count-box"><b>1289</b><span>照片</span></div>
-          <div class="count-box"><b>86</b><span>视频</span></div>
-          <div class="count-box"><b>45</b><span>收藏</span></div>
-        </div>
-      </header>
-
+    <section class="album-panel">
       <div class="album-toolbar">
-        <div class="tabs" aria-label="相册分类">
-          <button class="tab active">全部</button>
-          <button class="tab">旅行</button>
-          <button class="tab">日常</button>
-          <button class="tab">约会</button>
-          <button class="tab">夜晚</button>
+        <div class="tabs">
+          <button class="tab active" type="button">全部</button>
+          <button class="tab" type="button">旅行</button>
+          <button class="tab" type="button">日常</button>
+          <button class="tab" type="button">约会</button>
+          <button class="tab" type="button">夜晚</button>
         </div>
         <div class="toolbar-actions">
-          <button class="showcase-btn" type="button" id="openShowcase">
-            <span>✦</span>
-            <span>回忆放映</span>
-          </button>
-          <button class="ghost-btn" type="button">最新上传</button>
-          <button class="ghost-btn" type="button">上传照片</button>
+          <button class="cinema-btn" id="openCinema" type="button">✦ 回忆放映</button>
+          <button class="toolbar-btn" type="button">最新上传</button>
+          <button class="toolbar-btn" type="button">上传照片</button>
         </div>
       </div>
 
-      <div class="demo-grid" aria-label="相册列表示意">
-        <article class="featured">
-          <span class="media-pill">今日主图</span>
-          <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1100&q=72" alt="海边日落">
-          <div class="photo-info">
+      <div class="album-preview">
+        <article class="hero-photo">
+          <span class="badge">今日主图</span>
+          <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=76" alt="海边日落">
+          <div class="photo-copy">
             <b>日落与海，还有你</b>
             <span>那天的晚霞很美，但更美的是一起看晚霞的时光。</span>
           </div>
         </article>
-        <div class="thumb-grid">
+        <div class="thumbs">
           <article class="thumb">
-            <span class="media-pill">实况</span>
-            <img src="https://images.unsplash.com/photo-1490750967868-88df5691cc53?auto=format&fit=crop&w=680&q=72" alt="花">
-            <div class="photo-info"><b>花开的季节</b><span>2026.04.18</span></div>
+            <span class="badge">实况</span>
+            <img src="https://images.unsplash.com/photo-1490750967868-88df5691cc53?auto=format&fit=crop&w=700&q=76" alt="花">
+            <div class="photo-copy"><b>花开的季节</b><span>2026.04.18</span></div>
           </article>
           <article class="thumb">
-            <span class="media-pill">视频</span>
-            <img src="https://images.unsplash.com/photo-1467810563316-b5476525c0f9?auto=format&fit=crop&w=680&q=72" alt="烟火">
-            <div class="photo-info"><b>烟火时分</b><span>00:16</span></div>
+            <span class="badge">视频</span>
+            <img src="https://images.unsplash.com/photo-1467810563316-b5476525c0f9?auto=format&fit=crop&w=700&q=76" alt="烟火">
+            <div class="photo-copy"><b>烟火时分</b><span>00:16</span></div>
           </article>
           <article class="thumb">
-            <img src="https://images.unsplash.com/photo-1529634597503-139d3726fed5?auto=format&fit=crop&w=680&q=72" alt="牵手">
-            <div class="photo-info"><b>牵着你的手</b><span>2026.05.20</span></div>
+            <img src="https://images.unsplash.com/photo-1529634597503-139d3726fed5?auto=format&fit=crop&w=700&q=76" alt="牵手">
+            <div class="photo-copy"><b>牵着你的手</b><span>2026.05.20</span></div>
           </article>
           <article class="thumb">
-            <img src="https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=680&q=72" alt="夜色">
-            <div class="photo-info"><b>夜色中的你</b><span>2026.06.01</span></div>
+            <img src="https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=700&q=76" alt="夜晚">
+            <div class="photo-copy"><b>夜色中的你</b><span>2026.06.01</span></div>
           </article>
         </div>
       </div>
     </section>
   </main>
 
-  <section class="showcase" id="showcase" aria-hidden="true">
-    <div class="showcase-shell" id="showcaseShell">
-      <i class="petal"></i>
-      <i class="petal"></i>
-      <i class="petal"></i>
-      <i class="petal"></i>
-      <i class="petal"></i>
+  <section class="cinema" id="cinema" aria-hidden="true">
+    <div class="cinema-bg" id="cinemaBg"></div>
+    <div class="cinema-bg-next" id="cinemaBgNext"></div>
+    <i class="petal"></i>
+    <i class="petal"></i>
+    <i class="petal"></i>
+    <i class="petal"></i>
 
-      <div class="showcase-top">
-        <div class="showcase-title">
-          <div class="spark">✦</div>
+    <div class="cinema-top">
+      <div class="cinema-brand">
+        <div class="brand-icon">✦</div>
+        <div>
+          <h2>回忆放映</h2>
+          <p>从当前相册筛选结果里自动播放</p>
+        </div>
+      </div>
+      <div class="top-controls">
+        <button class="chip active" type="button" data-mode="cinema">电影放映</button>
+        <button class="chip" type="button" data-mode="story">故事切片</button>
+        <button class="icon-btn" type="button" id="closeCinema" aria-label="关闭">×</button>
+      </div>
+    </div>
+
+    <div class="cinema-stage">
+      <button class="side-peek prev" id="prevPeek" type="button" aria-label="上一张预览"><img alt=""></button>
+      <article class="memory-frame" id="memoryFrame">
+        <img id="mainPhoto" alt="">
+        <div class="memory-copy">
           <div>
-            <h2>回忆放映</h2>
-            <p id="showcaseHint">从当前相册筛选结果里自动播放</p>
+            <span class="memory-type" id="memoryType">照片</span>
+            <h3 class="memory-title" id="memoryTitle"></h3>
+            <p class="memory-desc" id="memoryDesc"></p>
           </div>
+          <div class="memory-date" id="memoryDate"></div>
         </div>
-        <div class="top-actions">
-          <button class="mode-btn active" type="button" data-mode="star">记忆星河</button>
-          <button class="mode-btn" type="button" data-mode="film">时间胶片</button>
-          <button class="control-btn" type="button" id="closeShowcase" aria-label="关闭">×</button>
+      </article>
+      <button class="side-peek next" id="nextPeek" type="button" aria-label="下一张预览"><img alt=""></button>
+    </div>
+
+    <div class="cinema-bottom">
+      <div>
+        <div class="progress-meta">
+          <span id="countText">01 / 06</span>
+          <span id="speedText">标准速度</span>
         </div>
+        <div class="progress"><i id="progressBar"></i></div>
       </div>
-
-      <div class="stage" id="stage">
-        <article class="main-photo">
-          <img id="mainImage" alt="">
-          <div class="caption">
-            <div>
-              <b id="mainTitle"></b>
-              <span id="mainDesc"></span>
-            </div>
-            <div class="date" id="mainDate"></div>
-          </div>
-        </article>
-        <button class="orbit" type="button" data-jump="1"><img alt=""></button>
-        <button class="orbit" type="button" data-jump="2"><img alt=""></button>
-        <button class="orbit" type="button" data-jump="3"><img alt=""></button>
-        <button class="orbit" type="button" data-jump="4"><img alt=""></button>
-        <button class="orbit" type="button" data-jump="5"><img alt=""></button>
-      </div>
-
       <div class="filmstrip" id="filmstrip" aria-label="缩略图导航"></div>
-
-      <div class="showcase-bottom">
-        <div class="progress-wrap">
-          <div class="progress-meta">
-            <span id="progressText">01 / 06</span>
-            <span id="speedText">标准速度</span>
-          </div>
-          <div class="progress"><i id="progressBar"></i></div>
-        </div>
-        <div class="play-actions">
-          <button class="control-btn" type="button" id="prevBtn">上一张</button>
-          <button class="control-btn" type="button" id="playBtn">暂停</button>
-          <button class="control-btn" type="button" id="nextBtn">下一张</button>
-          <button class="control-btn" type="button" id="speedBtn">速度</button>
-        </div>
+      <div class="play-controls">
+        <button class="control" id="prevBtn" type="button">上一张</button>
+        <button class="control" id="playBtn" type="button">暂停</button>
+        <button class="control" id="nextBtn" type="button">下一张</button>
+        <button class="control" id="speedBtn" type="button">速度</button>
       </div>
     </div>
   </section>
 
-  <div class="toast" id="toast">这是原型按钮，后续接入真实相册数据。</div>
+  <div class="toast" id="toast">这是原型按钮，后续可以接入真实相册数据。</div>
 
   <script>
-    const items = [
+    const memories = [
       {
         title: "日落与海，还有你",
         desc: "那天的晚霞很美，但更美的是一起看晚霞的时光。",
         date: "2026.05.20",
         type: "照片",
-        src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=76"
+        src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=78"
       },
       {
         title: "花开的季节",
         desc: "如果风也有记忆，它一定记得这一天你笑起来的样子。",
         date: "2026.04.18",
         type: "实况",
-        src: "https://images.unsplash.com/photo-1490750967868-88df5691cc53?auto=format&fit=crop&w=1200&q=76"
+        src: "https://images.unsplash.com/photo-1490750967868-88df5691cc53?auto=format&fit=crop&w=1600&q=78"
       },
       {
         title: "烟火时分",
         desc: "视频会先展示封面，点开后再播放，避免突然出声。",
         date: "00:16",
         type: "视频",
-        src: "https://images.unsplash.com/photo-1467810563316-b5476525c0f9?auto=format&fit=crop&w=1200&q=76"
+        src: "https://images.unsplash.com/photo-1467810563316-b5476525c0f9?auto=format&fit=crop&w=1600&q=78"
       },
       {
         title: "牵着你的手",
         desc: "普通的小路，也会因为一起走过而变得很特别。",
         date: "2026.05.21",
         type: "照片",
-        src: "https://images.unsplash.com/photo-1529634597503-139d3726fed5?auto=format&fit=crop&w=1200&q=76"
+        src: "https://images.unsplash.com/photo-1529634597503-139d3726fed5?auto=format&fit=crop&w=1600&q=78"
       },
       {
         title: "夜色中的你",
-        desc: "慢一点播放，照片周围会轻轻漂浮，像在翻一段梦。",
+        desc: "慢一点播放，照片会像电影镜头一样轻轻推近。",
         date: "2026.06.01",
         type: "照片",
-        src: "https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=1200&q=76"
+        src: "https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=1600&q=78"
       },
       {
         title: "周末的浪漫小花",
-        desc: "展示层会直接复用当前相册里的图片，不需要重新上传。",
+        desc: "真实上线后会直接复用相册里的图片、视频和实况图。",
         date: "2026.06.08",
         type: "照片",
-        src: "https://images.unsplash.com/photo-1487530811015-780ef5c8d508?auto=format&fit=crop&w=1200&q=76"
+        src: "https://images.unsplash.com/photo-1487530811015-780ef5c8d508?auto=format&fit=crop&w=1600&q=78"
       }
     ];
 
-    const showcase = document.getElementById("showcase");
-    const shell = document.getElementById("showcaseShell");
-    const mainImage = document.getElementById("mainImage");
-    const mainTitle = document.getElementById("mainTitle");
-    const mainDesc = document.getElementById("mainDesc");
-    const mainDate = document.getElementById("mainDate");
-    const progressText = document.getElementById("progressText");
-    const progressBar = document.getElementById("progressBar");
+    const cinema = document.getElementById("cinema");
+    const cinemaBg = document.getElementById("cinemaBg");
+    const memoryFrame = document.getElementById("memoryFrame");
+    const mainPhoto = document.getElementById("mainPhoto");
+    const memoryType = document.getElementById("memoryType");
+    const memoryTitle = document.getElementById("memoryTitle");
+    const memoryDesc = document.getElementById("memoryDesc");
+    const memoryDate = document.getElementById("memoryDate");
+    const countText = document.getElementById("countText");
     const speedText = document.getElementById("speedText");
-    const playBtn = document.getElementById("playBtn");
+    const progressBar = document.getElementById("progressBar");
     const filmstrip = document.getElementById("filmstrip");
+    const playBtn = document.getElementById("playBtn");
+    const prevPeek = document.querySelector("#prevPeek img");
+    const nextPeek = document.querySelector("#nextPeek img");
     const toast = document.getElementById("toast");
 
-    let activeIndex = 0;
-    let playing = true;
-    let speedIndex = 1;
-    let timer = null;
     const speeds = [
-      { label: "慢速", delay: 5200 },
-      { label: "标准速度", delay: 3600 },
-      { label: "快速", delay: 2300 }
+      { name: "慢速", delay: 5200 },
+      { name: "标准速度", delay: 3600 },
+      { name: "快速", delay: 2400 }
     ];
 
-    function next(offset = 1) {
-      activeIndex = (activeIndex + offset + items.length) % items.length;
-      render();
-      restartTimer();
+    let active = 0;
+    let speed = 1;
+    let playing = true;
+    let timer = null;
+
+    function indexAt(offset) {
+      return (active + offset + memories.length) % memories.length;
+    }
+
+    function setImageBackground(url) {
+      cinemaBg.style.setProperty("--bg-url", `url("${url}")`);
     }
 
     function render() {
-      const item = items[activeIndex];
-      shell.style.setProperty("--active-bg", `url("${item.src}")`);
-      mainImage.src = item.src;
-      mainImage.alt = item.title;
-      mainTitle.textContent = item.title;
-      mainDesc.textContent = `${item.type} · ${item.desc}`;
-      mainDate.textContent = item.date;
-      progressText.textContent = `${String(activeIndex + 1).padStart(2, "0")} / ${String(items.length).padStart(2, "0")}`;
-      progressBar.style.setProperty("--progress", `${((activeIndex + 1) / items.length) * 100}%`);
-      speedText.textContent = speeds[speedIndex].label;
+      const item = memories[active];
+      const prev = memories[indexAt(-1)];
+      const next = memories[indexAt(1)];
 
-      document.querySelectorAll(".orbit").forEach((node, index) => {
-        const orbitItem = items[(activeIndex + index + 1) % items.length];
-        const img = node.querySelector("img");
-        img.src = orbitItem.src;
-        img.alt = orbitItem.title;
-        node.title = orbitItem.title;
-      });
+      memoryFrame.classList.add("is-changing");
+      window.setTimeout(() => memoryFrame.classList.remove("is-changing"), 80);
 
-      [...filmstrip.children].forEach((button, index) => {
-        button.classList.toggle("active", index === activeIndex);
+      setImageBackground(item.src);
+      mainPhoto.src = item.src;
+      mainPhoto.alt = item.title;
+      memoryType.textContent = item.type;
+      memoryTitle.textContent = item.title;
+      memoryDesc.textContent = item.desc;
+      memoryDate.textContent = item.date;
+      countText.textContent = `${String(active + 1).padStart(2, "0")} / ${String(memories.length).padStart(2, "0")}`;
+      speedText.textContent = speeds[speed].name;
+      progressBar.style.setProperty("--progress", `${((active + 1) / memories.length) * 100}%`);
+      prevPeek.src = prev.src;
+      nextPeek.src = next.src;
+
+      filmstrip.querySelectorAll("button").forEach((button, index) => {
+        button.classList.toggle("active", index === active);
+        if (index === active) button.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
       });
     }
 
-    function openShowcase() {
-      showcase.classList.add("open");
-      showcase.setAttribute("aria-hidden", "false");
+    function go(offset) {
+      active = indexAt(offset);
+      render();
+      restart();
+    }
+
+    function restart() {
+      clearInterval(timer);
+      if (!playing || !cinema.classList.contains("open")) return;
+      timer = setInterval(() => go(1), speeds[speed].delay);
+    }
+
+    function openCinema() {
+      cinema.classList.add("open");
+      cinema.setAttribute("aria-hidden", "false");
       playing = true;
       playBtn.textContent = "暂停";
       render();
-      restartTimer();
+      restart();
     }
 
-    function closeShowcase() {
-      showcase.classList.remove("open");
-      showcase.setAttribute("aria-hidden", "true");
+    function closeCinema() {
+      cinema.classList.remove("open");
+      cinema.setAttribute("aria-hidden", "true");
       clearInterval(timer);
-    }
-
-    function restartTimer() {
-      clearInterval(timer);
-      if (!playing || !showcase.classList.contains("open")) return;
-      timer = setInterval(() => next(1), speeds[speedIndex].delay);
     }
 
     function buildFilmstrip() {
-      filmstrip.innerHTML = items.map((item, index) => `
-        <button type="button" aria-label="跳到 ${item.title}" data-index="${index}">
+      filmstrip.innerHTML = memories.map((item, index) => `
+        <button type="button" data-index="${index}" aria-label="跳到 ${item.title}">
           <img src="${item.src}" alt="">
         </button>
       `).join("");
       filmstrip.querySelectorAll("button").forEach(button => {
         button.addEventListener("click", () => {
-          activeIndex = Number(button.dataset.index) || 0;
+          active = Number(button.dataset.index) || 0;
           render();
-          restartTimer();
+          restart();
         });
       });
     }
@@ -1075,37 +1109,34 @@
       window.setTimeout(() => toast.classList.remove("show"), 1800);
     }
 
-    document.getElementById("openShowcase").addEventListener("click", openShowcase);
-    document.getElementById("closeShowcase").addEventListener("click", closeShowcase);
-    document.getElementById("prevBtn").addEventListener("click", () => next(-1));
-    document.getElementById("nextBtn").addEventListener("click", () => next(1));
+    document.getElementById("openCinema").addEventListener("click", openCinema);
+    document.getElementById("closeCinema").addEventListener("click", closeCinema);
+    document.getElementById("prevBtn").addEventListener("click", () => go(-1));
+    document.getElementById("nextBtn").addEventListener("click", () => go(1));
+    document.getElementById("prevPeek").addEventListener("click", () => go(-1));
+    document.getElementById("nextPeek").addEventListener("click", () => go(1));
     document.getElementById("speedBtn").addEventListener("click", () => {
-      speedIndex = (speedIndex + 1) % speeds.length;
+      speed = (speed + 1) % speeds.length;
       render();
-      restartTimer();
+      restart();
     });
     playBtn.addEventListener("click", () => {
       playing = !playing;
       playBtn.textContent = playing ? "暂停" : "继续";
-      restartTimer();
+      restart();
     });
-    document.querySelectorAll(".orbit").forEach(node => {
-      node.addEventListener("click", () => {
-        next(Number(node.dataset.jump) || 1);
-      });
-    });
-    document.querySelectorAll(".mode-btn").forEach(button => {
-      button.addEventListener("click", () => {
-        document.querySelectorAll(".mode-btn").forEach(item => item.classList.remove("active"));
-        button.classList.add("active");
+    document.querySelectorAll(".chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        document.querySelectorAll(".chip").forEach(item => item.classList.remove("active"));
+        chip.classList.add("active");
         showToast();
       });
     });
     document.addEventListener("keydown", event => {
-      if (!showcase.classList.contains("open")) return;
-      if (event.key === "Escape") closeShowcase();
-      if (event.key === "ArrowLeft") next(-1);
-      if (event.key === "ArrowRight") next(1);
+      if (!cinema.classList.contains("open")) return;
+      if (event.key === "Escape") closeCinema();
+      if (event.key === "ArrowLeft") go(-1);
+      if (event.key === "ArrowRight") go(1);
       if (event.key === " ") {
         event.preventDefault();
         playBtn.click();
