@@ -988,7 +988,7 @@ nav {
 .album-showcase-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(232,116,138,0.36); border-color: rgba(244,160,176,0.62); }
 .album-showcase-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 .album-we-btn {
-  display: none;
+  display: inline-flex;
   padding: 9px 18px;
   border: 1px solid rgba(232,176,120,0.46);
   border-radius: 999px;
@@ -1009,6 +1009,14 @@ nav {
 .album-we-btn.is-visible { display: inline-flex; }
 .album-we-btn .line-icon { width: 15px; height: 15px; }
 .album-we-btn:hover { transform: translateY(-2px); border-color: rgba(232,176,120,0.7); box-shadow: 0 9px 28px rgba(212,149,106,0.32); }
+.album-we-btn.is-locked {
+  opacity: 0.68;
+  color: var(--text-secondary);
+  background: rgba(36,14,24,0.46);
+  border-color: rgba(232,176,120,0.24);
+  box-shadow: none;
+}
+.album-we-btn.is-locked:hover { opacity: 0.9; }
 .album-showcase {
   position: fixed; inset: 0; z-index: 1800;
   display: none; overflow: hidden;
@@ -5950,10 +5958,11 @@ function albumWeViewerMediaMarkup(item = {}) {
 function updateAlbumWeButton() {
   const btn = document.getElementById('albumWeOpenBtn');
   if (!btn) return;
-  const visible = albumFilter === '私密相册' && albumWeItems.length > 0;
-  btn.classList.toggle('is-visible', visible);
-  btn.disabled = !visible;
-  btn.title = visible ? '进入只属于你们的「我们」' : '切到私密相册后可进入「我们」';
+  const ready = albumFilter === '私密相册' && albumWeItems.length > 0;
+  btn.classList.toggle('is-visible', ready);
+  btn.classList.toggle('is-locked', !ready);
+  btn.disabled = false;
+  btn.title = ready ? '进入只属于你们的「我们」' : '先切到私密相册，再进入「我们」';
 }
 
 function setAlbumWeCard(card, vars) {
@@ -6160,7 +6169,7 @@ function changeAlbumWeViewer(offset) {
 function openAlbumWe() {
   const modal = document.getElementById('albumWe');
   if (!modal || !albumWeItems.length) {
-    showAlbumShowcaseToast('切到私密相册后，就可以进入「我们」。');
+    showAlbumShowcaseToast(albumFilter === '私密相册' ? '私密相册里还没有照片，上传后就能进入「我们」。' : '请先在相册分类里切到「私密相册」。');
     return;
   }
   albumWeScrollX = window.scrollX || document.documentElement.scrollLeft || 0;
