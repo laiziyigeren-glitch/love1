@@ -850,6 +850,25 @@ nav {
   background: transparent; transition: all 0.2s; font-family: inherit;
 }
 .album-tab.active, .album-tab:hover { background: var(--rose); color: white; border-color: var(--rose); }
+.album-we-tab-btn {
+  padding: 7px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid rgba(232,176,120,0.46);
+  color: #fff7df;
+  background: linear-gradient(135deg, rgba(103,45,83,0.76), rgba(212,149,106,0.56));
+  box-shadow: 0 5px 18px rgba(212,149,106,0.18);
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.album-we-tab-btn.is-locked {
+  color: var(--text-secondary);
+  background: rgba(36,14,24,0.46);
+  border-color: rgba(232,176,120,0.24);
+  box-shadow: none;
+}
+.album-we-tab-btn:hover { transform: translateY(-1px); border-color: rgba(232,176,120,0.7); color: #fff; }
 .album-stats-row { display: flex; gap: 22px; margin-top: 10px; }
 .album-stat { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
 
@@ -5956,13 +5975,13 @@ function albumWeViewerMediaMarkup(item = {}) {
 }
 
 function updateAlbumWeButton() {
-  const btn = document.getElementById('albumWeOpenBtn');
-  if (!btn) return;
   const ready = albumFilter === '私密相册' && albumWeItems.length > 0;
-  btn.classList.toggle('is-visible', ready);
-  btn.classList.toggle('is-locked', !ready);
-  btn.disabled = false;
-  btn.title = ready ? '进入只属于你们的「我们」' : '先切到私密相册，再进入「我们」';
+  document.querySelectorAll('#albumWeOpenBtn, #albumWeTabBtn').forEach(btn => {
+    btn.classList.toggle('is-visible', ready);
+    btn.classList.toggle('is-locked', !ready);
+    btn.disabled = false;
+    btn.title = ready ? '进入只属于你们的「我们」' : '先切到私密相册，再进入「我们」';
+  });
 }
 
 function setAlbumWeCard(card, vars) {
@@ -6268,13 +6287,16 @@ function renderAlbums(items = []) {
     if (!categories.includes(albumFilter)) albumFilter = '全部';
     tabs.innerHTML = categories.map(category => `
       <button class="album-tab ${category === albumFilter ? 'active' : ''}" data-album-filter="${escapeHtml(category)}">${escapeHtml(category)}</button>
-    `).join('');
+    `).join('') + (categories.includes('私密相册')
+      ? '<button class="album-we-tab-btn" id="albumWeTabBtn" type="button">我们</button>'
+      : '');
     tabs.querySelectorAll('.album-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         albumFilter = tab.dataset.albumFilter || '全部';
         renderAlbums(spaceData?.albumItems || []);
       });
     });
+    document.getElementById('albumWeTabBtn')?.addEventListener('click', openAlbumWe);
   }
 
   const filtered = albumFilter === '全部'
