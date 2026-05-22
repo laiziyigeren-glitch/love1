@@ -963,6 +963,193 @@ nav {
   border: 1px solid var(--border); background: rgba(40,16,18,0.9);
   color: white; cursor: pointer; font-size: 22px;
 }
+.album-toolbar-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.album-showcase-btn {
+  padding: 9px 18px;
+  border: 1px solid rgba(244,160,176,0.42);
+  border-radius: 999px;
+  cursor: pointer;
+  color: white;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: linear-gradient(135deg, rgba(232,116,138,0.78), rgba(212,149,106,0.52));
+  box-shadow: 0 5px 18px rgba(232,116,138,0.26);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.album-showcase-btn .line-icon { width: 15px; height: 15px; }
+.album-showcase-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(232,116,138,0.36); border-color: rgba(244,160,176,0.62); }
+.album-showcase-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+.album-showcase {
+  position: fixed; inset: 0; z-index: 1800;
+  display: none; overflow: hidden;
+  background: #090304;
+}
+.album-showcase.show { display: block; }
+.album-showcase-bg {
+  position: absolute; inset: -26px;
+  background-image: var(--album-showcase-bg, none);
+  background-position: center; background-size: cover;
+  filter: blur(34px) saturate(0.95) brightness(0.58);
+  transform: scale(1.08);
+  opacity: 0.86;
+  transition: background-image 0.45s ease;
+}
+.album-showcase::after {
+  content: "";
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 45%, transparent 0%, rgba(8,3,5,0.22) 45%, rgba(8,3,5,0.9) 100%),
+    linear-gradient(90deg, rgba(8,3,5,0.86), transparent 24%, transparent 76%, rgba(8,3,5,0.88)),
+    linear-gradient(0deg, rgba(8,3,5,0.94), transparent 30%, rgba(8,3,5,0.62));
+}
+.album-showcase-top {
+  position: absolute; z-index: 4; top: 22px; left: 26px; right: 26px;
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+}
+.album-showcase-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.album-showcase-mark {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; flex: 0 0 auto;
+  background: linear-gradient(135deg, var(--rose), var(--gold));
+  box-shadow: 0 0 28px rgba(232,116,138,0.34);
+}
+.album-showcase-mark .line-icon { width: 18px; height: 18px; }
+.album-showcase-title { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.album-showcase-sub { margin-top: 4px; color: var(--text-secondary); font-size: 12px; }
+.album-showcase-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.album-showcase-chip,
+.album-showcase-icon,
+.album-showcase-control {
+  border: 1px solid rgba(244,160,176,0.24);
+  background: rgba(18,7,9,0.48);
+  color: var(--text-secondary);
+  backdrop-filter: blur(14px);
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.2s, color 0.2s, border-color 0.2s, background 0.2s;
+}
+.album-showcase-chip {
+  min-height: 38px; padding: 0 14px; border-radius: 999px; font-size: 12px;
+}
+.album-showcase-chip.active { color: #fff; border-color: rgba(244,160,176,0.58); background: rgba(232,116,138,0.24); }
+.album-showcase-icon {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 21px;
+}
+.album-showcase-control {
+  min-height: 40px; padding: 0 14px; border-radius: 999px; font-size: 13px;
+}
+.album-showcase-chip:hover,
+.album-showcase-icon:hover,
+.album-showcase-control:hover {
+  transform: translateY(-1px); color: #fff; border-color: rgba(244,160,176,0.58); background: rgba(232,116,138,0.18);
+}
+.album-showcase-stage {
+  position: absolute; z-index: 2; inset: 90px 36px 150px;
+  display: grid; place-items: center; perspective: 1400px;
+}
+.album-showcase-frame {
+  width: min(76vw, 980px); height: min(60vh, 610px); min-height: 420px;
+  position: relative; overflow: hidden; border-radius: 34px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(20,7,10,0.52);
+  box-shadow: 0 34px 100px rgba(0,0,0,0.56), 0 0 0 13px rgba(232,116,138,0.055);
+}
+#albumShowcaseMedia { position: absolute; inset: 0; }
+.album-showcase-frame img,
+.album-showcase-frame video {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  animation: albumShowcaseDrift 8s ease-in-out infinite alternate;
+}
+.album-showcase-frame.is-changing img,
+.album-showcase-frame.is-changing video { animation: none; }
+.album-showcase-frame::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.05), transparent 42%, rgba(0,0,0,0.8)),
+    radial-gradient(circle at 10% 12%, rgba(255,255,255,0.16), transparent 18%);
+}
+.album-showcase-copy {
+  position: absolute; z-index: 2; left: clamp(18px,4vw,48px); right: clamp(18px,4vw,48px); bottom: clamp(18px,4vw,42px);
+  display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 24px;
+}
+.album-showcase-type {
+  display: inline-flex; width: fit-content; align-items: center; gap: 6px;
+  padding: 5px 10px; margin-bottom: 12px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(14,5,7,0.46); color: #fff; font-size: 12px;
+  backdrop-filter: blur(12px);
+}
+.album-showcase-main-title {
+  margin: 0; font-size: clamp(28px,5vw,64px); line-height: 1.04;
+  text-shadow: 0 5px 24px rgba(0,0,0,0.55);
+}
+.album-showcase-desc {
+  margin-top: 12px; max-width: 640px;
+  color: rgba(253,240,234,0.82); line-height: 1.75; font-size: 14px;
+}
+.album-showcase-date {
+  color: #ffd1da; font-weight: 700; white-space: nowrap;
+  text-shadow: 0 4px 18px rgba(0,0,0,0.6);
+}
+.album-showcase-peek {
+  position: absolute; z-index: 2; top: 50%;
+  width: 128px; height: 168px; border-radius: 22px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  box-shadow: 0 24px 58px rgba(0,0,0,0.42);
+  opacity: 0.62; cursor: pointer;
+  transition: transform 0.25s, opacity 0.25s, border-color 0.25s;
+}
+.album-showcase-peek:hover { opacity: 0.92; border-color: rgba(244,160,176,0.42); }
+.album-showcase-peek img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-showcase-peek.prev { left: max(24px, calc(50% - 640px)); transform: translateY(-50%) rotateY(18deg) rotateZ(-3deg); }
+.album-showcase-peek.next { right: max(24px, calc(50% - 640px)); transform: translateY(-50%) rotateY(-18deg) rotateZ(3deg); }
+.album-showcase-bottom {
+  position: absolute; z-index: 5; left: 26px; right: 26px; bottom: 22px;
+  display: grid; grid-template-columns: minmax(220px,460px) minmax(0,1fr) auto;
+  gap: 18px; align-items: end;
+}
+.album-showcase-progress-meta {
+  display: flex; justify-content: space-between; gap: 12px;
+  color: var(--text-secondary); font-size: 12px; margin-bottom: 9px;
+}
+.album-showcase-progress {
+  height: 5px; border-radius: 999px; overflow: hidden;
+  background: rgba(255,255,255,0.14);
+}
+.album-showcase-progress span {
+  display: block; width: var(--album-showcase-progress, 0%); height: 100%;
+  border-radius: inherit; background: linear-gradient(90deg, var(--rose), var(--gold));
+  transition: width 0.3s;
+}
+.album-showcase-strip {
+  justify-self: center; width: min(520px,100%);
+  display: flex; gap: 8px; padding: 8px; overflow-x: auto;
+  border-radius: 20px; border: 1px solid rgba(244,160,176,0.18);
+  background: rgba(13,5,7,0.45); backdrop-filter: blur(16px);
+  scrollbar-width: none;
+}
+.album-showcase-strip::-webkit-scrollbar { display: none; }
+.album-showcase-strip button {
+  flex: 0 0 auto; width: 62px; height: 46px; padding: 0;
+  border: 1px solid transparent; border-radius: 14px;
+  background: rgba(255,255,255,0.08); overflow: hidden; opacity: 0.52;
+  cursor: pointer; transition: opacity 0.2s, border-color 0.2s, transform 0.2s;
+}
+.album-showcase-strip button.active { opacity: 1; border-color: rgba(244,160,176,0.74); transform: translateY(-2px); }
+.album-showcase-strip img,
+.album-showcase-strip video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-showcase-controls { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+@keyframes albumShowcaseDrift {
+  from { transform: scale(1.02) translate3d(-4px,-4px,0); }
+  to { transform: scale(1.08) translate3d(6px,4px,0); }
+}
 .album-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .sort-select {
   background: var(--bg-card2); border: 1px solid var(--border);
@@ -2039,6 +2226,18 @@ nav {
   .album-toolbar {
     align-items: stretch;
   }
+  .album-toolbar-actions {
+    width: 100%;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+  .album-showcase-btn,
+  .album-toolbar-actions .sort-select,
+  .album-toolbar-actions .album-upload-btn {
+    min-height: 44px;
+    flex: 1 1 auto;
+    justify-content: center;
+  }
   .album-tabs,
   .romance-toolbar {
     overflow-x: auto;
@@ -2058,6 +2257,41 @@ nav {
     min-height: 44px;
     justify-content: center;
   }
+  .album-showcase-top {
+    top: 14px;
+    left: 14px;
+    right: 14px;
+  }
+  .album-showcase-sub { display: none; }
+  .album-showcase-chip:not(.active) { display: none; }
+  .album-showcase-stage {
+    inset: 78px 12px 172px;
+  }
+  .album-showcase-frame {
+    width: 100%;
+    height: min(62vh, 540px);
+    min-height: 360px;
+    border-radius: 26px;
+  }
+  .album-showcase-copy { display: block; }
+  .album-showcase-date { margin-top: 10px; }
+  .album-showcase-peek { display: none; }
+  .album-showcase-bottom {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .album-showcase-strip {
+    order: -1;
+    width: 100%;
+  }
+  .album-showcase-controls {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .album-showcase-control { padding: 0 8px; }
   .anniv-highlight { padding: 20px 14px; }
   .anniv-date { font-size: 38px; }
   .anniv-date.anniv-duration {
@@ -2396,6 +2630,14 @@ nav {
   .album-featured { height: 210px; }
   .album-thumb,
   .album-rest-grid .album-thumb { height: 180px; }
+  .album-showcase-brand { gap: 9px; }
+  .album-showcase-mark { width: 34px; height: 34px; }
+  .album-showcase-title { font-size: 16px; }
+  .album-showcase-actions { flex-wrap: nowrap; }
+  .album-showcase-icon { width: 34px; height: 34px; }
+  .album-showcase-main-title { font-size: clamp(24px, 9vw, 42px); }
+  .album-showcase-desc { font-size: 13px; }
+  .album-showcase-strip button { width: 54px; height: 42px; }
   .album-stats-row,
   .page-stat-row {
     gap: 12px;
@@ -2897,7 +3139,8 @@ nav {
           <button class="album-tab">约会</button>
           <button class="album-tab">夜晚</button>
         </div>
-        <div style="display:flex;gap:10px;align-items:center">
+        <div class="album-toolbar-actions">
+          <button class="album-showcase-btn" id="albumShowcaseOpenBtn" type="button"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-sparkles"></use></svg> 回忆放映</button>
           <select class="sort-select"><option value="latest">最新上传</option><option value="oldest">最早上传</option><option value="favorite">按收藏</option></select>
           <button class="album-upload-btn">⬆ 上传照片</button>
         </div>
@@ -3297,6 +3540,54 @@ nav {
         <div id="mediaLightboxMeta"></div>
       </div>
       <div id="mediaLightboxTags"></div>
+    </div>
+  </div>
+</div>
+
+<div class="album-showcase" id="albumShowcase" aria-hidden="true">
+  <div class="album-showcase-bg" id="albumShowcaseBg"></div>
+  <div class="album-showcase-top">
+    <div class="album-showcase-brand">
+      <div class="album-showcase-mark"><svg class="line-icon" viewBox="0 0 24 24"><use href="#icon-sparkles"></use></svg></div>
+      <div>
+        <div class="album-showcase-title">回忆放映</div>
+        <div class="album-showcase-sub" id="albumShowcaseSub">从当前相册筛选结果里自动播放</div>
+      </div>
+    </div>
+    <div class="album-showcase-actions">
+      <button class="album-showcase-chip active" type="button">电影放映</button>
+      <button class="album-showcase-icon" id="albumShowcaseCloseBtn" type="button" aria-label="关闭">×</button>
+    </div>
+  </div>
+  <div class="album-showcase-stage">
+    <button class="album-showcase-peek prev" id="albumShowcasePrevPeek" type="button" aria-label="上一张预览"></button>
+    <article class="album-showcase-frame" id="albumShowcaseFrame">
+      <div id="albumShowcaseMedia"></div>
+      <div class="album-showcase-copy">
+        <div>
+          <div class="album-showcase-type" id="albumShowcaseType">照片</div>
+          <h2 class="album-showcase-main-title" id="albumShowcaseTitle">美好回忆</h2>
+          <div class="album-showcase-desc" id="albumShowcaseDesc"></div>
+        </div>
+        <div class="album-showcase-date" id="albumShowcaseDate"></div>
+      </div>
+    </article>
+    <button class="album-showcase-peek next" id="albumShowcaseNextPeek" type="button" aria-label="下一张预览"></button>
+  </div>
+  <div class="album-showcase-bottom">
+    <div>
+      <div class="album-showcase-progress-meta">
+        <span id="albumShowcaseCount">00 / 00</span>
+        <span id="albumShowcaseSpeed">标准速度</span>
+      </div>
+      <div class="album-showcase-progress"><span id="albumShowcaseProgress"></span></div>
+    </div>
+    <div class="album-showcase-strip" id="albumShowcaseStrip" aria-label="缩略图导航"></div>
+    <div class="album-showcase-controls">
+      <button class="album-showcase-control" id="albumShowcasePrevBtn" type="button">上一张</button>
+      <button class="album-showcase-control" id="albumShowcasePlayBtn" type="button">暂停</button>
+      <button class="album-showcase-control" id="albumShowcaseNextBtn" type="button">下一张</button>
+      <button class="album-showcase-control" id="albumShowcaseSpeedBtn" type="button">速度</button>
     </div>
   </div>
 </div>
@@ -4723,6 +5014,16 @@ let lastBackendRefreshAt = 0;
 let albumFilter = '全部';
 let albumSort = 'latest';
 let albumMemoryShowAll = false;
+let albumShowcaseItems = [];
+let albumShowcaseIndex = 0;
+let albumShowcasePlaying = false;
+let albumShowcaseSpeedIndex = 1;
+let albumShowcaseTimer = null;
+const ALBUM_SHOWCASE_SPEEDS = [
+  { label: '慢速', delay: 5200 },
+  { label: '标准速度', delay: 3600 },
+  { label: '快速', delay: 2400 },
+];
 let currentPageId = 'home';
 let settingsDirty = false;
 let romanceFilter = 'all';
@@ -5132,6 +5433,196 @@ function closeMediaPreview() {
   if (modal) modal.classList.remove('show');
 }
 
+function getAlbumShowcaseImage(item = {}) {
+  if (!item) return '';
+  if (item.thumbnailUrl) return item.thumbnailUrl;
+  if (!isVideoItem(item) && !isLivePhotoItem(item)) return item.url || '';
+  return '';
+}
+
+function getAlbumShowcaseTitle(item = {}) {
+  return item.title || item.location || item.album || '美好回忆';
+}
+
+function getAlbumShowcaseDesc(item = {}) {
+  const parts = [];
+  if (item.album) parts.push(item.album);
+  if (item.location && item.location !== item.title) parts.push(item.location);
+  if (Array.isArray(item.tags) && item.tags.length) parts.push(item.tags.slice(0, 3).join(' / '));
+  return parts.join(' · ') || '这一刻已经被相册温柔收藏。';
+}
+
+function getAlbumShowcaseType(item = {}) {
+  if (isLivePhotoItem(item)) return '实况';
+  if (isVideoItem(item)) return '视频';
+  return '照片';
+}
+
+function albumShowcaseThumbMarkup(item = {}) {
+  const image = getAlbumShowcaseImage(item);
+  if (image) return `<img src="${escapeHtml(image)}" alt="${escapeHtml(getAlbumShowcaseTitle(item))}" loading="lazy" decoding="async">`;
+  if (isVideoItem(item) || isLivePhotoItem(item)) return `<video src="${escapeHtml(item.url || '')}" muted playsinline preload="metadata"></video>`;
+  return '<span style="display:grid;place-items:center;width:100%;height:100%;font-size:20px">相</span>';
+}
+
+function albumShowcaseMainMarkup(item = {}) {
+  const title = getAlbumShowcaseTitle(item);
+  if (isVideoItem(item) || isLivePhotoItem(item)) {
+    const poster = getAlbumShowcaseImage(item);
+    return `<video src="${escapeHtml(item.url || '')}" ${poster ? `poster="${escapeHtml(poster)}"` : ''} muted playsinline autoplay loop preload="metadata" aria-label="${escapeHtml(title)}"></video>`;
+  }
+  return `<img src="${escapeHtml(item.url || item.thumbnailUrl || '')}" alt="${escapeHtml(title)}" decoding="async">`;
+}
+
+function updateAlbumShowcaseButton() {
+  const btn = document.getElementById('albumShowcaseOpenBtn');
+  if (!btn) return;
+  btn.disabled = !albumShowcaseItems.length;
+  btn.title = albumShowcaseItems.length ? '播放当前相册列表' : '上传照片后可开启回忆放映';
+}
+
+function showAlbumShowcaseToast(message) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  const previous = toast.innerHTML;
+  toast.textContent = message;
+  showSaveToast();
+  setTimeout(() => { toast.innerHTML = previous; }, 3000);
+}
+
+function getAlbumShowcaseIndex(offset = 0) {
+  if (!albumShowcaseItems.length) return 0;
+  return (albumShowcaseIndex + offset + albumShowcaseItems.length) % albumShowcaseItems.length;
+}
+
+function renderAlbumShowcaseStrip() {
+  const strip = document.getElementById('albumShowcaseStrip');
+  if (!strip) return;
+  strip.innerHTML = albumShowcaseItems.map((item, index) => `
+    <button type="button" class="${index === albumShowcaseIndex ? 'active' : ''}" data-album-showcase-index="${index}" aria-label="跳到 ${escapeHtml(getAlbumShowcaseTitle(item))}">
+      ${albumShowcaseThumbMarkup(item)}
+    </button>
+  `).join('');
+  strip.querySelectorAll('[data-album-showcase-index]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      albumShowcaseIndex = Number(btn.dataset.albumShowcaseIndex) || 0;
+      renderAlbumShowcase();
+      restartAlbumShowcaseTimer();
+    });
+  });
+}
+
+function renderAlbumShowcase() {
+  const modal = document.getElementById('albumShowcase');
+  if (!modal || !albumShowcaseItems.length) return;
+  const item = albumShowcaseItems[albumShowcaseIndex];
+  const bg = document.getElementById('albumShowcaseBg');
+  const frame = document.getElementById('albumShowcaseFrame');
+  const media = document.getElementById('albumShowcaseMedia');
+  const progress = document.getElementById('albumShowcaseProgress');
+  const image = getAlbumShowcaseImage(item);
+  if (bg) bg.style.setProperty('--album-showcase-bg', image ? `url("${image}")` : 'none');
+  if (frame) {
+    frame.classList.add('is-changing');
+    setTimeout(() => frame.classList.remove('is-changing'), 90);
+  }
+  if (media) media.innerHTML = albumShowcaseMainMarkup(item);
+  const typeEl = document.getElementById('albumShowcaseType');
+  const titleEl = document.getElementById('albumShowcaseTitle');
+  const descEl = document.getElementById('albumShowcaseDesc');
+  const dateEl = document.getElementById('albumShowcaseDate');
+  const countEl = document.getElementById('albumShowcaseCount');
+  const speedEl = document.getElementById('albumShowcaseSpeed');
+  if (typeEl) typeEl.textContent = getAlbumShowcaseType(item);
+  if (titleEl) titleEl.textContent = getAlbumShowcaseTitle(item);
+  if (descEl) descEl.textContent = getAlbumShowcaseDesc(item);
+  if (dateEl) dateEl.textContent = item.takenAt || '';
+  if (countEl) countEl.textContent = `${String(albumShowcaseIndex + 1).padStart(2, '0')} / ${String(albumShowcaseItems.length).padStart(2, '0')}`;
+  if (speedEl) speedEl.textContent = ALBUM_SHOWCASE_SPEEDS[albumShowcaseSpeedIndex].label;
+  if (progress) progress.style.setProperty('--album-showcase-progress', `${((albumShowcaseIndex + 1) / albumShowcaseItems.length) * 100}%`);
+  const prevPeek = document.getElementById('albumShowcasePrevPeek');
+  const nextPeek = document.getElementById('albumShowcaseNextPeek');
+  if (prevPeek) prevPeek.innerHTML = albumShowcaseThumbMarkup(albumShowcaseItems[getAlbumShowcaseIndex(-1)]);
+  if (nextPeek) nextPeek.innerHTML = albumShowcaseThumbMarkup(albumShowcaseItems[getAlbumShowcaseIndex(1)]);
+  renderAlbumShowcaseStrip();
+  const activeThumb = document.querySelector('#albumShowcaseStrip button.active');
+  if (activeThumb) activeThumb.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+}
+
+function restartAlbumShowcaseTimer() {
+  clearInterval(albumShowcaseTimer);
+  if (!albumShowcasePlaying || !document.getElementById('albumShowcase')?.classList.contains('show')) return;
+  albumShowcaseTimer = setInterval(() => changeAlbumShowcase(1), ALBUM_SHOWCASE_SPEEDS[albumShowcaseSpeedIndex].delay);
+}
+
+function changeAlbumShowcase(offset) {
+  if (!albumShowcaseItems.length) return;
+  albumShowcaseIndex = getAlbumShowcaseIndex(offset);
+  renderAlbumShowcase();
+  restartAlbumShowcaseTimer();
+}
+
+function openAlbumShowcase() {
+  if (!albumShowcaseItems.length) {
+    showAlbumShowcaseToast('上传照片后，就可以开启回忆放映。');
+    return;
+  }
+  albumShowcaseIndex = Math.min(albumShowcaseIndex, albumShowcaseItems.length - 1);
+  albumShowcasePlaying = true;
+  const modal = document.getElementById('albumShowcase');
+  const playBtn = document.getElementById('albumShowcasePlayBtn');
+  if (!modal) return;
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+  if (playBtn) playBtn.textContent = '暂停';
+  renderAlbumShowcase();
+  restartAlbumShowcaseTimer();
+}
+
+function closeAlbumShowcase() {
+  const modal = document.getElementById('albumShowcase');
+  const media = document.getElementById('albumShowcaseMedia');
+  albumShowcasePlaying = false;
+  clearInterval(albumShowcaseTimer);
+  if (media) media.innerHTML = '';
+  if (modal) {
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function bindAlbumShowcaseControls() {
+  document.getElementById('albumShowcaseOpenBtn')?.addEventListener('click', openAlbumShowcase);
+  document.getElementById('albumShowcaseCloseBtn')?.addEventListener('click', closeAlbumShowcase);
+  document.getElementById('albumShowcasePrevBtn')?.addEventListener('click', () => changeAlbumShowcase(-1));
+  document.getElementById('albumShowcaseNextBtn')?.addEventListener('click', () => changeAlbumShowcase(1));
+  document.getElementById('albumShowcasePrevPeek')?.addEventListener('click', () => changeAlbumShowcase(-1));
+  document.getElementById('albumShowcaseNextPeek')?.addEventListener('click', () => changeAlbumShowcase(1));
+  document.getElementById('albumShowcasePlayBtn')?.addEventListener('click', (event) => {
+    albumShowcasePlaying = !albumShowcasePlaying;
+    event.currentTarget.textContent = albumShowcasePlaying ? '暂停' : '继续';
+    restartAlbumShowcaseTimer();
+  });
+  document.getElementById('albumShowcaseSpeedBtn')?.addEventListener('click', () => {
+    albumShowcaseSpeedIndex = (albumShowcaseSpeedIndex + 1) % ALBUM_SHOWCASE_SPEEDS.length;
+    renderAlbumShowcase();
+    restartAlbumShowcaseTimer();
+  });
+  document.getElementById('albumShowcase')?.addEventListener('click', (event) => {
+    if (event.target?.id === 'albumShowcase') closeAlbumShowcase();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (!document.getElementById('albumShowcase')?.classList.contains('show')) return;
+    if (event.key === 'Escape') closeAlbumShowcase();
+    if (event.key === 'ArrowLeft') changeAlbumShowcase(-1);
+    if (event.key === 'ArrowRight') changeAlbumShowcase(1);
+    if (event.key === ' ') {
+      event.preventDefault();
+      document.getElementById('albumShowcasePlayBtn')?.click();
+    }
+  });
+}
+
 function renderAlbums(items = []) {
   const grid = document.querySelector('.album-grid-main');
   if (!grid) return;
@@ -5191,6 +5682,9 @@ function renderAlbums(items = []) {
     const bt = Date.parse(b.takenAt || '') || 0;
     return albumSort === 'oldest' ? at - bt : bt - at;
   });
+  albumShowcaseItems = sorted;
+  albumShowcaseIndex = Math.min(albumShowcaseIndex, Math.max(0, albumShowcaseItems.length - 1));
+  updateAlbumShowcaseButton();
   if (!sorted.length) {
     grid.innerHTML = '<div class="glass-card" style="grid-column:1/-1">暂无媒体，点击上传图片/视频添加。</div>';
     renderAlbumMemories(visibleItems);
@@ -7389,6 +7883,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindBackendActions();
   bindSettingsPageControls();
   bindMobileSettingsSections();
+  bindAlbumShowcaseControls();
   document.getElementById('aiAssistantForm')?.addEventListener('submit', sendAiAssistantMessage);
   bindAiAssistantInput();
   document.querySelectorAll('[data-ai-prompt]').forEach(btn => {
