@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>我们 - 相册秘境原型</title>
+  <style>
+    :root {
+      --bg: #07030a;
+      --violet: #2a122f;
+      --rose: #e77896;
+      --rose-soft: rgba(231, 120, 150, 0.34);
+      --gold: #d9b173;
+      --gold-soft: rgba(217, 177, 115, 0.36);
+      --text: #fff7f5;
+      --muted: rgba(255, 245, 242, 0.64);
+      --line: rgba(244, 160, 176, 0.22);
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      color: var(--text);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(231, 120, 150, 0.16), transparent 26%),
+        radial-gradient(circle at 72% 12%, rgba(217, 177, 115, 0.12), transparent 24%),
+        radial-gradient(circle at 50% 86%, rgba(231, 120, 150, 0.18), transparent 32%),
+        linear-gradient(180deg, #09030b 0%, #130716 54%, #07030a 100%);
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+    }
+
+    .scene {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      perspective: 1200px;
+      isolation: isolate;
+    }
+
+    .scene::before {
+      content: "";
+      position: absolute;
+      inset: -12%;
+      background:
+        radial-gradient(circle, rgba(255,255,255,0.12) 0 1px, transparent 1.6px) 0 0 / 82px 82px,
+        radial-gradient(circle, rgba(231,120,150,0.22) 0 1.5px, transparent 2.2px) 20px 36px / 126px 126px,
+        radial-gradient(circle, rgba(217,177,115,0.18) 0 1.2px, transparent 2px) 50px 80px / 156px 156px;
+      opacity: 0.62;
+      transform: translateZ(-120px) scale(1.16);
+      animation: starDrift 36s linear infinite;
+    }
+
+    .scene::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 45%, transparent 0 28%, rgba(7,3,10,0.36) 58%, rgba(7,3,10,0.94) 100%),
+        linear-gradient(90deg, rgba(7,3,10,0.8), transparent 22%, transparent 78%, rgba(7,3,10,0.84));
+      z-index: 8;
+    }
+
+    .brand {
+      position: fixed;
+      z-index: 20;
+      top: 28px;
+      left: 38px;
+      user-select: none;
+    }
+
+    .brand-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(26px, 4vw, 44px);
+      letter-spacing: 0.18em;
+      color: #f4d59b;
+      text-shadow: 0 0 22px rgba(217, 177, 115, 0.28);
+    }
+
+    .brand-sub {
+      margin-top: 8px;
+      color: rgba(255, 244, 232, 0.48);
+      font-size: 11px;
+      letter-spacing: 0.36em;
+      text-transform: uppercase;
+    }
+
+    .status {
+      position: fixed;
+      z-index: 20;
+      top: 30px;
+      right: 38px;
+      text-align: right;
+      color: rgba(255, 244, 232, 0.58);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .status b {
+      display: block;
+      margin-top: 8px;
+      color: #f0a1b6;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+    }
+
+    .poem {
+      position: fixed;
+      z-index: 18;
+      left: 50%;
+      top: 50%;
+      width: min(760px, calc(100vw - 48px));
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      text-shadow: 0 10px 38px rgba(0, 0, 0, 0.62);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .poem.hide {
+      opacity: 0;
+      transform: translate(-50%, -42%);
+    }
+
+    .poem-line {
+      display: block;
+      font-size: clamp(22px, 3.4vw, 42px);
+      line-height: 1.6;
+      letter-spacing: 0.08em;
+    }
+
+    .poem-line.gold {
+      color: #ead19b;
+      font-size: clamp(28px, 4.8vw, 60px);
+      letter-spacing: 0.18em;
+    }
+
+    .card-field {
+      position: absolute;
+      z-index: 10;
+      inset: 0;
+      transform-style: preserve-3d;
+      transition: transform 1.2s ease;
+    }
+
+    .memory-card {
+      --x: 0px;
+      --y: 0px;
+      --z: 0px;
+      --rx: 0deg;
+      --ry: 0deg;
+      --rz: 0deg;
+      --scale: 1;
+      --delay: 0s;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: clamp(104px, 11vw, 154px);
+      aspect-ratio: 0.72;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 22px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow:
+        0 20px 46px rgba(0, 0, 0, 0.48),
+        0 0 0 1px rgba(231, 120, 150, 0.08) inset;
+      transform:
+        translate3d(calc(-50% + var(--x)), calc(-50% + var(--y)), var(--z))
+        rotateX(var(--rx))
+        rotateY(var(--ry))
+        rotateZ(var(--rz))
+        scale(var(--scale));
+      transition:
+        transform 1.25s cubic-bezier(.2,.8,.2,1),
+        opacity 0.9s ease,
+        filter 0.9s ease,
+        box-shadow 0.35s ease;
+      cursor: pointer;
+      opacity: 0.9;
+      filter: saturate(0.9) brightness(0.92);
+      animation: cardBreath 5.8s ease-in-out infinite;
+      animation-delay: var(--delay);
+      will-change: transform;
+    }
+
+    .memory-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.08), transparent 34%),
+        linear-gradient(0deg, rgba(0,0,0,0.72), transparent 44%);
+      pointer-events: none;
+    }
+
+    .memory-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .memory-card small {
+      position: absolute;
+      z-index: 2;
+      left: 12px;
+      right: 12px;
+      bottom: 13px;
+      color: rgba(255, 247, 245, 0.82);
+      font-size: 10px;
+      line-height: 1.4;
+      letter-spacing: 0.08em;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.72);
+    }
+
+    .memory-card.focused {
+      z-index: 18;
+      opacity: 1;
+      filter: none;
+      box-shadow:
+        0 34px 90px rgba(0, 0, 0, 0.62),
+        0 0 42px rgba(231, 120, 150, 0.24),
+        0 0 0 1px rgba(255, 225, 232, 0.26) inset;
+    }
+
+    .focus-panel {
+      position: fixed;
+      z-index: 19;
+      left: 50%;
+      bottom: 64px;
+      width: min(520px, calc(100vw - 48px));
+      transform: translateX(-50%) translateY(18px);
+      opacity: 0;
+      pointer-events: none;
+      text-align: center;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+
+    .focus-panel.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .focus-title {
+      color: #f5dba1;
+      font-size: clamp(24px, 4vw, 44px);
+      letter-spacing: 0.12em;
+      text-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    }
+
+    .focus-desc {
+      margin-top: 12px;
+      color: rgba(255, 244, 240, 0.64);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .controls {
+      position: fixed;
+      z-index: 22;
+      right: 34px;
+      bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .control-btn {
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid rgba(244,160,176,0.24);
+      border-radius: 999px;
+      background: rgba(15, 6, 18, 0.58);
+      color: rgba(255, 244, 240, 0.76);
+      backdrop-filter: blur(12px);
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, background 0.2s, color 0.2s;
+    }
+
+    .control-btn:hover,
+    .control-btn.active {
+      transform: translateY(-1px);
+      border-color: rgba(244,160,176,0.52);
+      background: rgba(231, 120, 150, 0.18);
+      color: #fff;
+    }
+
+    .hint {
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      color: rgba(255, 244, 240, 0.34);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .petal {
+      position: absolute;
+      z-index: 9;
+      top: -24px;
+      width: 9px;
+      height: 13px;
+      border-radius: 9px 9px 9px 2px;
+      background: rgba(231, 120, 150, 0.72);
+      filter: blur(0.1px);
+      opacity: 0;
+      animation: petalDrop linear infinite;
+      pointer-events: none;
+    }
+
+    .glow-ring {
+      position: absolute;
+      z-index: 7;
+      left: 50%;
+      top: 58%;
+      width: min(720px, 76vw);
+      height: 150px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%) rotateX(66deg);
+      background: radial-gradient(ellipse, rgba(231,120,150,0.42), rgba(231,120,150,0.14) 38%, transparent 68%);
+      filter: blur(22px);
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+    }
+
+    .glow-on .glow-ring {
+      opacity: 0.72;
+    }
+
+    @keyframes starDrift {
+      from { transform: translate3d(0,0,-120px) scale(1.16); }
+      to { transform: translate3d(-90px,50px,-120px) scale(1.16); }
+    }
+
+    @keyframes petalDrop {
+      0% { transform: translate3d(0, -20px, 0) rotate(0deg); opacity: 0; }
+      12% { opacity: .82; }
+      100% { transform: translate3d(96px, 110vh, 0) rotate(270deg); opacity: 0; }
+    }
+
+    @keyframes cardBreath {
+      0%, 100% { margin-top: 0; }
+      50% { margin-top: -10px; }
+    }
+
+    @media (max-width: 760px) {
+      .brand { top: 20px; left: 20px; }
+      .brand-title { font-size: 28px; }
+      .brand-sub { letter-spacing: 0.18em; }
+      .status { top: 22px; right: 18px; font-size: 9px; }
+      .memory-card { width: clamp(76px, 22vw, 110px); border-radius: 16px; }
+      .poem { top: 46%; }
+      .controls {
+        left: 16px;
+        right: 16px;
+        bottom: 18px;
+        justify-content: space-between;
+      }
+      .control-btn { flex: 1; padding: 0 8px; font-size: 12px; }
+      .hint { display: none; }
+      .focus-panel { bottom: 86px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="scene glow-on" id="scene">
+    <div class="brand">
+      <div class="brand-title">我们</div>
+      <div class="brand-sub">eternal blossoms</div>
+    </div>
+
+    <div class="status">
+      <span id="modeText">valley: arrival / 入场</span>
+      <b id="progressText">0%</b>
+    </div>
+
+    <div class="poem" id="poem">
+      <span class="poem-line">你是所有方向里</span>
+      <span class="poem-line gold">唯一的目的地</span>
+    </div>
+
+    <div class="glow-ring"></div>
+    <div class="card-field" id="cardField"></div>
+
+    <div class="focus-panel" id="focusPanel">
+      <div class="focus-title" id="focusTitle">有你的时光</div>
+      <div class="focus-desc" id="focusDesc">每一张照片都是一个小小的入口，通往只有我们知道的那一天。</div>
+    </div>
+
+    <div class="controls">
+      <button class="control-btn" id="modeBtn" type="button">切换阵型</button>
+      <button class="control-btn active" id="glowBtn" type="button">恒光 ON</button>
+      <button class="control-btn" id="focusBtn" type="button">凝望</button>
+    </div>
+
+    <div class="hint">drag card center to move · double-click to reveal</div>
+  </main>
+
+  <script>
+    const photos = [
+      ["OUR TIME", "有你的时光", "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=520&q=78"],
+      ["QUIET SMILE", "安静浅笑", "https://images.unsplash.com/photo-1529634597503-139d3726fed5?auto=format&fit=crop&w=520&q=78"],
+      ["BLOOM", "花开那天", "https://images.unsplash.com/photo-1490750967868-88df5691cc53?auto=format&fit=crop&w=520&q=78"],
+      ["NIGHT", "夜色温柔", "https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=520&q=78"],
+      ["STARDUST", "星光落下", "https://images.unsplash.com/photo-1467810563316-b5476525c0f9?auto=format&fit=crop&w=520&q=78"],
+      ["PLATFORM", "等你出现", "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=520&q=78"],
+      ["GENTLE", "温柔瞬间", "https://images.unsplash.com/photo-1487530811015-780ef5c8d508?auto=format&fit=crop&w=520&q=78"],
+      ["SIGN IN", "见面之前", "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=520&q=78"],
+      ["HELLO", "第一次笑", "https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=520&q=78"],
+      ["DREAMY", "梦里也见", "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=520&q=78"],
+      ["BLUE ROSE", "蓝色玫瑰", "https://images.unsplash.com/photo-1517534573028-3db0dab0d31c?auto=format&fit=crop&w=520&q=78"],
+      ["SUNSET", "落日旁边", "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=520&q=78"],
+      ["DOODLE", "小小涂鸦", "https://images.unsplash.com/photo-1474552226712-ac0f0961a954?auto=format&fit=crop&w=520&q=78"],
+      ["GATE", "去见你的路", "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=520&q=78"],
+      ["WARM", "靠近一点", "https://images.unsplash.com/photo-1499346030926-9a72daac6c63?auto=format&fit=crop&w=520&q=78"],
+      ["SECRET", "只给你看", "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=520&q=78"],
+      ["LITTLE", "小小日常", "https://images.unsplash.com/photo-1515488764276-beab7607c1e6?auto=format&fit=crop&w=520&q=78"],
+      ["RING", "绕回身边", "https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=520&q=78"],
+      ["SWEET", "甜的证据", "https://images.unsplash.com/photo-1467810563316-b5476525c0f9?auto=format&fit=crop&w=520&q=78"],
+      ["FOREVER", "慢慢永远", "https://images.unsplash.com/photo-1487530811015-780ef5c8d508?auto=format&fit=crop&w=520&q=78"],
+      ["MOON", "月亮知道", "https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=520&q=78"],
+      ["KISS", "偷偷想你", "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=520&q=78"],
+      ["GLOW", "一直发光", "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=520&q=78"],
+      ["US", "我们", "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=520&q=78"]
+    ];
+
+    const modes = [
+      { key: "arrival", label: "valley: arrival / 入场", poem: ["你是所有方向里", "唯一的目的地"] },
+      { key: "wall", label: "valley: wall / 花墙", poem: ["时间奔流成浩瀚长河", "我此生只在你温柔的岸"] },
+      { key: "bloom", label: "valley: bloom / 花开", poem: ["你在身旁", "就是最好的时光"] },
+      { key: "orbit", label: "valley: orbit / 环绕", poem: ["所有的偶然", "都是命中注定的必然"] },
+      { key: "focus", label: "valley: focus / 凝望", poem: ["纵使东风把繁花吹散", "终会将我们吹回同一个原点"] }
+    ];
+
+    const scene = document.getElementById("scene");
+    const field = document.getElementById("cardField");
+    const poem = document.getElementById("poem");
+    const modeText = document.getElementById("modeText");
+    const progressText = document.getElementById("progressText");
+    const focusPanel = document.getElementById("focusPanel");
+    const focusTitle = document.getElementById("focusTitle");
+    const focusDesc = document.getElementById("focusDesc");
+    let modeIndex = 0;
+    let focusIndex = 0;
+    let autoTimer = null;
+
+    function clampCardCount() {
+      return window.innerWidth < 760 ? 14 : photos.length;
+    }
+
+    function buildCards() {
+      const count = clampCardCount();
+      field.innerHTML = photos.slice(0, count).map((item, index) => `
+        <button class="memory-card" type="button" data-index="${index}" style="--delay:${-(index % 8) * 0.36}s">
+          <img src="${item[2]}" alt="${item[1]}">
+          <small>${item[1]} / ${item[0]}</small>
+        </button>
+      `).join("");
+      field.querySelectorAll(".memory-card").forEach(card => {
+        card.addEventListener("click", () => {
+          focusIndex = Number(card.dataset.index) || 0;
+          applyMode("focus");
+          restartAuto();
+        });
+      });
+    }
+
+    function setCard(card, vars) {
+      Object.entries(vars).forEach(([key, value]) => card.style.setProperty(key, value));
+    }
+
+    function layoutArrival(cards) {
+      cards.forEach((card, index) => {
+        const spread = (index - (cards.length - 1) / 2) * 18;
+        setCard(card, {
+          "--x": `${spread}px`,
+          "--y": `${Math.sin(index) * 18}px`,
+          "--z": `${-360 - index * 9}px`,
+          "--rx": "0deg",
+          "--ry": `${spread / 8}deg`,
+          "--rz": `${spread / 18}deg`,
+          "--scale": "0.78"
+        });
+      });
+    }
+
+    function layoutWall(cards) {
+      const columns = window.innerWidth < 760 ? 4 : 8;
+      const gapX = window.innerWidth < 760 ? 82 : 128;
+      const gapY = window.innerWidth < 760 ? 104 : 154;
+      cards.forEach((card, index) => {
+        const col = index % columns;
+        const row = Math.floor(index / columns);
+        const x = (col - (columns - 1) / 2) * gapX;
+        const y = (row - Math.floor(cards.length / columns) / 2) * gapY + 18;
+        setCard(card, {
+          "--x": `${x}px`,
+          "--y": `${y}px`,
+          "--z": `${Math.sin(index * 1.7) * 80}px`,
+          "--rx": `${Math.sin(index) * 3}deg`,
+          "--ry": `${(col - columns / 2) * -3}deg`,
+          "--rz": `${Math.sin(index * 2) * 4}deg`,
+          "--scale": "0.92"
+        });
+      });
+    }
+
+    function layoutBloom(cards) {
+      const radius = window.innerWidth < 760 ? 138 : 250;
+      cards.forEach((card, index) => {
+        const angle = (index / cards.length) * Math.PI * 2;
+        const layer = index % 2 ? 0.72 : 1;
+        const x = Math.cos(angle) * radius * layer;
+        const y = Math.sin(angle) * radius * 0.62 * layer;
+        setCard(card, {
+          "--x": `${x}px`,
+          "--y": `${y}px`,
+          "--z": `${Math.sin(angle) * 120}px`,
+          "--rx": "0deg",
+          "--ry": `${Math.cos(angle) * -28}deg`,
+          "--rz": `${angle * 57.3 + 90}deg`,
+          "--scale": `${index % 3 === 0 ? 0.9 : 0.76}`
+        });
+      });
+    }
+
+    function layoutOrbit(cards) {
+      const radius = window.innerWidth < 760 ? 154 : 330;
+      cards.forEach((card, index) => {
+        const angle = (index / cards.length) * Math.PI * 2 + modeIndex * 0.18;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * 260;
+        const y = Math.sin(angle * 2) * (window.innerWidth < 760 ? 38 : 70);
+        setCard(card, {
+          "--x": `${x}px`,
+          "--y": `${y}px`,
+          "--z": `${z}px`,
+          "--rx": "0deg",
+          "--ry": `${-angle * 57.3 + 90}deg`,
+          "--rz": `${Math.sin(angle) * 4}deg`,
+          "--scale": `${0.76 + (Math.sin(angle) + 1) * 0.12}`
+        });
+      });
+    }
+
+    function layoutFocus(cards) {
+      cards.forEach((card, index) => {
+        const offset = index - focusIndex;
+        const wrapped = Math.abs(offset) > cards.length / 2
+          ? offset - Math.sign(offset) * cards.length
+          : offset;
+        const isFocus = index === focusIndex;
+        card.classList.toggle("focused", isFocus);
+        setCard(card, {
+          "--x": `${wrapped * (window.innerWidth < 760 ? 28 : 54)}px`,
+          "--y": `${isFocus ? -12 : 82 + Math.abs(wrapped) * 4}px`,
+          "--z": `${isFocus ? 260 : -Math.abs(wrapped) * 34}px`,
+          "--rx": `${isFocus ? 0 : 8}deg`,
+          "--ry": `${wrapped * -8}deg`,
+          "--rz": `${wrapped * 2.2}deg`,
+          "--scale": `${isFocus ? (window.innerWidth < 760 ? 1.62 : 2.18) : 0.72}`
+        });
+      });
+      const item = photos[focusIndex] || photos[0];
+      focusTitle.textContent = item[1];
+      focusDesc.textContent = "这张会从你们的私密相册里读取。未来可以显示日期、备注、地点，或者 AI 替你们写一句温柔的小标题。";
+    }
+
+    function applyMode(forceKey) {
+      const forceIndex = forceKey ? modes.findIndex(mode => mode.key === forceKey) : -1;
+      if (forceIndex >= 0) modeIndex = forceIndex;
+      const mode = modes[modeIndex];
+      const cards = [...field.querySelectorAll(".memory-card")];
+      cards.forEach(card => card.classList.remove("focused"));
+      focusPanel.classList.toggle("show", mode.key === "focus");
+      poem.classList.toggle("hide", mode.key === "focus");
+      poem.innerHTML = `<span class="poem-line">${mode.poem[0]}</span><span class="poem-line gold">${mode.poem[1]}</span>`;
+      modeText.textContent = mode.label;
+      progressText.textContent = `${Math.round((modeIndex / (modes.length - 1)) * 100)}%`;
+      if (mode.key === "arrival") layoutArrival(cards);
+      if (mode.key === "wall") layoutWall(cards);
+      if (mode.key === "bloom") layoutBloom(cards);
+      if (mode.key === "orbit") layoutOrbit(cards);
+      if (mode.key === "focus") layoutFocus(cards);
+    }
+
+    function nextMode() {
+      modeIndex = (modeIndex + 1) % modes.length;
+      if (modes[modeIndex].key === "focus") focusIndex = (focusIndex + 5) % clampCardCount();
+      applyMode();
+    }
+
+    function restartAuto() {
+      clearInterval(autoTimer);
+      autoTimer = setInterval(nextMode, 5400);
+    }
+
+    function createPetals() {
+      for (let i = 0; i < 34; i += 1) {
+        const petal = document.createElement("i");
+        petal.className = "petal";
+        petal.style.left = `${Math.random() * 100}%`;
+        petal.style.animationDuration = `${10 + Math.random() * 16}s`;
+        petal.style.animationDelay = `${-Math.random() * 18}s`;
+        petal.style.transform = `scale(${0.65 + Math.random() * 1.25})`;
+        scene.appendChild(petal);
+      }
+    }
+
+    document.getElementById("modeBtn").addEventListener("click", () => {
+      nextMode();
+      restartAuto();
+    });
+    document.getElementById("glowBtn").addEventListener("click", event => {
+      scene.classList.toggle("glow-on");
+      const on = scene.classList.contains("glow-on");
+      event.currentTarget.textContent = `恒光 ${on ? "ON" : "OFF"}`;
+      event.currentTarget.classList.toggle("active", on);
+    });
+    document.getElementById("focusBtn").addEventListener("click", () => {
+      focusIndex = (focusIndex + 1) % clampCardCount();
+      applyMode("focus");
+      restartAuto();
+    });
+    window.addEventListener("resize", () => {
+      buildCards();
+      applyMode();
+    });
+
+    buildCards();
+    createPetals();
+    applyMode();
+    restartAuto();
+  </script>
+</body>
+</html>
