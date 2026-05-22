@@ -1,0 +1,1119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>相册回忆放映原型</title>
+  <style>
+    :root {
+      --bg: #130608;
+      --panel: rgba(55, 21, 26, 0.58);
+      --panel-strong: rgba(38, 13, 17, 0.82);
+      --line: rgba(244, 160, 176, 0.28);
+      --line-bright: rgba(244, 160, 176, 0.58);
+      --rose: #e8748a;
+      --rose-deep: #bd4564;
+      --gold: #e0a46f;
+      --text: #fff6f7;
+      --muted: rgba(255, 238, 240, 0.68);
+      --soft: rgba(255, 238, 240, 0.42);
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        linear-gradient(180deg, rgba(18, 5, 8, 0.46), rgba(18, 5, 8, 0.88)),
+        url("https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=1920&q=72") center / cover fixed;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(232, 116, 138, 0.18), transparent 24%),
+        radial-gradient(circle at 78% 14%, rgba(224, 164, 111, 0.12), transparent 26%),
+        linear-gradient(90deg, rgba(60, 16, 22, 0.34), transparent 42%, rgba(20, 7, 9, 0.6));
+      z-index: -1;
+    }
+
+    button, select {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1160px, calc(100vw - 36px));
+      margin: 34px auto;
+    }
+
+    .prototype-note {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .prototype-note strong {
+      color: var(--text);
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .album-card {
+      min-height: 640px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(72, 29, 33, 0.62), rgba(28, 9, 12, 0.62));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .album-card::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 42%;
+      background: linear-gradient(0deg, rgba(232, 116, 138, 0.12), transparent);
+      pointer-events: none;
+    }
+
+    .album-head {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      padding-bottom: 22px;
+      border-bottom: 1px solid rgba(244, 160, 176, 0.18);
+    }
+
+    .album-title {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 3vw, 38px);
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .album-subtitle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+      max-width: 620px;
+    }
+
+    .album-count {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(3, 86px);
+      flex-shrink: 0;
+    }
+
+    .count-box {
+      padding: 13px 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(244, 160, 176, 0.18);
+      background: rgba(20, 7, 9, 0.32);
+      text-align: center;
+    }
+
+    .count-box b {
+      display: block;
+      font-size: 19px;
+      margin-bottom: 3px;
+    }
+
+    .count-box span {
+      display: block;
+      color: var(--soft);
+      font-size: 12px;
+    }
+
+    .album-toolbar {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 20px 0;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tab,
+    .ghost-btn,
+    .showcase-btn,
+    .control-btn,
+    .mode-btn {
+      border: 1px solid rgba(244, 160, 176, 0.24);
+      color: var(--muted);
+      background: rgba(20, 7, 9, 0.22);
+      cursor: pointer;
+      transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease, color 0.22s ease;
+    }
+
+    .tab {
+      min-height: 36px;
+      padding: 0 16px;
+      border-radius: 999px;
+    }
+
+    .tab.active,
+    .tab:hover {
+      color: #fff;
+      border-color: var(--line-bright);
+      background: rgba(232, 116, 138, 0.26);
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .showcase-btn {
+      min-height: 40px;
+      padding: 0 18px;
+      border-radius: 999px;
+      color: #fff;
+      border-color: rgba(244, 160, 176, 0.46);
+      background: linear-gradient(135deg, rgba(232, 116, 138, 0.76), rgba(224, 164, 111, 0.52));
+      box-shadow: 0 10px 28px rgba(232, 116, 138, 0.22);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .showcase-btn:hover,
+    .control-btn:hover,
+    .mode-btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-bright);
+      color: #fff;
+    }
+
+    .ghost-btn {
+      min-height: 40px;
+      padding: 0 15px;
+      border-radius: 12px;
+    }
+
+    .demo-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+      gap: 16px;
+    }
+
+    .featured,
+    .thumb {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(244, 160, 176, 0.2);
+      background: rgba(20, 7, 9, 0.36);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+    }
+
+    .featured {
+      min-height: 430px;
+      border-radius: 22px;
+    }
+
+    .thumb-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .thumb {
+      min-height: 207px;
+      border-radius: 18px;
+    }
+
+    .featured img,
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+      filter: saturate(0.96);
+      transition: transform 0.5s ease;
+    }
+
+    .featured:hover img,
+    .thumb:hover img {
+      transform: scale(1.04);
+    }
+
+    .photo-info {
+      position: absolute;
+      inset: auto 0 0;
+      padding: 46px 18px 18px;
+      background: linear-gradient(0deg, rgba(9, 3, 4, 0.88), transparent);
+    }
+
+    .photo-info b {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 17px;
+    }
+
+    .photo-info span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .media-pill {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      z-index: 1;
+      padding: 5px 10px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(22, 8, 10, 0.58);
+      backdrop-filter: blur(10px);
+    }
+
+    .showcase {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: stretch;
+      justify-content: center;
+      padding: 28px;
+      z-index: 30;
+      background: rgba(10, 3, 5, 0.76);
+      backdrop-filter: blur(18px);
+    }
+
+    .showcase.open {
+      display: flex;
+    }
+
+    .showcase-shell {
+      width: min(1180px, 100%);
+      min-height: min(760px, calc(100vh - 56px));
+      border-radius: 28px;
+      border: 1px solid rgba(244, 160, 176, 0.34);
+      background:
+        linear-gradient(160deg, rgba(47, 15, 19, 0.66), rgba(15, 5, 8, 0.84)),
+        var(--active-bg) center / cover;
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.58);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .showcase-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 48% 36%, rgba(232, 116, 138, 0.2), transparent 24%),
+        linear-gradient(90deg, rgba(12, 4, 6, 0.48), transparent 36%, rgba(12, 4, 6, 0.58));
+      backdrop-filter: blur(22px) saturate(0.95);
+      transform: scale(1.04);
+    }
+
+    .showcase-top,
+    .showcase-bottom {
+      position: absolute;
+      z-index: 4;
+      left: 22px;
+      right: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .showcase-top {
+      top: 18px;
+    }
+
+    .showcase-bottom {
+      bottom: 18px;
+      align-items: flex-end;
+    }
+
+    .showcase-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .showcase-title h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .showcase-title p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .spark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: linear-gradient(135deg, rgba(232, 116, 138, 0.84), rgba(224, 164, 111, 0.7));
+      box-shadow: 0 0 32px rgba(232, 116, 138, 0.36);
+      flex: 0 0 auto;
+    }
+
+    .top-actions,
+    .play-actions,
+    .modes {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .control-btn,
+    .mode-btn {
+      min-height: 38px;
+      border-radius: 999px;
+      background: rgba(24, 8, 11, 0.52);
+      backdrop-filter: blur(12px);
+    }
+
+    .control-btn {
+      min-width: 38px;
+      padding: 0 13px;
+      color: var(--muted);
+    }
+
+    .mode-btn {
+      padding: 0 13px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .mode-btn.active {
+      color: #fff;
+      border-color: rgba(244, 160, 176, 0.62);
+      background: rgba(232, 116, 138, 0.28);
+    }
+
+    .stage {
+      position: absolute;
+      inset: 76px 32px 92px;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      perspective: 1000px;
+    }
+
+    .main-photo {
+      width: min(58vw, 620px);
+      height: min(54vh, 430px);
+      min-height: 300px;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.22);
+      overflow: hidden;
+      position: relative;
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.5),
+        0 0 0 12px rgba(232, 116, 138, 0.06);
+      transform: translateZ(80px);
+      animation: mainFloat 7s ease-in-out infinite;
+    }
+
+    .main-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .main-photo::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 54%, rgba(10, 3, 5, 0.72));
+    }
+
+    .caption {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      bottom: 18px;
+      z-index: 2;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .caption b {
+      display: block;
+      margin-bottom: 6px;
+      font-size: clamp(18px, 2.2vw, 28px);
+    }
+
+    .caption span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .caption .date {
+      flex: 0 0 auto;
+      color: #ffd4da;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .orbit {
+      position: absolute;
+      width: 144px;
+      height: 104px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(20, 7, 9, 0.42);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+      transform: translate3d(var(--x), var(--y), var(--z)) rotate(var(--r));
+      opacity: var(--o);
+      animation: orbitFloat 6.4s ease-in-out infinite;
+      animation-delay: var(--d);
+    }
+
+    .orbit img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .orbit:nth-child(2) { --x: -390px; --y: -154px; --z: -90px; --r: -8deg; --o: .72; --d: -1s; }
+    .orbit:nth-child(3) { --x: 374px; --y: -122px; --z: -80px; --r: 8deg; --o: .72; --d: -2.2s; }
+    .orbit:nth-child(4) { --x: -342px; --y: 174px; --z: -120px; --r: 7deg; --o: .58; --d: -3s; }
+    .orbit:nth-child(5) { --x: 350px; --y: 178px; --z: -120px; --r: -7deg; --o: .58; --d: -4s; }
+    .orbit:nth-child(6) { --x: 0; --y: -230px; --z: -180px; --r: 2deg; --o: .42; --d: -5s; }
+
+    .progress-wrap {
+      min-width: min(420px, 44vw);
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .progress {
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      overflow: hidden;
+    }
+
+    .progress i {
+      display: block;
+      height: 100%;
+      width: var(--progress, 20%);
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--rose), var(--gold));
+      transition: width 0.3s ease;
+    }
+
+    .filmstrip {
+      position: absolute;
+      z-index: 3;
+      left: 50%;
+      bottom: 78px;
+      width: min(520px, calc(100% - 52px));
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 18px;
+      border: 1px solid rgba(244,160,176,0.18);
+      background: rgba(12,4,6,0.34);
+      backdrop-filter: blur(12px);
+      overflow-x: auto;
+    }
+
+    .filmstrip button {
+      width: 54px;
+      height: 42px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 0;
+      overflow: hidden;
+      flex: 0 0 auto;
+      cursor: pointer;
+      background: rgba(255,255,255,0.08);
+      opacity: .62;
+    }
+
+    .filmstrip button.active {
+      border-color: rgba(244,160,176,0.72);
+      opacity: 1;
+    }
+
+    .filmstrip img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .petal {
+      position: absolute;
+      z-index: 1;
+      width: 8px;
+      height: 12px;
+      border-radius: 8px 8px 8px 2px;
+      background: rgba(244, 160, 176, 0.72);
+      filter: blur(.1px);
+      animation: petalDrop linear infinite;
+    }
+
+    .petal:nth-child(1) { left: 8%; animation-duration: 12s; animation-delay: -2s; }
+    .petal:nth-child(2) { left: 23%; animation-duration: 15s; animation-delay: -6s; }
+    .petal:nth-child(3) { left: 68%; animation-duration: 13s; animation-delay: -4s; }
+    .petal:nth-child(4) { left: 82%; animation-duration: 16s; animation-delay: -9s; }
+    .petal:nth-child(5) { left: 54%; animation-duration: 14s; animation-delay: -8s; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(30px);
+      opacity: 0;
+      z-index: 60;
+      padding: 12px 18px;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(28, 9, 12, 0.88);
+      border: 1px solid rgba(244,160,176,0.32);
+      transition: opacity .25s ease, transform .25s ease;
+      pointer-events: none;
+      font-size: 13px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @keyframes mainFloat {
+      0%, 100% { transform: translate3d(0, 0, 80px) scale(1); }
+      50% { transform: translate3d(0, -10px, 80px) scale(1.012); }
+    }
+
+    @keyframes orbitFloat {
+      0%, 100% { margin-top: 0; }
+      50% { margin-top: -12px; }
+    }
+
+    @keyframes petalDrop {
+      0% { top: -24px; transform: translateX(0) rotate(0deg); opacity: 0; }
+      12% { opacity: .9; }
+      100% { top: calc(100% + 24px); transform: translateX(70px) rotate(220deg); opacity: 0; }
+    }
+
+    @media (max-width: 820px) {
+      .page {
+        width: min(100vw - 22px, 640px);
+        margin: 18px auto;
+      }
+
+      .prototype-note,
+      .album-head {
+        display: block;
+      }
+
+      .album-card {
+        padding: 18px;
+        min-height: 0;
+        border-radius: 22px;
+      }
+
+      .album-count {
+        margin-top: 16px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .album-toolbar,
+      .toolbar-actions {
+        align-items: stretch;
+        justify-content: flex-start;
+      }
+
+      .showcase-btn,
+      .ghost-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .featured {
+        min-height: 300px;
+      }
+
+      .thumb {
+        min-height: 150px;
+      }
+
+      .showcase {
+        padding: 0;
+      }
+
+      .showcase-shell {
+        width: 100%;
+        min-height: 100vh;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+      }
+
+      .showcase-top {
+        top: 14px;
+        left: 14px;
+        right: 14px;
+      }
+
+      .showcase-bottom {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .top-actions {
+        flex-wrap: nowrap;
+      }
+
+      .mode-btn:not(.active) {
+        display: none;
+      }
+
+      .stage {
+        inset: 86px 14px 152px;
+      }
+
+      .main-photo {
+        width: min(100%, 430px);
+        height: min(55vh, 460px);
+        min-height: 340px;
+        border-radius: 24px;
+      }
+
+      .caption {
+        display: block;
+      }
+
+      .caption .date {
+        margin-top: 8px;
+      }
+
+      .orbit {
+        width: 92px;
+        height: 68px;
+        border-radius: 14px;
+      }
+
+      .orbit:nth-child(2) { --x: -120px; --y: -176px; --z: -100px; }
+      .orbit:nth-child(3) { --x: 120px; --y: -166px; --z: -100px; }
+      .orbit:nth-child(4) { --x: -124px; --y: 188px; --z: -120px; }
+      .orbit:nth-child(5) { --x: 124px; --y: 178px; --z: -120px; }
+      .orbit:nth-child(6) { display: none; }
+
+      .progress-wrap {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .play-actions {
+        justify-content: space-between;
+      }
+
+      .play-actions .control-btn {
+        flex: 1;
+      }
+
+      .filmstrip {
+        bottom: 112px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="prototype-note">
+      <div>
+        <strong>相册回忆放映原型</strong>
+        <div>这是一个独立 HTML 预览页，只演示入口、放映层和动效气质，不连接后台数据。</div>
+      </div>
+      <div>建议入口：相册工具栏右侧</div>
+    </div>
+
+    <section class="album-card">
+      <header class="album-head">
+        <div>
+          <h1 class="album-title">时光相册</h1>
+          <p class="album-subtitle">点开“回忆放映”，把相册里已经上传的照片、视频和实况图，临时组成一个沉浸式放映厅。</p>
+        </div>
+        <div class="album-count">
+          <div class="count-box"><b>1289</b><span>照片</span></div>
+          <div class="count-box"><b>86</b><span>视频</span></div>
+          <div class="count-box"><b>45</b><span>收藏</span></div>
+        </div>
+      </header>
+
+      <div class="album-toolbar">
+        <div class="tabs" aria-label="相册分类">
+          <button class="tab active">全部</button>
+          <button class="tab">旅行</button>
+          <button class="tab">日常</button>
+          <button class="tab">约会</button>
+          <button class="tab">夜晚</button>
+        </div>
+        <div class="toolbar-actions">
+          <button class="showcase-btn" type="button" id="openShowcase">
+            <span>✦</span>
+            <span>回忆放映</span>
+          </button>
+          <button class="ghost-btn" type="button">最新上传</button>
+          <button class="ghost-btn" type="button">上传照片</button>
+        </div>
+      </div>
+
+      <div class="demo-grid" aria-label="相册列表示意">
+        <article class="featured">
+          <span class="media-pill">今日主图</span>
+          <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1100&q=72" alt="海边日落">
+          <div class="photo-info">
+            <b>日落与海，还有你</b>
+            <span>那天的晚霞很美，但更美的是一起看晚霞的时光。</span>
+          </div>
+        </article>
+        <div class="thumb-grid">
+          <article class="thumb">
+            <span class="media-pill">实况</span>
+            <img src="https://images.unsplash.com/photo-1490750967868-88df5691cc53?auto=format&fit=crop&w=680&q=72" alt="花">
+            <div class="photo-info"><b>花开的季节</b><span>2026.04.18</span></div>
+          </article>
+          <article class="thumb">
+            <span class="media-pill">视频</span>
+            <img src="https://images.unsplash.com/photo-1467810563316-b5476525c0f9?auto=format&fit=crop&w=680&q=72" alt="烟火">
+            <div class="photo-info"><b>烟火时分</b><span>00:16</span></div>
+          </article>
+          <article class="thumb">
+            <img src="https://images.unsplash.com/photo-1529634597503-139d3726fed5?auto=format&fit=crop&w=680&q=72" alt="牵手">
+            <div class="photo-info"><b>牵着你的手</b><span>2026.05.20</span></div>
+          </article>
+          <article class="thumb">
+            <img src="https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=680&q=72" alt="夜色">
+            <div class="photo-info"><b>夜色中的你</b><span>2026.06.01</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="showcase" id="showcase" aria-hidden="true">
+    <div class="showcase-shell" id="showcaseShell">
+      <i class="petal"></i>
+      <i class="petal"></i>
+      <i class="petal"></i>
+      <i class="petal"></i>
+      <i class="petal"></i>
+
+      <div class="showcase-top">
+        <div class="showcase-title">
+          <div class="spark">✦</div>
+          <div>
+            <h2>回忆放映</h2>
+            <p id="showcaseHint">从当前相册筛选结果里自动播放</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="mode-btn active" type="button" data-mode="star">记忆星河</button>
+          <button class="mode-btn" type="button" data-mode="film">时间胶片</button>
+          <button class="control-btn" type="button" id="closeShowcase" aria-label="关闭">×</button>
+        </div>
+      </div>
+
+      <div class="stage" id="stage">
+        <article class="main-photo">
+          <img id="mainImage" alt="">
+          <div class="caption">
+            <div>
+              <b id="mainTitle"></b>
+              <span id="mainDesc"></span>
+            </div>
+            <div class="date" id="mainDate"></div>
+          </div>
+        </article>
+        <button class="orbit" type="button" data-jump="1"><img alt=""></button>
+        <button class="orbit" type="button" data-jump="2"><img alt=""></button>
+        <button class="orbit" type="button" data-jump="3"><img alt=""></button>
+        <button class="orbit" type="button" data-jump="4"><img alt=""></button>
+        <button class="orbit" type="button" data-jump="5"><img alt=""></button>
+      </div>
+
+      <div class="filmstrip" id="filmstrip" aria-label="缩略图导航"></div>
+
+      <div class="showcase-bottom">
+        <div class="progress-wrap">
+          <div class="progress-meta">
+            <span id="progressText">01 / 06</span>
+            <span id="speedText">标准速度</span>
+          </div>
+          <div class="progress"><i id="progressBar"></i></div>
+        </div>
+        <div class="play-actions">
+          <button class="control-btn" type="button" id="prevBtn">上一张</button>
+          <button class="control-btn" type="button" id="playBtn">暂停</button>
+          <button class="control-btn" type="button" id="nextBtn">下一张</button>
+          <button class="control-btn" type="button" id="speedBtn">速度</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast">这是原型按钮，后续接入真实相册数据。</div>
+
+  <script>
+    const items = [
+      {
+        title: "日落与海，还有你",
+        desc: "那天的晚霞很美，但更美的是一起看晚霞的时光。",
+        date: "2026.05.20",
+        type: "照片",
+        src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=76"
+      },
+      {
+        title: "花开的季节",
+        desc: "如果风也有记忆，它一定记得这一天你笑起来的样子。",
+        date: "2026.04.18",
+        type: "实况",
+        src: "https://images.unsplash.com/photo-1490750967868-88df5691cc53?auto=format&fit=crop&w=1200&q=76"
+      },
+      {
+        title: "烟火时分",
+        desc: "视频会先展示封面，点开后再播放，避免突然出声。",
+        date: "00:16",
+        type: "视频",
+        src: "https://images.unsplash.com/photo-1467810563316-b5476525c0f9?auto=format&fit=crop&w=1200&q=76"
+      },
+      {
+        title: "牵着你的手",
+        desc: "普通的小路，也会因为一起走过而变得很特别。",
+        date: "2026.05.21",
+        type: "照片",
+        src: "https://images.unsplash.com/photo-1529634597503-139d3726fed5?auto=format&fit=crop&w=1200&q=76"
+      },
+      {
+        title: "夜色中的你",
+        desc: "慢一点播放，照片周围会轻轻漂浮，像在翻一段梦。",
+        date: "2026.06.01",
+        type: "照片",
+        src: "https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=1200&q=76"
+      },
+      {
+        title: "周末的浪漫小花",
+        desc: "展示层会直接复用当前相册里的图片，不需要重新上传。",
+        date: "2026.06.08",
+        type: "照片",
+        src: "https://images.unsplash.com/photo-1487530811015-780ef5c8d508?auto=format&fit=crop&w=1200&q=76"
+      }
+    ];
+
+    const showcase = document.getElementById("showcase");
+    const shell = document.getElementById("showcaseShell");
+    const mainImage = document.getElementById("mainImage");
+    const mainTitle = document.getElementById("mainTitle");
+    const mainDesc = document.getElementById("mainDesc");
+    const mainDate = document.getElementById("mainDate");
+    const progressText = document.getElementById("progressText");
+    const progressBar = document.getElementById("progressBar");
+    const speedText = document.getElementById("speedText");
+    const playBtn = document.getElementById("playBtn");
+    const filmstrip = document.getElementById("filmstrip");
+    const toast = document.getElementById("toast");
+
+    let activeIndex = 0;
+    let playing = true;
+    let speedIndex = 1;
+    let timer = null;
+    const speeds = [
+      { label: "慢速", delay: 5200 },
+      { label: "标准速度", delay: 3600 },
+      { label: "快速", delay: 2300 }
+    ];
+
+    function next(offset = 1) {
+      activeIndex = (activeIndex + offset + items.length) % items.length;
+      render();
+      restartTimer();
+    }
+
+    function render() {
+      const item = items[activeIndex];
+      shell.style.setProperty("--active-bg", `url("${item.src}")`);
+      mainImage.src = item.src;
+      mainImage.alt = item.title;
+      mainTitle.textContent = item.title;
+      mainDesc.textContent = `${item.type} · ${item.desc}`;
+      mainDate.textContent = item.date;
+      progressText.textContent = `${String(activeIndex + 1).padStart(2, "0")} / ${String(items.length).padStart(2, "0")}`;
+      progressBar.style.setProperty("--progress", `${((activeIndex + 1) / items.length) * 100}%`);
+      speedText.textContent = speeds[speedIndex].label;
+
+      document.querySelectorAll(".orbit").forEach((node, index) => {
+        const orbitItem = items[(activeIndex + index + 1) % items.length];
+        const img = node.querySelector("img");
+        img.src = orbitItem.src;
+        img.alt = orbitItem.title;
+        node.title = orbitItem.title;
+      });
+
+      [...filmstrip.children].forEach((button, index) => {
+        button.classList.toggle("active", index === activeIndex);
+      });
+    }
+
+    function openShowcase() {
+      showcase.classList.add("open");
+      showcase.setAttribute("aria-hidden", "false");
+      playing = true;
+      playBtn.textContent = "暂停";
+      render();
+      restartTimer();
+    }
+
+    function closeShowcase() {
+      showcase.classList.remove("open");
+      showcase.setAttribute("aria-hidden", "true");
+      clearInterval(timer);
+    }
+
+    function restartTimer() {
+      clearInterval(timer);
+      if (!playing || !showcase.classList.contains("open")) return;
+      timer = setInterval(() => next(1), speeds[speedIndex].delay);
+    }
+
+    function buildFilmstrip() {
+      filmstrip.innerHTML = items.map((item, index) => `
+        <button type="button" aria-label="跳到 ${item.title}" data-index="${index}">
+          <img src="${item.src}" alt="">
+        </button>
+      `).join("");
+      filmstrip.querySelectorAll("button").forEach(button => {
+        button.addEventListener("click", () => {
+          activeIndex = Number(button.dataset.index) || 0;
+          render();
+          restartTimer();
+        });
+      });
+    }
+
+    function showToast() {
+      toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    document.getElementById("openShowcase").addEventListener("click", openShowcase);
+    document.getElementById("closeShowcase").addEventListener("click", closeShowcase);
+    document.getElementById("prevBtn").addEventListener("click", () => next(-1));
+    document.getElementById("nextBtn").addEventListener("click", () => next(1));
+    document.getElementById("speedBtn").addEventListener("click", () => {
+      speedIndex = (speedIndex + 1) % speeds.length;
+      render();
+      restartTimer();
+    });
+    playBtn.addEventListener("click", () => {
+      playing = !playing;
+      playBtn.textContent = playing ? "暂停" : "继续";
+      restartTimer();
+    });
+    document.querySelectorAll(".orbit").forEach(node => {
+      node.addEventListener("click", () => {
+        next(Number(node.dataset.jump) || 1);
+      });
+    });
+    document.querySelectorAll(".mode-btn").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".mode-btn").forEach(item => item.classList.remove("active"));
+        button.classList.add("active");
+        showToast();
+      });
+    });
+    document.addEventListener("keydown", event => {
+      if (!showcase.classList.contains("open")) return;
+      if (event.key === "Escape") closeShowcase();
+      if (event.key === "ArrowLeft") next(-1);
+      if (event.key === "ArrowRight") next(1);
+      if (event.key === " ") {
+        event.preventDefault();
+        playBtn.click();
+      }
+    });
+
+    buildFilmstrip();
+    render();
+  </script>
+</body>
+</html>
