@@ -40,6 +40,9 @@ body {
   overflow-x: hidden;
   cursor: default;
 }
+body.album-showcase-open {
+  overflow: hidden;
+}
 
 /* ===== BACKGROUND ===== */
 .bg-image {
@@ -5019,6 +5022,8 @@ let albumShowcaseIndex = 0;
 let albumShowcasePlaying = false;
 let albumShowcaseSpeedIndex = 1;
 let albumShowcaseTimer = null;
+let albumShowcaseScrollX = 0;
+let albumShowcaseScrollY = 0;
 const ALBUM_SHOWCASE_SPEEDS = [
   { label: '慢速', delay: 5200 },
   { label: '标准速度', delay: 3600 },
@@ -5495,6 +5500,16 @@ function getAlbumShowcaseIndex(offset = 0) {
   return (albumShowcaseIndex + offset + albumShowcaseItems.length) % albumShowcaseItems.length;
 }
 
+function centerAlbumShowcaseThumb(button) {
+  const strip = document.getElementById('albumShowcaseStrip');
+  if (!strip || !button) return;
+  const targetLeft = button.offsetLeft - (strip.clientWidth - button.offsetWidth) / 2;
+  strip.scrollTo({
+    left: Math.max(0, targetLeft),
+    behavior: 'smooth',
+  });
+}
+
 function renderAlbumShowcaseStrip() {
   const strip = document.getElementById('albumShowcaseStrip');
   if (!strip) return;
@@ -5546,7 +5561,7 @@ function renderAlbumShowcase() {
   if (nextPeek) nextPeek.innerHTML = albumShowcaseThumbMarkup(albumShowcaseItems[getAlbumShowcaseIndex(1)]);
   renderAlbumShowcaseStrip();
   const activeThumb = document.querySelector('#albumShowcaseStrip button.active');
-  if (activeThumb) activeThumb.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  centerAlbumShowcaseThumb(activeThumb);
 }
 
 function restartAlbumShowcaseTimer() {
@@ -5572,6 +5587,10 @@ function openAlbumShowcase() {
   const modal = document.getElementById('albumShowcase');
   const playBtn = document.getElementById('albumShowcasePlayBtn');
   if (!modal) return;
+  albumShowcaseScrollX = window.scrollX || document.documentElement.scrollLeft || 0;
+  albumShowcaseScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.classList.add('album-showcase-open');
+  if (albumShowcaseScrollX) window.scrollTo(0, albumShowcaseScrollY);
   modal.classList.add('show');
   modal.setAttribute('aria-hidden', 'false');
   if (playBtn) playBtn.textContent = '暂停';
@@ -5585,6 +5604,8 @@ function closeAlbumShowcase() {
   albumShowcasePlaying = false;
   clearInterval(albumShowcaseTimer);
   if (media) media.innerHTML = '';
+  document.body.classList.remove('album-showcase-open');
+  window.scrollTo(albumShowcaseScrollX, albumShowcaseScrollY);
   if (modal) {
     modal.classList.remove('show');
     modal.setAttribute('aria-hidden', 'true');
