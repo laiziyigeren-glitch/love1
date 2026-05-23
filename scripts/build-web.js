@@ -9,6 +9,38 @@ function copyFile(source, target) {
   fs.copyFileSync(source, target);
 }
 
+const DEPLOYABLE_EXTENSIONS = new Set([
+  '.html',
+  '.css',
+  '.js',
+  '.mjs',
+  '.json',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.svg',
+  '.ico',
+  '.mp3',
+  '.wav',
+  '.ogg',
+  '.mid',
+  '.ttf',
+  '.woff',
+  '.woff2',
+  '.txt'
+]);
+
+const IGNORED_DIRS = new Set(['.git', '.idea', '__MACOSX']);
+const IGNORED_FILES = new Set(['desktop.ini', 'thumbs.db', '.ds_store']);
+
+function shouldCopyStaticFile(filePath) {
+  const base = path.basename(filePath).toLowerCase();
+  if (IGNORED_FILES.has(base)) return false;
+  return DEPLOYABLE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
 function copyDir(source, target) {
   if (!fs.existsSync(source)) return;
   fs.mkdirSync(target, { recursive: true });
@@ -16,8 +48,9 @@ function copyDir(source, target) {
     const sourcePath = path.join(source, entry.name);
     const targetPath = path.join(target, entry.name);
     if (entry.isDirectory()) {
+      if (IGNORED_DIRS.has(entry.name.toLowerCase())) continue;
       copyDir(sourcePath, targetPath);
-    } else if (entry.isFile()) {
+    } else if (entry.isFile() && shouldCopyStaticFile(sourcePath)) {
       copyFile(sourcePath, targetPath);
     }
   }
